@@ -1,0 +1,114 @@
+﻿@page "/usuarios"
+@inject IUsersRepository usersRepository
+
+
+<div class="bg-light rounded h-500 p-12">
+    <a  @onclick="() => modal.Open()"class="btn btn-square btn-outline-primary m-2" data-bs-toggle="tooltip" data-bs-placement="left" title="Nuevo ">
+        <i class="fas fa-user-plus"></i>
+    </a>
+    <h3 class="mb-4" style="text-align:center"> Lista de Usuarios</h3>
+
+    <GenericList List="Users">
+        <WholeListTemplate>
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Nombres</th>
+                            <th>Apellidos</th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in Users)
+                        {
+                            <tr>
+                                <td>
+                                    @user.Email
+                                </td>
+                                <td>
+                                    @user.FirstName
+                                </td>
+                                <td>
+                                    @user.LastName
+                                </td>
+                                <td>
+                                    <a href="/users/edit/@user.Email" data-bs-toggle="tooltip" data-bs-placement="left" title="Editar ">
+                                        <i class="fas fa-user-edit"></i>
+                                    </a>
+                                </td>
+
+                                <td>
+                                    <a href="/users/edit/@user.Email" data-bs-toggle="tooltip" data-bs-placement="left" title="Cambiar Password">
+                                        <i class="fas fa-key"></i>
+                                    </a>
+                                </td>
+                                <td>
+                                    <a href="/users/edit/@user.Email" data-bs-toggle="tooltip" data-bs-placement="left" title="Eliminar">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </a>
+                                </td>
+
+
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </WholeListTemplate>
+    </GenericList>
+
+    <Pagination CurrentPage="@paginationDTO.Page"
+                SelectedPage="SelectedPage" TotalAmountPages="totalAmountOfPages">
+    </Pagination>
+</div>
+
+<ModalComponent @ref="modal">
+    <Title> REGISTRO DE USUARIO</Title>
+    
+    <Body>
+        @*<EditForm Model="userInfo" >
+        <DataAnnotationsValidator />*@
+       <Register></Register>
+        
+    @*</EditForm>*@
+
+
+        <Footer>
+            <button type="button" class="btn btn-outline-primary m-2">GUARDAR</button>
+            <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal" @onclick="() => modal.Close()">SALIR</button>
+        </Footer>
+    </Body>
+       
+    
+</ModalComponent>
+
+
+
+@code {
+    private UserEditDTO userInfo = new UserEditDTO();
+    List<UserDTO> Users;
+    PaginationDTO paginationDTO = new PaginationDTO();
+    int totalAmountOfPages;
+    private ModalComponent modal { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task SelectedPage(int page)
+    {
+        paginationDTO.Page = page;
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        var paginatedResponse = await usersRepository.GetUsers(paginationDTO);
+        Users = paginatedResponse.Response;
+        totalAmountOfPages = paginatedResponse.TotalAmountPages;
+    } }

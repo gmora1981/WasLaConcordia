@@ -1,0 +1,94 @@
+﻿@page "/Login"
+@inject HttpClient http
+@inject NavigationManager navigationManager
+@inject LaConcordia.Auth.ILoginService loginService
+@inject LaConcordia.Repository.IAccountsRepository accountsRepository
+@inject IDisplayMessage displayMessage
+
+
+@using System.Text.Json;
+@using System.Text;
+
+<div class="m-0 vh-100 row justify-content-center align-items-center  ">
+   <div class="col-md-3 col-sm-12" style="background-image: radial-gradient(circle, #cfe7fa 0%, #6393c1 100%); border-radius: 5px; color: white; padding: 45px; margin: auto auto auto auto; "> 
+        <div class="col-12" style="text-align:center;">
+            <img src="/img/appiconfglc.svg" class="rounded-circle img-fluid" alt="150" style="background-color: black;" />
+
+        </div> 
+        <div style="text-align: center; padding: 15px">
+            <h3 style="color:white">Iniciar Sesión</h3>
+        </div>
+        <EditForm Model="@userInfo" OnValidSubmit="Loger">
+            <DataAnnotationsValidator />
+            <div class="form-group">
+                @*<label>Usuario</label>*@
+                <div style="padding :15px">
+                    <InputText Class="form-control" placeholder="Ingrese Usuario" @bind-Value="@userInfo.Email" />
+                    <ValidationMessage For="@(() => userInfo.Email)" />
+                </div>
+            </div>
+
+            <div class="form-group">
+                @* <label>Password</label>*@
+                <div style="padding :15px">
+                    <InputText type="password" Class="form-control" placeholder="Ingrese Password" @bind-Value="userInfo.Password" />
+                    <ValidationMessage For="@(() => userInfo.Password)" />
+                </div>
+            </div>
+
+            <div class="col-12" style="text-align:center;">
+                <button type="submit" class="btn btn-primary">Acceder</button>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+
+@code {
+    private UserLogin userInfo = new Model.UserLogin();
+
+
+    private async Task Loger()
+
+    {/*
+// var modal = Modal.Show<ModalWait>("", SharedModalOptions.modalOptionsWait);
+
+//////////////////OPCION 1  PostJsonAsync   Y NO INGRESA A LA API  NI POR PUNTO DE QUIEBRE PERO SI SE PUEDE INGRESAR POR POSTMAN
+//var result = await http.PostAsJsonAsync<UserLogin>("http://localhost:42473/api/Identity/authentication", userInfo);
+
+
+//////////////////OPCION 2   Y NO INGRESA A LA API  NI POR PUNTO DE QUIEBRE PERO SI SE PUEDE INGRESAR POR POSTMAN
+var url = "http://localhost:42473/api/Identity/authentication";
+var enviarJson = JsonSerializer.Serialize(userInfo);
+var enviarContent = new StringContent(enviarJson, Encoding.UTF8, "application/json");
+//var responseHTTP = await http.PostAsync(url, enviarContent);
+var result = await http.PostAsync(url, enviarContent);
+
+
+if (result.IsSuccessStatusCode)  // se va por falso
+{
+    await loginService.Login(result.Content.ReadAsStringAsync().Result);
+    uriHelper.NavigateTo("");
+}
+else
+{
+ //   modal.Close();
+//    Modal.Show<ModalInfo>("Error", SharedModalOptions.SetParameterModalInfo(result.Content.ReadAsStringAsync().Result, "alert alert-danger"), SharedModalOptions.modalOptionsInfo);
+}
+*/
+        try
+        {
+
+            var userToken = await accountsRepository.Login(userInfo);
+            await loginService.Login(userToken);
+            navigationManager.NavigateTo("");
+            await displayMessage.DisplaySuccessMessage("BIENVENIDO AL SISTEMA");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+            await displayMessage.DisplayErrorMessage(ex.Message);
+        }
+
+    }
+}
