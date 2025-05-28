@@ -21,7 +21,6 @@ builder.Services.AddScoped(sp => new HttpClient
     Timeout = TimeSpan.FromSeconds(30)
 });
 Console.WriteLine("🔧 DESARROLLO - API: http://localhost:5191/");
-Console.WriteLine("🔧 DESARROLLO - Blazor corriendo en: localhost:7180");
 #else
     // PRODUCCIÓN: SmartASP.NET
     builder.Services.AddScoped(sp => new HttpClient 
