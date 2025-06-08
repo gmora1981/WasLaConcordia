@@ -1,0 +1,142 @@
+﻿@page "/admin/navigation"  
+@using Identity.Api.Interfaces  
+@using LaConcordia.Model  
+@using LaConcordia.Repository  
+@inject INavigationRepository NavigationRepository  
+@inject IJSRuntime JSRuntime  
+
+<h3>Administración de Navegación</h3>  
+
+@if (navigationItems == null)  
+{  
+    <p>Cargando...</p>  
+}  
+else  
+{  
+    <div class="row">  
+        <div class="col-md-8">  
+            <table class="table">  
+                <thead>  
+                    <tr>  
+                        <th>Título</th>  
+                        <th>URL</th>  
+                        <th>Orden</th>  
+                        <th>Activo</th>  
+                        <th>Acciones</th>  
+                    </tr>  
+                </thead>  
+                <tbody>  
+                    @foreach (var item in navigationItems)  
+                    {  
+                        <tr>  
+                            <td>@item.Title</td>  
+                            <td>@item.Url</td>  
+                            <td>@item.Order</td>  
+                            <td>  
+                                @(item.IsActive ? "Sí" : "No")  
+                            </td>  
+                            <td>  
+                                <button class="btn btn-sm btn-primary" @onclick="() => EditItem(item)">  
+                                    <i class="bi bi-pencil"></i>  
+                                </button>  
+                                <button class="btn btn-sm btn-danger" @onclick="() => DeleteItem(item.Id)">  
+                                    <i class="bi bi-trash"></i>  
+                                </button>  
+                                <button class="btn btn-sm btn-secondary" @onclick="@(() => MoveItemUp(item.Id))">  
+                                    <i class="bi bi-arrow-up"></i>  
+                                </button>  
+                                <button class="btn btn-sm btn-secondary" @onclick="@(() => MoveItemDown(item.Id))">  
+                                    <i class="bi bi-arrow-down"></i>  
+                                </button>  
+                            </td>  
+                        </tr>  
+                    }  
+                </tbody>  
+            </table>  
+        </div>  
+    </div>  
+}  
+
+@code {  
+    private List<NavigationItemDto>? navigationItems;  
+    private NavigationItemDto currentItem = new NavigationItemDto();  
+    private NavigationItemDto? editingItem;  
+
+    protected override async Task OnInitializedAsync()  
+    {  
+        await LoadItems();  
+    }  
+
+    private async Task LoadItems()  
+    {  
+        try  
+        {  
+            navigationItems = (await NavigationRepository.GetAllAsync()).ToList();  
+        }  
+        catch (Exception ex)  
+        {  
+            await JSRuntime.InvokeVoidAsync("alert", $"Error: {ex.Message}");  
+        }  
+    }  
+
+    private void EditItem(NavigationItemDto item)  
+    {  
+        editingItem = item;  
+        currentItem = new NavigationItemDto  
+        {  
+            Id = item.Id,  
+            ParentId = item.ParentId,  
+            Title = item.Title,  
+            Url = item.Url,  
+            Icon = item.Icon,  
+            Order = item.Order,  
+            IsActive = item.IsActive,  
+            RequiredRole = item.RequiredRole  
+        };  
+    }  
+
+    private async Task DeleteItem(int id)  
+    {  
+        if (await JSRuntime.InvokeAsync<bool>("confirm", "¿Está seguro de eliminar este item?"))  
+        {  
+            try  
+            {  
+                await NavigationRepository.DeleteAsync(id);  
+                await LoadItems();  
+            }  
+            catch (Exception ex)  
+            {  
+                await JSRuntime.InvokeVoidAsync("alert", $"Error: {ex.Message}");  
+            }  
+        }  
+    }  
+
+    private async Task MoveItemUp(int id)  
+    {  
+        await MoveItem(id, "up");  
+    }  
+
+    private async Task MoveItemDown(int id)  
+    {  
+        await MoveItem(id, "down");  
+    }  
+
+    private async Task MoveItem(int id, string direction)  
+    {  
+        try  
+        {  
+            await NavigationRepository.MoveItemAsync(id, direction);  
+            await LoadItems();  
+        }  
+        catch (Exception ex)  
+        {  
+            await JSRuntime.InvokeVoidAsync("alert", $"Error: {ex.Message}");  
+        }  
+    }  
+
+    private void CancelEdit()  
+    {  
+        editingItem = null;  
+        currentItem = new NavigationItemDto();  
+    }  
+}

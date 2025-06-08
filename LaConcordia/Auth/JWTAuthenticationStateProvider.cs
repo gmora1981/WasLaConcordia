@@ -21,6 +21,8 @@ namespace LaConcordia.Auth
         private readonly IAccountsRepository accountsRepository;
         private readonly string TOKENKEY = "TOKENKEY";
         private readonly string EXPIRATIONTOKENKEY = "EXPIRATIONTOKENKEY";
+        private readonly string USERROLEKEY = "USERROLEKEY"; // Nueva clave para almacenar el rol
+        private readonly string USERINFKEY = "USERINFKEY"; // Nueva clave para información del usuario
 
         private AuthenticationState Anonymous =>
             new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
@@ -90,6 +92,9 @@ namespace LaConcordia.Auth
             var newToken = await accountsRepository.RenewToken();
             await js.SetInLocalStorage(TOKENKEY, newToken.Token);
             await js.SetInLocalStorage(EXPIRATIONTOKENKEY, newToken.Expiration.ToString());
+
+            // Reextraer y guardar los roles del nuevo token
+            await SaveUserRoleFromToken(newToken.Token);
             return newToken.Token;
         }
 
@@ -151,10 +156,57 @@ namespace LaConcordia.Auth
             return Convert.FromBase64String(base64);
         }
 
+        // Método para extraer y guardar el rol del token
+        private async Task SaveUserRoleFromToken(string token)
+        {
+            try
+            {
+                var claims = ParseClaimsFromJwt(token);
+                var roleClaims = claims.Where(c => c.Type == ClaimTypes.Role).ToList();
+
+                if (roleClaims.Any())
+                {
+                    if (roleClaims.Count == 1)
+                    {
+                        // Un solo rol
+                        await js.SetInLocalStorage(USERROLEKEY, roleClaims.First().Value);
+                    }
+                    else
+                    {
+                        // Múltiples roles - guardamos como JSON array
+                        var rolesArray = roleClaims.Select(r => r.Value).ToArray();
+                        var rolesJson = JsonSerializer.Serialize(rolesArray);
+                        await js.SetInLocalStorage(USERROLEKEY, rolesJson);
+                    }
+                }
+
+                // Opcionalmente, guardar otra información del usuario
+                var userInfo = new
+                {
+                    Email = claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value,
+                    Name = claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value,
+                    UserId = claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value
+                };
+
+                if (!string.IsNullOrEmpty(userInfo.Email) || !string.IsNullOrEmpty(userInfo.Name))
+                {
+                    var userInfoJson = JsonSerializer.Serialize(userInfo);
+                    await js.SetInLocalStorage(USERINFKEY, userInfoJson);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al guardar rol en localStorage: {ex.Message}");
+            }
+        }
         public async Task Login(UserToken userToken)
         {
             await js.SetInLocalStorage(TOKENKEY, userToken.Token);
             await js.SetInLocalStorage(EXPIRATIONTOKENKEY, userToken.Expiration.ToString());
+
+            // Extraer y guardar el rol del token
+            await SaveUserRoleFromToken(userToken.Token);
+
             var authState = BuildAuthenticationState(userToken.Token);
             NotifyAuthenticationStateChanged(Task.FromResult(authState));
         }
@@ -169,8 +221,59 @@ namespace LaConcordia.Auth
         {
             await js.RemoveItem(TOKENKEY);
             await js.RemoveItem(EXPIRATIONTOKENKEY);
+            await js.RemoveItem(USERROLEKEY);  // Limpiar el rol
+            await js.RemoveItem(USERINFKEY);   // Limpiar info del usuario
             httpClient.DefaultRequestHeaders.Authorization = null;
         }
 
+        // Métodos públicos para obtener roles e información del usuario desde localStorage
+        public async Task<string> GetUserRoleAsync()
+        {
+            return await js.GetFromLocalStorage(USERROLEKEY);
+        }
+
+        public async Task<string[]> GetUserRolesAsync()
+        {
+            var rolesData = await js.GetFromLocalStorage(USERROLEKEY);
+
+            if (string.IsNullOrEmpty(rolesData))
+                return new string[0];
+
+            try
+            {
+                // Intentar deserializar como array
+                if (rolesData.StartsWith("["))
+                {
+                    return JsonSerializer.Deserialize<string[]>(rolesData);
+                }
+                else
+                {
+                    // Es un solo rol
+                    return new string[] { rolesData };
+                }
+            }
+            catch
+            {
+                // Si falla la deserialización, tratarlo como string simple
+                return new string[] { rolesData };
+            }
+        }
+
+        public async Task<UserInfo> GetUserInfoAsync()
+        {
+            var userInfoData = await js.GetFromLocalStorage(USERINFKEY);
+
+            if (string.IsNullOrEmpty(userInfoData))
+                return null;
+
+            try
+            {
+                return JsonSerializer.Deserialize<UserInfo>(userInfoData);
+            }
+            catch
+            {
+                return null;
+            }
+        }
     }
 }

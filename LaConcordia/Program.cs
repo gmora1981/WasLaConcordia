@@ -1,4 +1,5 @@
-﻿using LaConcordia;
+﻿using Identity.Api.Interfaces;
+using LaConcordia;
 using LaConcordia.Auth;
 using LaConcordia.Helpers;
 using LaConcordia.Repository;
@@ -17,7 +18,8 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 // DESARROLLO: Tu API local debe estar corriendo en puerto 5191
 builder.Services.AddScoped(sp => new HttpClient
 {
-    BaseAddress = new Uri("http://localhost:5191/"),
+     BaseAddress = new Uri("http://localhost:5191/"),
+   // BaseAddress = new Uri("https://api.laconcordia.compugtech.com/"),
     Timeout = TimeSpan.FromSeconds(30)
 });
 Console.WriteLine("🔧 DESARROLLO - API: http://localhost:5191/");
@@ -41,6 +43,7 @@ static void configureservices(IServiceCollection services)
 {
     services.AddScoped<IHttpService, HttpService>();
     services.AddScoped<IAccountsRepository, AccountsRepository>();
+    services.AddScoped<INavigationRepository, NavigationRepository>();
     services.AddScoped<GenericoRepositorio>();
     services.AddScoped<IGenericoRepositorio, GenericoRepositorio>();
     services.AddScoped<IDisplayMessage, DisplayMessage>();
