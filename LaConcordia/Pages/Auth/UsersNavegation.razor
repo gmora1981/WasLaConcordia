@@ -1,0 +1,870 @@
+﻿@page "/users"
+@using LaConcordia.Model
+@using LaConcordia.Repository
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IUsersRepository usersRepository
+@inject IAccountsRepository accountsRepository
+@inject IDisplayMessage displayMessage
+@inject IJSRuntime JSRuntime
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<style>
+    .page-container {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+        padding: 2rem;
+    }
+
+    .content-card {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        padding: 2rem;
+        backdrop-filter: blur(10px);
+        animation: slideIn 0.5s ease-out;
+    }
+
+    @@keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .page-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin: 0;
+    }
+
+    .btn-modern {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 50px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-primary-modern {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .btn-primary-modern:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .user-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        overflow: hidden;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+        border-radius: 15px;
+    }
+
+    .user-table thead {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .user-table th {
+        padding: 1.2rem;
+        text-align: left;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+
+    .user-table td {
+        padding: 1rem 1.2rem;
+        background: white;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .user-table tbody tr {
+        transition: all 0.3s ease;
+    }
+
+    .user-table tbody tr:hover {
+        background: #f8f9fa;
+        transform: scale(1.01);
+    }
+
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 1.2rem;
+    }
+
+    .user-details {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .user-name {
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+    .user-email {
+        font-size: 0.875rem;
+        color: #7f8c8d;
+    }
+
+    .role-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin: 0.125rem;
+    }
+
+    .role-admin {
+        background: #e3f2fd;
+        color: #1976d2;
+    }
+
+    .role-user {
+        background: #f3e5f5;
+        color: #7b1fa2;
+    }
+
+    .role-pending {
+        background: #fff3e0;
+        color: #f57c00;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn-icon {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-edit {
+        background: #e3f2fd;
+        color: #1976d2;
+    }
+
+    .btn-edit:hover {
+        background: #1976d2;
+        color: white;
+        transform: scale(1.1);
+    }
+
+    .btn-roles {
+        background: #f3e5f5;
+        color: #7b1fa2;
+    }
+
+    .btn-roles:hover {
+        background: #7b1fa2;
+        color: white;
+        transform: scale(1.1);
+    }
+
+    .btn-delete {
+        background: #ffebee;
+        color: #c62828;
+    }
+
+    .btn-delete:hover {
+        background: #c62828;
+        color: white;
+        transform: scale(1.1);
+    }
+
+    /* Modal Styles */
+    .modal-modern {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        animation: fadeIn 0.3s ease;
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .modal-content-modern {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        max-width: 500px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        animation: slideUp 0.3s ease;
+    }
+
+    @@keyframes slideUp {
+        from {
+            transform: translateY(50px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .modal-header {
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #f0f0f0;
+    }
+
+    .modal-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin: 0;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .validation-message {
+        color: #e74c3c;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+
+    .modal-footer {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        margin-top: 2rem;
+        padding-top: 1rem;
+        border-top: 2px solid #f0f0f0;
+    }
+
+    .checkbox-container {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .checkbox-container input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+    }
+
+    .checkbox-container label {
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #7f8c8d;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        color: #e0e0e0;
+        margin-bottom: 1rem;
+    }
+
+    .search-box {
+        position: relative;
+        width: 300px;
+    }
+
+    .search-box input {
+        width: 100%;
+        padding: 0.75rem 1rem 0.75rem 3rem;
+        border: 2px solid #e0e0e0;
+        border-radius: 50px;
+        transition: all 0.3s ease;
+    }
+
+    .search-box input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .search-box i {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #7f8c8d;
+    }
+</style>
+
+<div class="page-container">
+    <div class="content-card">
+        <div class="header-section">
+            <h1 class="page-title">
+                <i class="fas fa-users"></i> Gestión de Usuarios
+            </h1>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Buscar usuarios..." @bind="searchTerm" @bind:event="oninput" />
+                </div>
+                <button class="btn-modern btn-primary-modern" @onclick="ShowCreateModal">
+                    <i class="fas fa-user-plus"></i>
+                    Nuevo Usuario
+                </button>
+            </div>
+        </div>
+
+        @if (isLoading)
+        {
+            <div style="text-align: center; padding: 3rem;">
+                <div class="loading-spinner"></div>
+                <p style="margin-top: 1rem; color: #7f8c8d;">Cargando usuarios...</p>
+            </div>
+        }
+        else if (filteredUsers == null || !filteredUsers.Any())
+        {
+            <div class="empty-state">
+                <i class="fas fa-users-slash"></i>
+                <h3>No hay usuarios registrados</h3>
+                <p>Comienza agregando un nuevo usuario</p>
+            </div>
+        }
+        else
+        {
+            <table class="user-table">
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Nombre Completo</th>
+                        <th>Roles</th>
+                        <th>Estado</th>
+                        <th style="text-align: center;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in filteredUsers)
+                    {
+                        <tr>
+                            <td>
+                                <div class="user-info">
+                                    <div class="user-avatar">
+                                        @user.FirstName.Substring(0, 1).ToUpper()
+                                    </div>
+                                    <div class="user-details">
+                                        <span class="user-name">@user.Email</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>@user.FirstName @user.LastName</td>
+                            <td>
+                                @if (userRoles.ContainsKey(user.UserId))
+                                {
+                                    @foreach (var role in userRoles[user.UserId])
+                                    {
+                                        <span class="role-badge @GetRoleClass(role)">@role</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="role-badge role-pending">Sin Roles</span>
+                                }
+                            </td>
+                            <td>
+                                <span style="color: #27ae60;">
+                                    <i class="fas fa-check-circle"></i> Activo
+                                </span>
+                            </td>
+                            <td>
+                                <div class="action-buttons" style="justify-content: center;">
+                                    <button class="btn-icon btn-edit" @onclick="() => ShowEditModal(user)" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn-icon btn-roles" @onclick="() => ShowRoleModal(user)" title="Gestionar Roles">
+                                        <i class="fas fa-user-tag"></i>
+                                    </button>
+                                    <button class="btn-icon btn-delete" @onclick="() => ConfirmDelete(user)" title="Eliminar">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <Pagination CurrentPage="@paginationDTO.Page"
+                        SelectedPage="SelectedPage" 
+                        TotalAmountPages="totalAmountOfPages" />
+        }
+    </div>
+</div>
+
+<!-- Modal Create/Edit User -->
+@if (showUserModal)
+{
+    <div class="modal-modern" @onclick="CloseUserModal">
+        <div class="modal-content-modern" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h2 class="modal-title">
+                    <i class="fas @(isEditMode ? "fa-user-edit" : "fa-user-plus")"></i>
+                    @(isEditMode ? "Editar Usuario" : "Nuevo Usuario")
+                </h2>
+            </div>
+
+            <EditForm Model="@userInfo" OnValidSubmit="HandleUserSubmit">
+                <DataAnnotationsValidator />
+                
+                <div class="form-group">
+                    <label class="form-label">Email:</label>
+                    <InputText class="form-control" @bind-Value="userInfo.Email" placeholder="usuario@ejemplo.com" />
+                    <ValidationMessage For="@(() => userInfo.Email)" class="validation-message" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Nombres:</label>
+                    <InputText class="form-control" @bind-Value="userInfo.FirstName" placeholder="Ingrese nombres" />
+                    <ValidationMessage For="@(() => userInfo.FirstName)" class="validation-message" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Apellidos:</label>
+                    <InputText class="form-control" @bind-Value="userInfo.LastName" placeholder="Ingrese apellidos" />
+                    <ValidationMessage For="@(() => userInfo.LastName)" class="validation-message" />
+                </div>
+
+                @if (!isEditMode)
+                {
+                    <div class="form-group">
+                        <label class="form-label">Contraseña:</label>
+                        <InputText type="password" class="form-control" @bind-Value="userInfo.Password" placeholder="Mínimo 8 caracteres" />
+                        <ValidationMessage For="@(() => userInfo.Password)" class="validation-message" />
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Confirmar Contraseña:</label>
+                        <InputText type="password" class="form-control" @bind-Value="userInfo.ConfirmPassword" placeholder="Repita la contraseña" />
+                        <ValidationMessage For="@(() => userInfo.ConfirmPassword)" class="validation-message" />
+                    </div>
+                }
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-modern" style="background: #e0e0e0; color: #666;" @onclick="CloseUserModal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn-modern btn-primary-modern" disabled="@isSaving">
+                        @if (isSaving)
+                        {
+                            <div class="loading-spinner" style="width: 16px; height: 16px;"></div>
+                        }
+                        else
+                        {
+                            <i class="fas fa-save"></i>
+                        }
+                        @(isEditMode ? "Actualizar" : "Guardar")
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+<!-- Modal Manage Roles -->
+@if (showRoleModal)
+{
+    <div class="modal-modern" @onclick="CloseRoleModal">
+        <div class="modal-content-modern" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h2 class="modal-title">
+                    <i class="fas fa-user-tag"></i>
+                    Gestionar Roles
+                </h2>
+                <p style="margin-top: 0.5rem; color: #7f8c8d;">
+                    Usuario: <strong>@selectedUser?.Email</strong>
+                </p>
+            </div>
+
+            <div style="margin: 1.5rem 0;">
+                <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: #2c3e50;">Roles Disponibles:</h3>
+                
+                @if (availableRoles != null && availableRoles.Any())
+                {
+                    @foreach (var role in availableRoles)
+                    {
+                        var isChecked = userRoles.ContainsKey(selectedUser!.UserId) && 
+                                       userRoles[selectedUser.UserId].Contains(role.RoleName);
+                        
+                        <div class="checkbox-container">
+                            <input type="checkbox" 
+                                   id="@($"role-{role.RoleName}")" 
+                                   checked="@isChecked"
+                                   @onchange="@((e) => ToggleRole(role.RoleName, (bool)e.Value!))" />
+                            <label for="@($"role-{role.RoleName}")">
+                                <span class="role-badge @GetRoleClass(role.RoleName)">@role.RoleName</span>
+                            </label>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p style="color: #7f8c8d;">No hay roles disponibles.</p>
+                }
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-modern" style="background: #e0e0e0; color: #666;" @onclick="CloseRoleModal">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+                <button type="button" class="btn-modern btn-primary-modern" @onclick="SaveRoles" disabled="@isSavingRoles">
+                    @if (isSavingRoles)
+                    {
+                        <div class="loading-spinner" style="width: 16px; height: 16px;"></div>
+                    }
+                    else
+                    {
+                        <i class="fas fa-save"></i>
+                    }
+                    Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    // Models
+    private List<UserDTO> users = new();
+    private List<UserDTO> filteredUsers = new();
+    private UserEditDTO userInfo = new();
+    private UserDTO? selectedUser;
+    private Dictionary<string, List<string>> userRoles = new();
+    private Dictionary<string, bool> pendingRoleChanges = new();
+    private List<RoleDTO> availableRoles = new();
+    
+    // UI State
+    private bool showUserModal = false;
+    private bool showRoleModal = false;
+    private bool isEditMode = false;
+    private bool isLoading = true;
+    private bool isSaving = false;
+    private bool isSavingRoles = false;
+    private string searchTerm = "";
+    
+    // Pagination
+    private PaginationDTO paginationDTO = new();
+    private int totalAmountOfPages;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            isLoading = true;
+            
+            // Load users
+            await LoadUsers();
+            
+            // Load roles
+            availableRoles = await usersRepository.GetRoles();
+            
+            // Load user roles
+            await LoadUserRoles();
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage($"Error al cargar datos: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadUsers()
+    {
+        var paginatedResponse = await usersRepository.GetUsers(paginationDTO);
+        users = paginatedResponse.Response;
+        totalAmountOfPages = paginatedResponse.TotalAmountPages;
+        FilterUsers();
+    }
+
+    private async Task LoadUserRoles()
+    {
+        userRoles.Clear();
+        
+        // En un escenario real, esto vendría de la API
+        // Por ahora, asignamos roles de ejemplo
+        foreach (var user in users)
+        {
+            // Aquí deberías llamar a un endpoint que devuelva los roles del usuario
+            // var roles = await usersRepository.GetUserRoles(user.UserId);
+            // userRoles[user.UserId] = roles;
+            
+            // Datos de ejemplo
+            if (user.Email.Contains("admin"))
+            {
+                userRoles[user.UserId] = new List<string> { "Admin" };
+            }
+        }
+    }
+
+    private void FilterUsers()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            filteredUsers = users;
+        }
+        else
+        {
+            filteredUsers = users.Where(u => 
+                u.Email.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                u.FirstName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                u.LastName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
+            ).ToList();
+        }
+    }
+
+    private async Task SelectedPage(int page)
+    {
+        paginationDTO.Page = page;
+        await LoadUsers();
+    }
+
+    private void ShowCreateModal()
+    {
+        userInfo = new UserEditDTO();
+        isEditMode = false;
+        showUserModal = true;
+    }
+
+    private void ShowEditModal(UserDTO user)
+    {
+        userInfo = new UserEditDTO
+        {
+            UserId = user.UserId,
+            Email = user.Email,
+            FirstName = user.FirstName,
+            LastName = user.LastName
+        };
+        isEditMode = true;
+        showUserModal = true;
+    }
+
+    private void ShowRoleModal(UserDTO user)
+    {
+        selectedUser = user;
+        pendingRoleChanges.Clear();
+        showRoleModal = true;
+    }
+
+    private void CloseUserModal()
+    {
+        showUserModal = false;
+        userInfo = new UserEditDTO();
+    }
+
+    private void CloseRoleModal()
+    {
+        showRoleModal = false;
+        selectedUser = null;
+        pendingRoleChanges.Clear();
+    }
+
+    private async Task HandleUserSubmit()
+    {
+        try
+        {
+            isSaving = true;
+
+            if (isEditMode)
+            {
+                // Actualizar usuario existente
+                // await usersRepository.UpdateUser(userInfo);
+                await displayMessage.DisplaySuccessMessage("Usuario actualizado correctamente");
+            }
+            else
+            {
+                // Crear nuevo usuario
+                var userToken = await accountsRepository.Register(userInfo);
+                await displayMessage.DisplaySuccessMessage("Usuario creado correctamente");
+            }
+
+            CloseUserModal();
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage($"Error: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void ToggleRole(string roleName, bool isChecked)
+    {
+        pendingRoleChanges[roleName] = isChecked;
+    }
+
+    private async Task SaveRoles()
+    {
+        try
+        {
+            isSavingRoles = true;
+
+            foreach (var change in pendingRoleChanges)
+            {
+                var editRole = new EditRoleDTO
+                {
+                    UserId = selectedUser!.UserId,
+                    RoleName = change.Key
+                };
+
+                if (change.Value)
+                {
+                    await usersRepository.AssignRole(editRole);
+                }
+                else
+                {
+                    await usersRepository.RemoveRole(editRole);
+                }
+            }
+
+            await displayMessage.DisplaySuccessMessage("Roles actualizados correctamente");
+            CloseRoleModal();
+            await LoadUserRoles();
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage($"Error al actualizar roles: {ex.Message}");
+        }
+        finally
+        {
+            isSavingRoles = false;
+        }
+    }
+
+    private async Task ConfirmDelete(UserDTO user)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", 
+            $"¿Está seguro de eliminar al usuario {user.Email}?");
+        
+        if (confirmed)
+        {
+            try
+            {
+                // await usersRepository.DeleteUser(user.UserId);
+                await displayMessage.DisplaySuccessMessage("Usuario eliminado correctamente");
+                await LoadData();
+            }
+            catch (Exception ex)
+            {
+                await displayMessage.DisplayErrorMessage($"Error al eliminar: {ex.Message}");
+            }
+        }
+    }
+
+    private string GetRoleClass(string role)
+    {
+        return role.ToLower() switch
+        {
+            "admin" => "role-admin",
+            "user" => "role-user",
+            _ => "role-pending"
+        };
+    }
+}
