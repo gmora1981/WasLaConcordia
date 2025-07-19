@@ -1,5 +1,4 @@
-﻿@* UserPermissionModal.razor - Modal para gestionar permisos de usuario *@
-@using LaConcordia.Model
+﻿@using LaConcordia.Model
 @using LaConcordia.Repository
 @inject IPermissionService permissionService
 @inject INavigationRepository navigationRepository
@@ -31,16 +30,16 @@
                 {
                     <div class="permission-tabs">
                         <div class="tab-headers">
-                            <button class="tab-header @(activeTab == "individual" ? "active" : "")" 
-                                    @onclick="() => SetActiveTab(\"individual\")">
+                            <button class="tab-header @(activeTab == "individual" ? "active" : "")"
+                                    @onclick="() => SetActiveTab(" individual")">
                                 <i class="fas fa-user"></i> Permisos Individuales
                             </button>
-                            <button class="tab-header @(activeTab == "effective" ? "active" : "")" 
-                                    @onclick="() => SetActiveTab(\"effective\")">
+                            <button class="tab-header @(activeTab == "effective" ? "active" : "")"
+                                    @onclick="() => SetActiveTab(" effective")">
                                 <i class="fas fa-eye"></i> Permisos Efectivos
                             </button>
-                            <button class="tab-header @(activeTab == "bulk" ? "active" : "")" 
-                                    @onclick="() => SetActiveTab(\"bulk\")">
+                            <button class="tab-header @(activeTab == "bulk" ? "active" : "")"
+                                    @onclick="() => SetActiveTab(" bulk")">
                                 <i class="fas fa-layer-group"></i> Asignación Masiva
                             </button>
                         </div>
@@ -73,20 +72,24 @@
                                                     var permission = GetPermissionForItem(item.Id);
                                                 }
                                                 <label class="permission-checkbox">
-                                                    <input type="checkbox" @bind="permission.CanView" 
-                                                           @onchange="(e) => UpdatePermission(item.Id, nameof(permission.CanView), (bool)e.Value!)" />
+                                                    <input type="checkbox"
+                                                           checked="@permission.CanView"
+                                                           @onchange="@(async (e) => await UpdatePermission(item.Id, nameof(permission.CanView), (bool)e.Value!))" />
                                                 </label>
                                                 <label class="permission-checkbox">
-                                                    <input type="checkbox" @bind="permission.CanCreate" 
-                                                           @onchange="(e) => UpdatePermission(item.Id, nameof(permission.CanCreate), (bool)e.Value!)" />
+                                                    <input type="checkbox"
+                                                           checked="@permission.CanCreate"
+                                                           @onchange="@(async (e) => await UpdatePermission(item.Id, nameof(permission.CanCreate), (bool)e.Value!))" />
                                                 </label>
                                                 <label class="permission-checkbox">
-                                                    <input type="checkbox" @bind="permission.CanEdit" 
-                                                           @onchange="(e) => UpdatePermission(item.Id, nameof(permission.CanEdit), (bool)e.Value!)" />
+                                                    <input type="checkbox"
+                                                           checked="@permission.CanEdit"
+                                                           @onchange="@(async (e) => await UpdatePermission(item.Id, nameof(permission.CanEdit), (bool)e.Value!))" />
                                                 </label>
                                                 <label class="permission-checkbox">
-                                                    <input type="checkbox" @bind="permission.CanDelete" 
-                                                           @onchange="(e) => UpdatePermission(item.Id, nameof(permission.CanDelete), (bool)e.Value!)" />
+                                                    <input type="checkbox"
+                                                           checked="@permission.CanDelete"
+                                                           @onchange="@(async (e) => await UpdatePermission(item.Id, nameof(permission.CanDelete), (bool)e.Value!))" />
                                                 </label>
                                             </div>
 
@@ -105,20 +108,24 @@
                                                         var childPermission = GetPermissionForItem(child.Id);
                                                     }
                                                     <label class="permission-checkbox">
-                                                        <input type="checkbox" @bind="childPermission.CanView" 
-                                                               @onchange="(e) => UpdatePermission(child.Id, nameof(childPermission.CanView), (bool)e.Value!)" />
+                                                        <input type="checkbox"
+                                                               checked="@childPermission.CanView"
+                                                               @onchange="@(async (e) => await UpdatePermission(child.Id, nameof(childPermission.CanView), (bool)e.Value!))" />
                                                     </label>
                                                     <label class="permission-checkbox">
-                                                        <input type="checkbox" @bind="childPermission.CanCreate" 
-                                                               @onchange="(e) => UpdatePermission(child.Id, nameof(childPermission.CanCreate), (bool)e.Value!)" />
+                                                        <input type="checkbox"
+                                                               checked="@childPermission.CanCreate"
+                                                               @onchange="@(async (e) => await UpdatePermission(child.Id, nameof(childPermission.CanCreate), (bool)e.Value!))" />
                                                     </label>
                                                     <label class="permission-checkbox">
-                                                        <input type="checkbox" @bind="childPermission.CanEdit" 
-                                                               @onchange="(e) => UpdatePermission(child.Id, nameof(childPermission.CanEdit), (bool)e.Value!)" />
+                                                        <input type="checkbox"
+                                                               checked="@childPermission.CanEdit"
+                                                               @onchange="@(async (e) => await UpdatePermission(child.Id, nameof(childPermission.CanEdit), (bool)e.Value!))" />
                                                     </label>
                                                     <label class="permission-checkbox">
-                                                        <input type="checkbox" @bind="childPermission.CanDelete" 
-                                                               @onchange="(e) => UpdatePermission(child.Id, nameof(childPermission.CanDelete), (bool)e.Value!)" />
+                                                        <input type="checkbox"
+                                                               checked="@childPermission.CanDelete"
+                                                               @onchange="@(async (e) => await UpdatePermission(child.Id, nameof(childPermission.CanDelete), (bool)e.Value!))" />
                                                     </label>
                                                 </div>
                                             }
@@ -361,11 +368,11 @@
         border-bottom: 3px solid transparent;
     }
 
-    .permission-tabs .tab-header.active {
-        color: #667eea;
-        border-bottom-color: #667eea;
-        background: rgba(102, 126, 234, 0.1);
-    }
+        .permission-tabs .tab-header.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
 
     .permission-grid {
         display: grid;
@@ -380,34 +387,34 @@
         color: #2c3e50;
     }
 
-    .grid-header > span {
-        padding: 1rem 0.5rem;
-        border-bottom: 2px solid #e0e0e0;
-        text-align: center;
-    }
+        .grid-header > span {
+            padding: 1rem 0.5rem;
+            border-bottom: 2px solid #e0e0e0;
+            text-align: center;
+        }
 
-    .grid-header > span:first-child {
-        text-align: left;
-    }
+            .grid-header > span:first-child {
+                text-align: left;
+            }
 
     .permission-row {
         display: contents;
     }
 
-    .permission-row.parent-row .item-info {
-        font-weight: 600;
-        color: #2c3e50;
-    }
+        .permission-row.parent-row .item-info {
+            font-weight: 600;
+            color: #2c3e50;
+        }
 
-    .permission-row.child-row .item-info {
-        color: #7f8c8d;
-        padding-left: 1rem;
-    }
+        .permission-row.child-row .item-info {
+            color: #7f8c8d;
+            padding-left: 1rem;
+        }
 
-    .permission-row > * {
-        padding: 0.75rem 0.5rem;
-        border-bottom: 1px solid #f0f0f0;
-    }
+        .permission-row > * {
+            padding: 0.75rem 0.5rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
 
     .item-info {
         display: flex;
@@ -426,11 +433,11 @@
         cursor: pointer;
     }
 
-    .permission-checkbox input {
-        width: 18px;
-        height: 18px;
-        cursor: pointer;
-    }
+        .permission-checkbox input {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
 
     .effective-permissions {
         max-height: 400px;
@@ -454,10 +461,10 @@
         border-bottom: 1px solid #f0f0f0;
     }
 
-    .effective-item.child {
-        padding-left: 2rem;
-        background: #fafafa;
-    }
+        .effective-item.child {
+            padding-left: 2rem;
+            background: #fafafa;
+        }
 
     .item-header {
         display: flex;
@@ -479,30 +486,30 @@
         font-weight: 600;
     }
 
-    .permission-badge.view {
-        background: #e8f5e8;
-        color: #2e7d32;
-    }
+        .permission-badge.view {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
 
-    .permission-badge.create {
-        background: #e3f2fd;
-        color: #1976d2;
-    }
+        .permission-badge.create {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
 
-    .permission-badge.edit {
-        background: #fff3e0;
-        color: #f57c00;
-    }
+        .permission-badge.edit {
+            background: #fff3e0;
+            color: #f57c00;
+        }
 
-    .permission-badge.delete {
-        background: #ffebee;
-        color: #c62828;
-    }
+        .permission-badge.delete {
+            background: #ffebee;
+            color: #c62828;
+        }
 
-    .permission-badge.none {
-        background: #f5f5f5;
-        color: #9e9e9e;
-    }
+        .permission-badge.none {
+            background: #f5f5f5;
+            color: #9e9e9e;
+        }
 
     .bulk-assignment {
         max-height: 500px;
@@ -530,19 +537,19 @@
         font-size: 0.85rem;
     }
 
-    .btn-preset:hover {
-        border-color: #667eea;
-        background: rgba(102, 126, 234, 0.1);
-    }
+        .btn-preset:hover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
 
-    .btn-preset.danger {
-        border-color: #e74c3c;
-        color: #e74c3c;
-    }
+        .btn-preset.danger {
+            border-color: #e74c3c;
+            color: #e74c3c;
+        }
 
-    .btn-preset.danger:hover {
-        background: rgba(231, 76, 60, 0.1);
-    }
+            .btn-preset.danger:hover {
+                background: rgba(231, 76, 60, 0.1);
+            }
 
     .bulk-permissions {
         margin-bottom: 1.5rem;
@@ -554,12 +561,12 @@
         flex-wrap: wrap;
     }
 
-    .permission-checkboxes label {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        cursor: pointer;
-    }
+        .permission-checkboxes label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
 
     .page-selection h5 {
         margin-bottom: 0.5rem;
@@ -607,14 +614,143 @@
         transition: background 0.2s ease;
     }
 
-    .page-checkbox:hover {
-        background: rgba(102, 126, 234, 0.1);
-    }
+        .page-checkbox:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
 
     .loading-container {
         text-align: center;
         padding: 3rem;
         color: #7f8c8d;
+    }
+
+    /* Estilos adicionales para el modal */
+    .modal-modern {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1050;
+    }
+
+    .modal-content-modern {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .modal-header-modern {
+        padding: 1.5rem;
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f8f9fa;
+    }
+
+    .modal-title-modern {
+        margin: 0;
+        color: #2c3e50;
+        font-size: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-close-modern {
+        background: transparent;
+        border: none;
+        font-size: 1.5rem;
+        color: #6c757d;
+        cursor: pointer;
+        padding: 0.5rem;
+        transition: color 0.3s ease;
+    }
+
+        .btn-close-modern:hover {
+            color: #dc3545;
+        }
+
+    .modal-body-modern {
+        padding: 1.5rem;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    .modal-footer-modern {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        background: #f8f9fa;
+    }
+
+    .btn-modern {
+        padding: 0.625rem 1.25rem;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.875rem;
+    }
+
+    .btn-primary-modern {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+        .btn-primary-modern:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+    .btn-secondary-modern {
+        background: #6c757d;
+        color: white;
+    }
+
+        .btn-secondary-modern:hover:not(:disabled) {
+            background: #5a6268;
+        }
+
+    .btn-modern:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .spinner-border {
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid #f3f3f3;
+        border-top: 2px solid #333;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0%
+
+    {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+
     }
 </style>
 
@@ -656,7 +792,7 @@
             // Cargar elementos de navegación
             var navItems = await navigationRepository.GetAllAsync();
             var lookup = navItems.ToLookup(i => i.ParentId);
-            
+
             navigationItems = navItems.Where(i => i.ParentId == null)
                 .Select(item => new NavigationItemDto
                 {
@@ -753,7 +889,7 @@
             return;
 
         var permission = userPermissions[itemId];
-        
+
         switch (permissionType)
         {
             case nameof(NavigationPermissionDto.CanView):
@@ -769,6 +905,9 @@
                 permission.CanDelete = value;
                 break;
         }
+
+        // Forzar actualización de la UI
+        StateHasChanged();
     }
 
     private void SetActiveTab(string tab)
@@ -854,7 +993,7 @@
             StateHasChanged();
 
             var selectedIds = selectedPageIds.Where(kvp => kvp.Value).Select(kvp => kvp.Key).ToList();
-            
+
             if (!selectedIds.Any())
             {
                 await displayMessage.DisplayErrorMessage("Debe seleccionar al menos una página");
@@ -873,7 +1012,7 @@
             await permissionService.AssignBulkUserPermissionsAsync(selectedUser.UserId, bulkDto);
 
             await displayMessage.DisplaySuccessMessage($"Permisos aplicados a {selectedIds.Count} páginas");
-            
+
             // Recargar datos
             await LoadData();
         }
@@ -892,7 +1031,7 @@
     {
         showModal = false;
         await showModalChanged.InvokeAsync(false);
-        
+
         // Limpiar datos
         selectedUser = null;
         activeTab = "individual";

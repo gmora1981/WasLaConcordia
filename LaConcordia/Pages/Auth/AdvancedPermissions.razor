@@ -55,16 +55,16 @@
         <!-- Pestañas -->
         <div class="tab-container">
             <div class="tab-headers">
-                <button class="tab-header @(activeTab == "users" ? "active" : "")" @onclick="() => SetActiveTab(\" users\")">
+                <button class="tab-header @(activeTab == "users" ? "active" : "")" @onclick="() => SetActiveTab(" users")">
                     <i class="fas fa-users"></i> Permisos por Usuario
                 </button>
-                <button class="tab-header @(activeTab == "roles" ? "active" : "")" @onclick="() => SetActiveTab(\" roles\")">
+                <button class="tab-header @(activeTab == "roles" ? "active" : "")" @onclick="() => SetActiveTab(" roles")">
                     <i class="fas fa-user-tag"></i> Permisos por Rol
                 </button>
-                <button class="tab-header @(activeTab == "navigation" ? "active" : "")" @onclick="() => SetActiveTab(\" navigation\")">
+                <button class="tab-header @(activeTab == "navigation" ? "active" : "")" @onclick="() => SetActiveTab(" navigation")">
                     <i class="fas fa-sitemap"></i> Items de Navegación
                 </button>
-                <button class="tab-header @(activeTab == "tools" ? "active" : "")" @onclick="() => SetActiveTab(\" tools\")">
+                <button class="tab-header @(activeTab == "tools" ? "active" : "")" @onclick="() => SetActiveTab(" tools")">
                     <i class="fas fa-tools"></i> Herramientas
                 </button>
             </div>
@@ -323,9 +323,9 @@
 <!-- Modal de gestión de permisos de usuario -->
 <UserPermissionModal @bind-showModal="showPermissionModal" selectedUser="selectedUserForPermissions" />
 
-@* Aquí van todos los estilos CSS del componente anterior *@
+@* Aquí van todos los estilos CSS del componente *@
 <style>
-    /* Incluir todos los estilos del componente anterior aquí */
+    /* Incluir todos los estilos del componente */
     .tab-container {
         margin-top: 2rem;
     }
