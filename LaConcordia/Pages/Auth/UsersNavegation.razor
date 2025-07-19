@@ -300,6 +300,211 @@
         align-items: center;
     }
 
+    /* Modal Styles */
+    .modal-modern {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        animation: fadeIn 0.3s ease;
+        padding: 20px;
+        box-sizing: border-box;
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .modal-content-modern {
+        background: white;
+        border-radius: 15px;
+        width: 100%;
+        max-width: 600px;
+        max-height: calc(100vh - 40px);
+        animation: slideUp 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    @@keyframes slideUp {
+        from {
+            transform: translateY(30px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .modal-header-modern {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        flex-shrink: 0;
+        height: 60px;
+    }
+
+    .modal-title-modern {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-close-modern {
+        background: transparent;
+        border: none;
+        color: white;
+        font-size: 1.2rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 50%;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+    }
+
+    .btn-close-modern:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    .modal-body-modern {
+        padding: 1.5rem;
+        overflow-y: auto;
+        flex: 1;
+        max-height: calc(100vh - 180px);
+    }
+
+    .modal-footer-modern {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid #e0e0e0;
+        background: #f8f9fa;
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        flex-shrink: 0;
+        height: 70px;
+        align-items: center;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: #2c3e50;
+        font-size: 0.9rem;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.6rem;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-control:disabled {
+        background-color: #f8f9fa;
+        color: #6c757d;
+    }
+
+    .text-danger {
+        color: #e74c3c !important;
+    }
+
+    .text-muted {
+        color: #7f8c8d;
+        font-size: 0.8rem;
+        margin-top: 0.25rem;
+        line-height: 1.3;
+    }
+
+    .validation-message {
+        color: #e74c3c;
+        font-size: 0.8rem;
+        margin-top: 0.25rem;
+    }
+
+    .row {
+        display: flex;
+        flex-wrap: wrap;
+        margin: 0 -0.5rem;
+    }
+
+    .col-md-6 {
+        flex: 0 0 50%;
+        max-width: 50%;
+        padding: 0 0.5rem;
+    }
+
+    .col-12 {
+        flex: 0 0 100%;
+        max-width: 100%;
+        padding: 0 0.5rem;
+    }
+
+    .mb-3 {
+        margin-bottom: 1rem;
+    }
+
+    .btn-secondary-modern {
+        background: #e0e0e0;
+        color: #666;
+    }
+
+    .btn-secondary-modern:hover {
+        background: #d0d0d0;
+        transform: translateY(-1px);
+    }
+
+    .spinner-border {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid transparent;
+        border-top: 2px solid currentColor;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    .alert-danger {
+        background: linear-gradient(135deg, #ffe6e6 0%, #ffcccc 100%);
+        color: #c62828;
+        border-left: 4px solid #f44336;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+
     /* Responsive Design */
     @@media (max-width: 768px) {
         .page-container {
@@ -349,6 +554,28 @@
             height: 30px;
             font-size: 0.8rem;
         }
+
+        .modal-content-modern {
+            width: 95%;
+            max-height: 90vh;
+        }
+
+        .col-md-6 {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+
+        .modal-footer-modern {
+            flex-direction: column-reverse;
+            gap: 0.75rem;
+            height: auto;
+            padding: 1rem;
+        }
+
+        .btn-modern {
+            width: 100%;
+            justify-content: center;
+        }
     }
 
     @@media (max-width: 576px) {
@@ -383,6 +610,32 @@
         .role-badge {
             font-size: 0.65rem;
             padding: 0.15rem 0.5rem;
+        }
+
+        .modal-content-modern {
+            width: 98%;
+            margin: 1rem;
+        }
+
+        .modal-header-modern {
+            padding: 0.75rem 1rem;
+        }
+
+        .modal-body-modern {
+            padding: 1rem;
+        }
+
+        .modal-footer-modern {
+            padding: 0.75rem 1rem;
+        }
+
+        .modal-title-modern {
+            font-size: 1.1rem;
+        }
+
+        .btn-modern {
+            padding: 0.6rem 1.2rem;
+            font-size: 0.85rem;
         }
     }
 </style>
@@ -599,113 +852,118 @@
 <!-- Modal Create/Edit User -->
 @if (showUserModal)
 {
-    <div class="modal @(showUserModal ? "show d-block" : "")" tabindex="-1" style="@(showUserModal ? "background-color: rgba(0,0,0,0.5);" : "")">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="fas @(isEditMode ? "fa-user-edit" : "fa-user-plus") me-2"></i>
-                        @(isEditMode ? "Editar Usuario" : "Nuevo Usuario")
-                    </h5>
-                    <button type="button" class="btn-close" @onclick="CloseUserModal"></button>
-                </div>
-                <EditForm Model="@userInfo" OnValidSubmit="@HandleUserSubmit">
-                    <div class="modal-body">
-                        <DataAnnotationsValidator />
-                        <ValidationSummary class="alert alert-danger" />
+    <div class="modal-modern" @onclick="CloseUserModal">
+        <div class="modal-content-modern" @onclick:stopPropagation="true">
+            <div class="modal-header-modern">
+                <h2 class="modal-title-modern">
+                    <i class="fas @(isEditMode ? "fa-user-edit" : "fa-user-plus")"></i>
+                    @(isEditMode ? "Editar Usuario" : "Nuevo Usuario")
+                </h2>
+                <button type="button" class="btn-close-modern" @onclick="CloseUserModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <EditForm Model="@userInfo" OnValidSubmit="@HandleUserSubmit">
+                <div class="modal-body-modern">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="alert-danger" />
 
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">
-                                    <i class="fas fa-envelope me-1"></i>Email <span class="text-danger">*</span>
-                                </label>
-                                <InputText class="form-control" @bind-Value="userInfo.Email" placeholder="usuario@ejemplo.com" disabled="@isEditMode" />
-                                <ValidationMessage For="@(() => userInfo.Email)" class="text-danger small" />
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">
-                                    <i class="fas fa-user me-1"></i>Nombres <span class="text-danger">*</span>
-                                </label>
-                                <InputText class="form-control" @bind-Value="userInfo.FirstName" placeholder="Ingrese nombres" />
-                                <ValidationMessage For="@(() => userInfo.FirstName)" class="text-danger small" />
-                            </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-envelope" style="margin-right: 0.5rem;"></i>Email <span class="text-danger">*</span>
+                            </label>
+                            <InputText class="form-control" @bind-Value="userInfo.Email" placeholder="usuario@ejemplo.com" disabled="@isEditMode" />
+                            <ValidationMessage For="@(() => userInfo.Email)" class="validation-message" />
                         </div>
 
-                        <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <!-- Columna vacía -->
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-user" style="margin-right: 0.5rem;"></i>Nombres <span class="text-danger">*</span>
+                            </label>
+                            <InputText class="form-control" @bind-Value="userInfo.FirstName" placeholder="Ingrese nombres" />
+                            <ValidationMessage For="@(() => userInfo.FirstName)" class="validation-message" />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-user" style="margin-right: 0.5rem;"></i>Apellidos <span class="text-danger">*</span>
+                            </label>
+                            <InputText class="form-control" @bind-Value="userInfo.LastName" placeholder="Ingrese apellidos" />
+                            <ValidationMessage For="@(() => userInfo.LastName)" class="validation-message" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        @if (!isEditMode)
+                        {
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">
-                                    <i class="fas fa-user me-1"></i>Apellidos <span class="text-danger">*</span>
+                                    <i class="fas fa-lock" style="margin-right: 0.5rem;"></i>Contraseña <span class="text-danger">*</span>
                                 </label>
-                                <InputText class="form-control" @bind-Value="userInfo.LastName" placeholder="Ingrese apellidos" />
-                                <ValidationMessage For="@(() => userInfo.LastName)" class="text-danger small" />
+                                <InputText type="password" class="form-control" @bind-Value="userInfo.Password" placeholder="Mínimo 8 caracteres" />
+                                <ValidationMessage For="@(() => userInfo.Password)" class="validation-message" />
                             </div>
-
-                            @if (!isEditMode)
-                            {
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">
-                                        <i class="fas fa-lock me-1"></i>Contraseña <span class="text-danger">*</span>
-                                    </label>
-                                    <InputText type="password" class="form-control" @bind-Value="userInfo.Password" placeholder="Mínimo 8 caracteres" />
-                                    <ValidationMessage For="@(() => userInfo.Password)" class="text-danger small" />
-                                </div>
-                            }
-                            else
-                            {
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">
-                                        <i class="fas fa-lock me-1"></i>Nueva Contraseña (opcional)
-                                    </label>
-                                    <InputText type="password" class="form-control" @bind-Value="userInfo.Password" placeholder="Dejar en blanco para no cambiar" />
-                                    <small class="text-muted">Solo complete si desea cambiar la contraseña</small>
-                                </div>
-                            }
-                        </div>
+                        }
+                        else
+                        {
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-lock" style="margin-right: 0.5rem;"></i>Nueva Contraseña (opcional)
+                                </label>
+                                <InputText type="password" class="form-control" @bind-Value="userInfo.Password" placeholder="Dejar en blanco para no cambiar" />
+                                <small class="text-muted">Solo complete si desea cambiar la contraseña</small>
+                            </div>
+                        }
 
                         @if (!isEditMode)
                         {
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">
-                                        <i class="fas fa-lock me-1"></i>Confirmar Contraseña <span class="text-danger">*</span>
-                                    </label>
-                                    <InputText type="password" class="form-control" @bind-Value="userInfo.ConfirmPassword" placeholder="Repita la contraseña" />
-                                    <ValidationMessage For="@(() => userInfo.ConfirmPassword)" class="text-danger small" />
-                                </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-lock" style="margin-right: 0.5rem;"></i>Confirmar Contraseña <span class="text-danger">*</span>
+                                </label>
+                                <InputText type="password" class="form-control" @bind-Value="userInfo.ConfirmPassword" placeholder="Repita la contraseña" />
+                                <ValidationMessage For="@(() => userInfo.ConfirmPassword)" class="validation-message" />
                             </div>
                         }
                         else if (!string.IsNullOrEmpty(userInfo.Password))
                         {
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">
-                                        <i class="fas fa-lock me-1"></i>Confirmar Nueva Contraseña
-                                    </label>
-                                    <InputText type="password" class="form-control" @bind-Value="userInfo.ConfirmPassword" placeholder="Repita la nueva contraseña" />
-                                    <ValidationMessage For="@(() => userInfo.ConfirmPassword)" class="text-danger small" />
-                                </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-lock" style="margin-right: 0.5rem;"></i>Confirmar Nueva Contraseña
+                                </label>
+                                <InputText type="password" class="form-control" @bind-Value="userInfo.ConfirmPassword" placeholder="Repita la nueva contraseña" />
+                                <ValidationMessage For="@(() => userInfo.ConfirmPassword)" class="validation-message" />
                             </div>
                         }
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" @onclick="CloseUserModal" disabled="@isSaving">
-                            <i class="fas fa-times me-2"></i>Cancelar
-                        </button>
-                        <button type="submit" class="btn btn-primary" disabled="@isSaving">
-                            @if (isSaving)
-                            {
-                                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                            }
-                            else
-                            {
-                                <i class="fas fa-save me-2"></i>
-                            }
-                            @(isEditMode ? "Actualizar" : "Guardar")
-                        </button>
-                    </div>
-                </EditForm>
-            </div>
+                </div>
+                
+                <div class="modal-footer-modern">
+                    <button type="button" class="btn-modern btn-secondary-modern" @onclick="CloseUserModal" disabled="@isSaving">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn-modern btn-primary-modern" disabled="@isSaving">
+                        @if (isSaving)
+                        {
+                            <div class="spinner-border"></div>
+                            <span style="margin-left: 0.5rem;">Guardando...</span>
+                        }
+                        else
+                        {
+                            <i class="fas fa-save"></i>
+                            <span>@(isEditMode ? "Actualizar" : "Guardar")</span>
+                        }
+                    </button>
+                </div>
+            </EditForm>
         </div>
     </div>
 }
@@ -713,66 +971,69 @@
 <!-- Modal Manage Roles -->
 @if (showRoleModal)
 {
-    <div class="modal @(showRoleModal ? "show d-block" : "")" tabindex="-1" style="@(showRoleModal ? "background-color: rgba(0,0,0,0.5);" : "")">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="fas fa-user-tag me-2"></i>
-                        Gestionar Roles
-                    </h5>
-                    <button type="button" class="btn-close" @onclick="CloseRoleModal"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="mb-3">
-                        <strong>Usuario:</strong> @selectedUser?.Email
-                    </p>
+    <div class="modal-modern" @onclick="CloseRoleModal">
+        <div class="modal-content-modern" @onclick:stopPropagation="true">
+            <div class="modal-header-modern">
+                <h2 class="modal-title-modern">
+                    <i class="fas fa-user-tag"></i>
+                    Gestionar Roles
+                </h2>
+                <button type="button" class="btn-close-modern" @onclick="CloseRoleModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="modal-body-modern">
+                <p style="margin-bottom: 1.5rem; font-weight: 600;">
+                    <strong>Usuario:</strong> @selectedUser?.Email
+                </p>
 
-                    <h6 class="mb-3">Roles Disponibles:</h6>
-                    
-                    @if (availableRoles != null && availableRoles.Any())
+                <h6 style="margin-bottom: 1rem; color: #2c3e50;">Roles Disponibles:</h6>
+                
+                @if (availableRoles != null && availableRoles.Any())
+                {
+                    @foreach (var role in availableRoles)
                     {
-                        @foreach (var role in availableRoles)
-                        {
-                            var isChecked = userRoles.ContainsKey(selectedUser!.UserId) && 
-                                           userRoles[selectedUser.UserId].Contains(role.RoleName);
-                            
-                            <div class="form-check form-switch mb-3">
-                                <input type="checkbox" 
-                                       class="form-check-input"
-                                       id="@($"role-{role.RoleName}")" 
-                                       checked="@isChecked"
-                                       @onchange="@((e) => ToggleRole(role.RoleName, (bool)e.Value!))" />
-                                <label class="form-check-label" for="@($"role-{role.RoleName}")">
-                                    <span class="badge @(role.RoleName.ToLower() == "admin" ? "bg-primary" : "bg-secondary") me-2">
-                                        <i class="fas @(role.RoleName.ToLower() == "admin" ? "fa-crown" : "fa-user") me-1"></i>
-                                        @role.RoleName
-                                    </span>
-                                </label>
-                            </div>
-                        }
+                        var isChecked = userRoles.ContainsKey(selectedUser!.UserId) && 
+                                       userRoles[selectedUser.UserId].Contains(role.RoleName);
+                        
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; padding: 0.75rem; background: #f8f9fa; border-radius: 8px;">
+                            <input type="checkbox" 
+                                   style="width: 18px; height: 18px; cursor: pointer;"
+                                   id="@($"role-{role.RoleName}")" 
+                                   checked="@isChecked"
+                                   @onchange="@((e) => ToggleRole(role.RoleName, (bool)e.Value!))" />
+                            <label style="cursor: pointer; user-select: none; font-weight: 600; color: #2c3e50; font-size: 0.9rem; flex: 1;" for="@($"role-{role.RoleName}")">
+                                <span style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.8rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; background: @(role.RoleName.ToLower() == "admin" ? "#e3f2fd" : "#f5f5f5"); color: @(role.RoleName.ToLower() == "admin" ? "#1976d2" : "#666");">
+                                    <i class="fas @(role.RoleName.ToLower() == "admin" ? "fa-crown" : "fa-user")"></i>
+                                    @role.RoleName
+                                </span>
+                            </label>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p class="text-muted">No hay roles disponibles.</p>
+                }
+            </div>
+            
+            <div class="modal-footer-modern">
+                <button type="button" class="btn-modern btn-secondary-modern" @onclick="CloseRoleModal">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+                <button type="button" class="btn-modern btn-primary-modern" @onclick="SaveRoles" disabled="@isSavingRoles">
+                    @if (isSavingRoles)
+                    {
+                        <div class="spinner-border"></div>
+                        <span style="margin-left: 0.5rem;">Guardando...</span>
                     }
                     else
                     {
-                        <p class="text-muted">No hay roles disponibles.</p>
+                        <i class="fas fa-save"></i>
+                        <span>Guardar Cambios</span>
                     }
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseRoleModal">
-                        <i class="fas fa-times me-2"></i>Cerrar
-                    </button>
-                    <button type="button" class="btn btn-primary" @onclick="SaveRoles" disabled="@isSavingRoles">
-                        @if (isSavingRoles)
-                        {
-                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                        }
-                        else
-                        {
-                            <i class="fas fa-save me-2"></i>
-                        }
-                        Guardar Cambios
-                    </button>
-                </div>
+                </button>
             </div>
         </div>
     </div>
