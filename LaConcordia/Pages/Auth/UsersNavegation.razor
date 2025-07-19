@@ -7,6 +7,7 @@
 @inject IDisplayMessage displayMessage
 @inject IJSRuntime JSRuntime
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@attribute [Authorize(Roles = "Admin")]
 
 <style>
     .page-container {
@@ -365,7 +366,7 @@
 
     .search-box input {
         width: 100%;
-        padding: 0.75rem 1rem 0.75rem 3rem;
+        padding: 0.75rem 3rem;
         border: 2px solid #e0e0e0;
         border-radius: 50px;
         transition: all 0.3s ease;
@@ -384,6 +385,34 @@
         transform: translateY(-50%);
         color: #7f8c8d;
     }
+
+    .clear-search {
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        background: transparent;
+        border: none;
+        color: #7f8c8d;
+        cursor: pointer;
+        padding: 0.25rem;
+        transition: all 0.3s ease;
+    }
+
+    .clear-search:hover {
+        color: #667eea;
+    }
+
+    .search-info {
+        margin: 1rem 0;
+        padding: 0.75rem 1rem;
+        background: #f0f5ff;
+        border-left: 4px solid #667eea;
+        border-radius: 5px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
 </style>
 
 <div class="page-container">
@@ -395,7 +424,17 @@
             <div style="display: flex; gap: 1rem; align-items: center;">
                 <div class="search-box">
                     <i class="fas fa-search"></i>
-                    <input type="text" placeholder="Buscar usuarios..." @bind="searchTerm" @bind:event="oninput" />
+                    <input type="text" 
+                           placeholder="Buscar usuarios..." 
+                           @bind="searchTerm" 
+                           @bind:event="oninput"
+                           @onkeypress="@(async (e) => { if (e.Key == "Enter") await SearchUsers(); })" />
+                    @if (!string.IsNullOrEmpty(searchTerm))
+                    {
+                        <button class="clear-search" @onclick="ClearSearch" title="Limpiar búsqueda">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    }
                 </div>
                 <button class="btn-modern btn-primary-modern" @onclick="ShowCreateModal">
                     <i class="fas fa-user-plus"></i>
@@ -410,6 +449,99 @@
                 <div class="loading-spinner"></div>
                 <p style="margin-top: 1rem; color: #7f8c8d;">Cargando usuarios...</p>
             </div>
+        }
+        else if (!string.IsNullOrEmpty(searchTerm) && filteredUsers != null)
+        {
+            <div class="search-info">
+                <span>
+                    Mostrando <strong>@filteredUsers.Count</strong> resultado(s) para "<strong>@searchTerm</strong>"
+                </span>
+                <button class="btn-modern" style="padding: 0.5rem 1rem; font-size: 0.875rem;" @onclick="ClearSearch">
+                    <i class="fas fa-times"></i> Limpiar filtro
+                </button>
+            </div>
+            
+            @if (!filteredUsers.Any())
+            {
+                <div class="empty-state">
+                    <i class="fas fa-search"></i>
+                    <h3>No se encontraron usuarios</h3>
+                    <p>No hay usuarios que coincidan con "<strong>@searchTerm</strong>"</p>
+                    <button class="btn-modern btn-primary-modern" @onclick="ClearSearch">
+                        Mostrar todos los usuarios
+                    </button>
+                </div>
+            }
+            else
+            {
+                <table class="user-table">
+                    <thead>
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Nombre Completo</th>
+                            <th>Roles</th>
+                            <th>Estado</th>
+                            <th style="text-align: center;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in filteredUsers)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="user-info">
+                                        <div class="user-avatar">
+                                            @user.FirstName.Substring(0, 1).ToUpper()
+                                        </div>
+                                        <div class="user-details">
+                                            <span class="user-name">@user.Email</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>@user.FirstName @user.LastName</td>
+                                <td>
+                                    @if (userRoles.ContainsKey(user.UserId))
+                                    {
+                                        @foreach (var role in userRoles[user.UserId])
+                                        {
+                                            <span class="role-badge @GetRoleClass(role)">@role</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="role-badge role-pending">Sin Roles</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span style="color: #27ae60;">
+                                        <i class="fas fa-check-circle"></i> Activo
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="action-buttons" style="justify-content: center;">
+                                        <button class="btn-icon btn-edit" @onclick="() => ShowEditModal(user)" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn-icon btn-roles" @onclick="() => ShowRoleModal(user)" title="Gestionar Roles">
+                                            <i class="fas fa-user-tag"></i>
+                                        </button>
+                                        <button class="btn-icon btn-delete" @onclick="() => ConfirmDelete(user)" title="Eliminar">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                @if (!string.IsNullOrEmpty(searchTerm))
+                {
+                    <p style="text-align: center; margin-top: 1rem; color: #7f8c8d;">
+                        <i class="fas fa-info-circle"></i> La búsqueda solo muestra resultados de la página actual
+                    </p>
+                }
+            }
         }
         else if (filteredUsers == null || !filteredUsers.Any())
         {
@@ -482,9 +614,12 @@
                 </tbody>
             </table>
 
-            <Pagination CurrentPage="@paginationDTO.Page"
-                        SelectedPage="SelectedPage" 
-                        TotalAmountPages="totalAmountOfPages" />
+            @if (totalAmountOfPages > 1)
+            {
+                <Pagination CurrentPage="@paginationDTO.Page"
+                            SelectedPage="SelectedPage" 
+                            TotalAmountPages="totalAmountOfPages" />
+            }
         }
     </div>
 </div>
@@ -501,12 +636,12 @@
                 </h2>
             </div>
 
-            <EditForm Model="@userInfo" OnValidSubmit="HandleUserSubmit">
+            <EditForm Model="@userInfo" OnValidSubmit="@HandleUserSubmit">
                 <DataAnnotationsValidator />
                 
                 <div class="form-group">
                     <label class="form-label">Email:</label>
-                    <InputText class="form-control" @bind-Value="userInfo.Email" placeholder="usuario@ejemplo.com" />
+                    <InputText class="form-control" @bind-Value="userInfo.Email" placeholder="usuario@ejemplo.com" disabled="@isEditMode" />
                     <ValidationMessage For="@(() => userInfo.Email)" class="validation-message" />
                 </div>
 
@@ -536,21 +671,45 @@
                         <ValidationMessage For="@(() => userInfo.ConfirmPassword)" class="validation-message" />
                     </div>
                 }
+                else
+                {
+                    <div class="form-group">
+                        <label class="form-label">Nueva Contraseña (opcional):</label>
+                        <InputText type="password" class="form-control" @bind-Value="userInfo.Password" placeholder="Dejar en blanco para no cambiar" />
+                        <small class="text-muted">Solo complete si desea cambiar la contraseña</small>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(userInfo.Password))
+                    {
+                        <div class="form-group">
+                            <label class="form-label">Confirmar Nueva Contraseña:</label>
+                            <InputText type="password" class="form-control" @bind-Value="userInfo.ConfirmPassword" placeholder="Repita la nueva contraseña" />
+                            <ValidationMessage For="@(() => userInfo.ConfirmPassword)" class="validation-message" />
+                        </div>
+                    }
+                }
 
                 <div class="modal-footer">
-                    <button type="button" class="btn-modern" style="background: #e0e0e0; color: #666;" @onclick="CloseUserModal">
+                    <button type="button" class="btn-modern" style="background: #e0e0e0; color: #666;" @onclick="CloseUserModal" disabled="@isSaving">
                         <i class="fas fa-times"></i> Cancelar
                     </button>
+                    @if (isEditMode)
+                    {
+                        <button type="button" class="btn-modern" style="background: #ffc107; color: #333;" @onclick="TestValidation">
+                            <i class="fas fa-vial"></i> Test
+                        </button>
+                    }
                     <button type="submit" class="btn-modern btn-primary-modern" disabled="@isSaving">
                         @if (isSaving)
                         {
                             <div class="loading-spinner" style="width: 16px; height: 16px;"></div>
+                            <span style="margin-left: 0.5rem;">Guardando...</span>
                         }
                         else
                         {
                             <i class="fas fa-save"></i>
+                            <span>@(isEditMode ? "Actualizar" : "Guardar")</span>
                         }
-                        @(isEditMode ? "Actualizar" : "Guardar")
                     </button>
                 </div>
             </EditForm>
@@ -637,11 +796,22 @@
     private bool isLoading = true;
     private bool isSaving = false;
     private bool isSavingRoles = false;
-    private string searchTerm = "";
+    private string _searchTerm = "";
     
     // Pagination
-    private PaginationDTO paginationDTO = new();
+    private PaginationDTO paginationDTO = new() { RecordsPerPage = 10 };
     private int totalAmountOfPages;
+
+    // Propiedad para searchTerm con filtrado automático
+    private string searchTerm
+    {
+        get => _searchTerm;
+        set
+        {
+            _searchTerm = value;
+            FilterUsers();
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -685,36 +855,37 @@
     {
         userRoles.Clear();
         
-        // En un escenario real, esto vendría de la API
-        // Por ahora, asignamos roles de ejemplo
         foreach (var user in users)
         {
-            // Aquí deberías llamar a un endpoint que devuelva los roles del usuario
-            var roles = await usersRepository.GetUserRoles(user.UserId);
-            userRoles[user.UserId] = roles;
-            
-            // Datos de ejemplo
-            if (user.Email.Contains("admin"))
+            try
             {
-                userRoles[user.UserId] = new List<string> { "Admin" };
+                var roles = await usersRepository.GetUserRoles(user.UserId);
+                userRoles[user.UserId] = roles;
+            }
+            catch
+            {
+                userRoles[user.UserId] = new List<string>();
             }
         }
     }
 
     private void FilterUsers()
     {
-        if (string.IsNullOrWhiteSpace(searchTerm))
+        if (string.IsNullOrWhiteSpace(_searchTerm))
         {
-            filteredUsers = users;
+            filteredUsers = new List<UserDTO>(users);
         }
         else
         {
+            var searchLower = _searchTerm.ToLower();
             filteredUsers = users.Where(u => 
-                u.Email.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                u.FirstName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                u.LastName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
+                u.Email.ToLower().Contains(searchLower) ||
+                u.FirstName.ToLower().Contains(searchLower) ||
+                u.LastName.ToLower().Contains(searchLower) ||
+                $"{u.FirstName} {u.LastName}".ToLower().Contains(searchLower)
             ).ToList();
         }
+        StateHasChanged(); // Forzar actualización de la UI
     }
 
     private async Task SelectedPage(int page)
@@ -737,7 +908,9 @@
             UserId = user.UserId,
             Email = user.Email,
             FirstName = user.FirstName,
-            LastName = user.LastName
+            LastName = user.LastName,
+            Password = "", // Vacío para edición
+            ConfirmPassword = "" // Vacío para edición
         };
         isEditMode = true;
         showUserModal = true;
@@ -771,12 +944,29 @@
 
             if (isEditMode)
             {
+                // Para actualización, si la contraseña está vacía, confirmPassword también debe estar vacío
+                if (string.IsNullOrEmpty(userInfo.Password))
+                {
+                    userInfo.ConfirmPassword = "";
+                }
+
+                // Log para debugging
+                await JSRuntime.InvokeVoidAsync("console.log", "Actualizando usuario:", userInfo);
+
                 // Actualizar usuario existente
-                 await usersRepository.UpdateUser(userInfo);
+                await usersRepository.UpdateUser(userInfo);
                 await displayMessage.DisplaySuccessMessage("Usuario actualizado correctamente");
             }
             else
             {
+                // Verificar si el email ya existe
+                var emailExists = await usersRepository.CheckEmailExists(userInfo.Email);
+                if (emailExists)
+                {
+                    await displayMessage.DisplayErrorMessage("El email ya está registrado");
+                    return;
+                }
+
                 // Crear nuevo usuario
                 var userToken = await accountsRepository.Register(userInfo);
                 await displayMessage.DisplaySuccessMessage("Usuario creado correctamente");
@@ -787,7 +977,24 @@
         }
         catch (Exception ex)
         {
-            await displayMessage.DisplayErrorMessage($"Error: {ex.Message}");
+            // Log del error completo
+            await JSRuntime.InvokeVoidAsync("console.error", "Error al guardar usuario:", ex.ToString());
+            
+            var errorMessage = ex.Message;
+            if (ex.Message.Contains("400"))
+            {
+                errorMessage = "Error: Verifique que los datos sean correctos";
+            }
+            else if (ex.Message.Contains("404"))
+            {
+                errorMessage = "Error: Usuario no encontrado";
+            }
+            else if (ex.Message.Contains("500"))
+            {
+                errorMessage = "Error del servidor, intente nuevamente";
+            }
+            
+            await displayMessage.DisplayErrorMessage(errorMessage);
         }
         finally
         {
@@ -805,6 +1012,8 @@
         try
         {
             isSavingRoles = true;
+            var errors = new List<string>();
+            var successes = 0;
 
             foreach (var change in pendingRoleChanges)
             {
@@ -814,23 +1023,40 @@
                     RoleName = change.Key
                 };
 
-                if (change.Value)
+                try
                 {
-                    await usersRepository.AssignRole(editRole);
+                    if (change.Value)
+                    {
+                        await usersRepository.AssignRole(editRole);
+                        successes++;
+                    }
+                    else
+                    {
+                        await usersRepository.RemoveRole(editRole);
+                        successes++;
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    await usersRepository.RemoveRole(editRole);
+                    errors.Add($"{change.Key}: {ex.Message}");
                 }
             }
 
-            await displayMessage.DisplaySuccessMessage("Roles actualizados correctamente");
+            if (errors.Any())
+            {
+                await displayMessage.DisplayErrorMessage($"Errores al actualizar roles: {string.Join(", ", errors)}");
+            }
+            else if (successes > 0)
+            {
+                await displayMessage.DisplaySuccessMessage($"Se actualizaron {successes} roles correctamente");
+            }
+
             CloseRoleModal();
             await LoadUserRoles();
         }
         catch (Exception ex)
         {
-            await displayMessage.DisplayErrorMessage($"Error al actualizar roles: {ex.Message}");
+            await displayMessage.DisplayErrorMessage($"Error general: {ex.Message}");
         }
         finally
         {
@@ -853,9 +1079,48 @@
             }
             catch (Exception ex)
             {
-                await displayMessage.DisplayErrorMessage($"Error al eliminar: {ex.Message}");
+                var errorMessage = "Error al eliminar usuario";
+                
+                // Parsear mensajes de error específicos
+                if (ex.Message.Contains("propio usuario"))
+                {
+                    errorMessage = "No puede eliminar su propio usuario";
+                }
+                else if (ex.Message.Contains("último administrador"))
+                {
+                    errorMessage = "No se puede eliminar el último administrador del sistema";
+                }
+                else if (ex.Message.Contains("404"))
+                {
+                    errorMessage = "Usuario no encontrado";
+                }
+                
+                await displayMessage.DisplayErrorMessage(errorMessage);
             }
         }
+    }
+
+    private async Task SearchUsers()
+    {
+        // Forzar actualización de la búsqueda
+        FilterUsers();
+        await Task.CompletedTask;
+    }
+
+    private void ClearSearch()
+    {
+        searchTerm = "";
+        FilterUsers();
+    }
+
+    private async Task TestValidation()
+    {
+        await JSRuntime.InvokeVoidAsync("console.log", "UserInfo actual:", userInfo);
+        await JSRuntime.InvokeVoidAsync("console.log", "IsEditMode:", isEditMode);
+        await JSRuntime.InvokeVoidAsync("console.log", "UserId:", userInfo.UserId);
+        
+        // Intentar llamar manualmente a HandleUserSubmit
+        await HandleUserSubmit();
     }
 
     private string GetRoleClass(string role)
