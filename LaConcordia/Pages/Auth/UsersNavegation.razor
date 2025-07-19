@@ -690,8 +690,8 @@
         foreach (var user in users)
         {
             // Aquí deberías llamar a un endpoint que devuelva los roles del usuario
-            // var roles = await usersRepository.GetUserRoles(user.UserId);
-            // userRoles[user.UserId] = roles;
+            var roles = await usersRepository.GetUserRoles(user.UserId);
+            userRoles[user.UserId] = roles;
             
             // Datos de ejemplo
             if (user.Email.Contains("admin"))
@@ -772,7 +772,7 @@
             if (isEditMode)
             {
                 // Actualizar usuario existente
-                // await usersRepository.UpdateUser(userInfo);
+                 await usersRepository.UpdateUser(userInfo);
                 await displayMessage.DisplaySuccessMessage("Usuario actualizado correctamente");
             }
             else
@@ -847,7 +847,7 @@
         {
             try
             {
-                // await usersRepository.DeleteUser(user.UserId);
+                await usersRepository.DeleteUser(user.UserId);
                 await displayMessage.DisplaySuccessMessage("Usuario eliminado correctamente");
                 await LoadData();
             }
