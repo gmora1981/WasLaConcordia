@@ -218,120 +218,6 @@
         transform: scale(1.1);
     }
 
-    /* Modal Styles */
-    .modal-modern {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1000;
-        animation: fadeIn 0.3s ease;
-    }
-
-    @@keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
-
-    .modal-content-modern {
-        background: white;
-        border-radius: 20px;
-        padding: 2rem;
-        max-width: 500px;
-        width: 90%;
-        max-height: 80vh;
-        overflow-y: auto;
-        animation: slideUp 0.3s ease;
-    }
-
-    @@keyframes slideUp {
-        from {
-            transform: translateY(50px);
-            opacity: 0;
-        }
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
-    }
-
-    .modal-header {
-        margin-bottom: 1.5rem;
-        padding-bottom: 1rem;
-        border-bottom: 2px solid #f0f0f0;
-    }
-
-    .modal-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #2c3e50;
-        margin: 0;
-    }
-
-    .form-group {
-        margin-bottom: 1.5rem;
-    }
-
-    .form-label {
-        display: block;
-        margin-bottom: 0.5rem;
-        font-weight: 600;
-        color: #2c3e50;
-    }
-
-    .form-control {
-        width: 100%;
-        padding: 0.75rem 1rem;
-        border: 2px solid #e0e0e0;
-        border-radius: 10px;
-        font-size: 1rem;
-        transition: all 0.3s ease;
-    }
-
-    .form-control:focus {
-        outline: none;
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-
-    .validation-message {
-        color: #e74c3c;
-        font-size: 0.875rem;
-        margin-top: 0.25rem;
-    }
-
-    .modal-footer {
-        display: flex;
-        gap: 1rem;
-        justify-content: flex-end;
-        margin-top: 2rem;
-        padding-top: 1rem;
-        border-top: 2px solid #f0f0f0;
-    }
-
-    .checkbox-container {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        margin-bottom: 0.75rem;
-    }
-
-    .checkbox-container input[type="checkbox"] {
-        width: 20px;
-        height: 20px;
-        cursor: pointer;
-    }
-
-    .checkbox-container label {
-        cursor: pointer;
-        user-select: none;
-    }
-
     .loading-spinner {
         display: inline-block;
         width: 20px;
@@ -412,6 +298,92 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+    }
+
+    /* Responsive Design */
+    @@media (max-width: 768px) {
+        .page-container {
+            padding: 1rem;
+        }
+
+        .content-card {
+            padding: 1rem;
+        }
+
+        .header-section {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: stretch;
+        }
+
+        .page-title {
+            font-size: 1.5rem;
+            text-align: center;
+        }
+
+        .btn-modern {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .search-box {
+            width: 100%;
+        }
+
+        .user-table {
+            font-size: 0.85rem;
+        }
+
+        .user-table th,
+        .user-table td {
+            padding: 0.75rem 0.5rem;
+        }
+
+        .action-buttons {
+            justify-content: center;
+            gap: 0.25rem;
+        }
+
+        .btn-icon {
+            width: 30px;
+            height: 30px;
+            font-size: 0.8rem;
+        }
+    }
+
+    @@media (max-width: 576px) {
+        .page-container {
+            padding: 0.5rem;
+        }
+
+        .content-card {
+            border-radius: 10px;
+            padding: 0.75rem;
+        }
+
+        .page-title {
+            font-size: 1.25rem;
+        }
+
+        .user-table {
+            font-size: 0.8rem;
+        }
+
+        .user-table th,
+        .user-table td {
+            padding: 0.6rem 0.4rem;
+        }
+
+        .btn-icon {
+            width: 28px;
+            height: 28px;
+            font-size: 0.75rem;
+        }
+
+        .role-badge {
+            font-size: 0.65rem;
+            padding: 0.15rem 0.5rem;
+        }
     }
 </style>
 
@@ -627,92 +599,113 @@
 <!-- Modal Create/Edit User -->
 @if (showUserModal)
 {
-    <div class="modal-modern" @onclick="CloseUserModal">
-        <div class="modal-content-modern" @onclick:stopPropagation="true">
-            <div class="modal-header">
-                <h2 class="modal-title">
-                    <i class="fas @(isEditMode ? "fa-user-edit" : "fa-user-plus")"></i>
-                    @(isEditMode ? "Editar Usuario" : "Nuevo Usuario")
-                </h2>
-            </div>
-
-            <EditForm Model="@userInfo" OnValidSubmit="@HandleUserSubmit">
-                <DataAnnotationsValidator />
-                
-                <div class="form-group">
-                    <label class="form-label">Email:</label>
-                    <InputText class="form-control" @bind-Value="userInfo.Email" placeholder="usuario@ejemplo.com" disabled="@isEditMode" />
-                    <ValidationMessage For="@(() => userInfo.Email)" class="validation-message" />
+    <div class="modal @(showUserModal ? "show d-block" : "")" tabindex="-1" style="@(showUserModal ? "background-color: rgba(0,0,0,0.5);" : "")">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas @(isEditMode ? "fa-user-edit" : "fa-user-plus") me-2"></i>
+                        @(isEditMode ? "Editar Usuario" : "Nuevo Usuario")
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CloseUserModal"></button>
                 </div>
+                <EditForm Model="@userInfo" OnValidSubmit="@HandleUserSubmit">
+                    <div class="modal-body">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="alert alert-danger" />
 
-                <div class="form-group">
-                    <label class="form-label">Nombres:</label>
-                    <InputText class="form-control" @bind-Value="userInfo.FirstName" placeholder="Ingrese nombres" />
-                    <ValidationMessage For="@(() => userInfo.FirstName)" class="validation-message" />
-                </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-envelope me-1"></i>Email <span class="text-danger">*</span>
+                                </label>
+                                <InputText class="form-control" @bind-Value="userInfo.Email" placeholder="usuario@ejemplo.com" disabled="@isEditMode" />
+                                <ValidationMessage For="@(() => userInfo.Email)" class="text-danger small" />
+                            </div>
 
-                <div class="form-group">
-                    <label class="form-label">Apellidos:</label>
-                    <InputText class="form-control" @bind-Value="userInfo.LastName" placeholder="Ingrese apellidos" />
-                    <ValidationMessage For="@(() => userInfo.LastName)" class="validation-message" />
-                </div>
-
-                @if (!isEditMode)
-                {
-                    <div class="form-group">
-                        <label class="form-label">Contraseña:</label>
-                        <InputText type="password" class="form-control" @bind-Value="userInfo.Password" placeholder="Mínimo 8 caracteres" />
-                        <ValidationMessage For="@(() => userInfo.Password)" class="validation-message" />
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Confirmar Contraseña:</label>
-                        <InputText type="password" class="form-control" @bind-Value="userInfo.ConfirmPassword" placeholder="Repita la contraseña" />
-                        <ValidationMessage For="@(() => userInfo.ConfirmPassword)" class="validation-message" />
-                    </div>
-                }
-                else
-                {
-                    <div class="form-group">
-                        <label class="form-label">Nueva Contraseña (opcional):</label>
-                        <InputText type="password" class="form-control" @bind-Value="userInfo.Password" placeholder="Dejar en blanco para no cambiar" />
-                        <small class="text-muted">Solo complete si desea cambiar la contraseña</small>
-                    </div>
-
-                    @if (!string.IsNullOrEmpty(userInfo.Password))
-                    {
-                        <div class="form-group">
-                            <label class="form-label">Confirmar Nueva Contraseña:</label>
-                            <InputText type="password" class="form-control" @bind-Value="userInfo.ConfirmPassword" placeholder="Repita la nueva contraseña" />
-                            <ValidationMessage For="@(() => userInfo.ConfirmPassword)" class="validation-message" />
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-user me-1"></i>Nombres <span class="text-danger">*</span>
+                                </label>
+                                <InputText class="form-control" @bind-Value="userInfo.FirstName" placeholder="Ingrese nombres" />
+                                <ValidationMessage For="@(() => userInfo.FirstName)" class="text-danger small" />
+                            </div>
                         </div>
-                    }
-                }
 
-                <div class="modal-footer">
-                    <button type="button" class="btn-modern" style="background: #e0e0e0; color: #666;" @onclick="CloseUserModal" disabled="@isSaving">
-                        <i class="fas fa-times"></i> Cancelar
-                    </button>
-                    @if (isEditMode)
-                    {
-                        <button type="button" class="btn-modern" style="background: #ffc107; color: #333;" @onclick="TestValidation">
-                            <i class="fas fa-vial"></i> Test
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-user me-1"></i>Apellidos <span class="text-danger">*</span>
+                                </label>
+                                <InputText class="form-control" @bind-Value="userInfo.LastName" placeholder="Ingrese apellidos" />
+                                <ValidationMessage For="@(() => userInfo.LastName)" class="text-danger small" />
+                            </div>
+
+                            @if (!isEditMode)
+                            {
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-lock me-1"></i>Contraseña <span class="text-danger">*</span>
+                                    </label>
+                                    <InputText type="password" class="form-control" @bind-Value="userInfo.Password" placeholder="Mínimo 8 caracteres" />
+                                    <ValidationMessage For="@(() => userInfo.Password)" class="text-danger small" />
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-lock me-1"></i>Nueva Contraseña (opcional)
+                                    </label>
+                                    <InputText type="password" class="form-control" @bind-Value="userInfo.Password" placeholder="Dejar en blanco para no cambiar" />
+                                    <small class="text-muted">Solo complete si desea cambiar la contraseña</small>
+                                </div>
+                            }
+                        </div>
+
+                        @if (!isEditMode)
+                        {
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-lock me-1"></i>Confirmar Contraseña <span class="text-danger">*</span>
+                                    </label>
+                                    <InputText type="password" class="form-control" @bind-Value="userInfo.ConfirmPassword" placeholder="Repita la contraseña" />
+                                    <ValidationMessage For="@(() => userInfo.ConfirmPassword)" class="text-danger small" />
+                                </div>
+                            </div>
+                        }
+                        else if (!string.IsNullOrEmpty(userInfo.Password))
+                        {
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">
+                                        <i class="fas fa-lock me-1"></i>Confirmar Nueva Contraseña
+                                    </label>
+                                    <InputText type="password" class="form-control" @bind-Value="userInfo.ConfirmPassword" placeholder="Repita la nueva contraseña" />
+                                    <ValidationMessage For="@(() => userInfo.ConfirmPassword)" class="text-danger small" />
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CloseUserModal" disabled="@isSaving">
+                            <i class="fas fa-times me-2"></i>Cancelar
                         </button>
-                    }
-                    <button type="submit" class="btn-modern btn-primary-modern" disabled="@isSaving">
-                        @if (isSaving)
-                        {
-                            <div class="loading-spinner" style="width: 16px; height: 16px;"></div>
-                            <span style="margin-left: 0.5rem;">Guardando...</span>
-                        }
-                        else
-                        {
-                            <i class="fas fa-save"></i>
-                            <span>@(isEditMode ? "Actualizar" : "Guardar")</span>
-                        }
-                    </button>
-                </div>
-            </EditForm>
+                        <button type="submit" class="btn btn-primary" disabled="@isSaving">
+                            @if (isSaving)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                            }
+                            else
+                            {
+                                <i class="fas fa-save me-2"></i>
+                            }
+                            @(isEditMode ? "Actualizar" : "Guardar")
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
         </div>
     </div>
 }
@@ -720,60 +713,66 @@
 <!-- Modal Manage Roles -->
 @if (showRoleModal)
 {
-    <div class="modal-modern" @onclick="CloseRoleModal">
-        <div class="modal-content-modern" @onclick:stopPropagation="true">
-            <div class="modal-header">
-                <h2 class="modal-title">
-                    <i class="fas fa-user-tag"></i>
-                    Gestionar Roles
-                </h2>
-                <p style="margin-top: 0.5rem; color: #7f8c8d;">
-                    Usuario: <strong>@selectedUser?.Email</strong>
-                </p>
-            </div>
+    <div class="modal @(showRoleModal ? "show d-block" : "")" tabindex="-1" style="@(showRoleModal ? "background-color: rgba(0,0,0,0.5);" : "")">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-user-tag me-2"></i>
+                        Gestionar Roles
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CloseRoleModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3">
+                        <strong>Usuario:</strong> @selectedUser?.Email
+                    </p>
 
-            <div style="margin: 1.5rem 0;">
-                <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: #2c3e50;">Roles Disponibles:</h3>
-                
-                @if (availableRoles != null && availableRoles.Any())
-                {
-                    @foreach (var role in availableRoles)
+                    <h6 class="mb-3">Roles Disponibles:</h6>
+                    
+                    @if (availableRoles != null && availableRoles.Any())
                     {
-                        var isChecked = userRoles.ContainsKey(selectedUser!.UserId) && 
-                                       userRoles[selectedUser.UserId].Contains(role.RoleName);
-                        
-                        <div class="checkbox-container">
-                            <input type="checkbox" 
-                                   id="@($"role-{role.RoleName}")" 
-                                   checked="@isChecked"
-                                   @onchange="@((e) => ToggleRole(role.RoleName, (bool)e.Value!))" />
-                            <label for="@($"role-{role.RoleName}")">
-                                <span class="role-badge @GetRoleClass(role.RoleName)">@role.RoleName</span>
-                            </label>
-                        </div>
-                    }
-                }
-                else
-                {
-                    <p style="color: #7f8c8d;">No hay roles disponibles.</p>
-                }
-            </div>
-
-            <div class="modal-footer">
-                <button type="button" class="btn-modern" style="background: #e0e0e0; color: #666;" @onclick="CloseRoleModal">
-                    <i class="fas fa-times"></i> Cerrar
-                </button>
-                <button type="button" class="btn-modern btn-primary-modern" @onclick="SaveRoles" disabled="@isSavingRoles">
-                    @if (isSavingRoles)
-                    {
-                        <div class="loading-spinner" style="width: 16px; height: 16px;"></div>
+                        @foreach (var role in availableRoles)
+                        {
+                            var isChecked = userRoles.ContainsKey(selectedUser!.UserId) && 
+                                           userRoles[selectedUser.UserId].Contains(role.RoleName);
+                            
+                            <div class="form-check form-switch mb-3">
+                                <input type="checkbox" 
+                                       class="form-check-input"
+                                       id="@($"role-{role.RoleName}")" 
+                                       checked="@isChecked"
+                                       @onchange="@((e) => ToggleRole(role.RoleName, (bool)e.Value!))" />
+                                <label class="form-check-label" for="@($"role-{role.RoleName}")">
+                                    <span class="badge @(role.RoleName.ToLower() == "admin" ? "bg-primary" : "bg-secondary") me-2">
+                                        <i class="fas @(role.RoleName.ToLower() == "admin" ? "fa-crown" : "fa-user") me-1"></i>
+                                        @role.RoleName
+                                    </span>
+                                </label>
+                            </div>
+                        }
                     }
                     else
                     {
-                        <i class="fas fa-save"></i>
+                        <p class="text-muted">No hay roles disponibles.</p>
                     }
-                    Guardar Cambios
-                </button>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseRoleModal">
+                        <i class="fas fa-times me-2"></i>Cerrar
+                    </button>
+                    <button type="button" class="btn btn-primary" @onclick="SaveRoles" disabled="@isSavingRoles">
+                        @if (isSavingRoles)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                        }
+                        else
+                        {
+                            <i class="fas fa-save me-2"></i>
+                        }
+                        Guardar Cambios
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -950,9 +949,6 @@
                     userInfo.ConfirmPassword = "";
                 }
 
-                // Log para debugging
-                await JSRuntime.InvokeVoidAsync("console.log", "Actualizando usuario:", userInfo);
-
                 // Actualizar usuario existente
                 await usersRepository.UpdateUser(userInfo);
                 await displayMessage.DisplaySuccessMessage("Usuario actualizado correctamente");
@@ -977,9 +973,6 @@
         }
         catch (Exception ex)
         {
-            // Log del error completo
-            await JSRuntime.InvokeVoidAsync("console.error", "Error al guardar usuario:", ex.ToString());
-            
             var errorMessage = ex.Message;
             if (ex.Message.Contains("400"))
             {
@@ -1111,16 +1104,6 @@
     {
         searchTerm = "";
         FilterUsers();
-    }
-
-    private async Task TestValidation()
-    {
-        await JSRuntime.InvokeVoidAsync("console.log", "UserInfo actual:", userInfo);
-        await JSRuntime.InvokeVoidAsync("console.log", "IsEditMode:", isEditMode);
-        await JSRuntime.InvokeVoidAsync("console.log", "UserId:", userInfo.UserId);
-        
-        // Intentar llamar manualmente a HandleUserSubmit
-        await HandleUserSubmit();
     }
 
     private string GetRoleClass(string role)
