@@ -1,0 +1,90 @@
+/* ===== ESTILOS ESPECÍFICOS PARA ADMINISTRACIÓN DE NAVEGACIÓN ===== */
+
+/* ===== TABLA DE NAVEGACIÓN ===== */
+.navigation-table {
+    /* Hereda de .admin-table en AdminCommon.css */
+}
+
+.navigation-table thead {
+    /* Hereda de .admin-table thead en AdminCommon.css */
+}
+
+.navigation-table th {
+    /* Hereda de .admin-table th en AdminCommon.css */
+}
+
+.navigation-table td {
+    /* Hereda de .admin-table td en AdminCommon.css */
+}
+
+.navigation-table tbody tr {
+    /* Hereda de .admin-table tbody tr en AdminCommon.css */
+}
+
+.navigation-table tbody tr:hover {
+    /* Hereda de .admin-table tbody tr:hover en AdminCommon.css */
+}
+
+.navigation-table tbody tr.table-secondary {
+    /* Hereda de .admin-table tbody tr.table-secondary en AdminCommon.css */
+}
+
+.navigation-table tbody tr.table-secondary:hover {
+    /* Hereda de .admin-table tbody tr.table-secondary:hover en AdminCommon.css */
+}
+
+/* ===== MODAL ESPECÍFICO PARA NAVEGACIÓN ===== */
+.modal-content-modern {
+    max-width: 480px; /* Más pequeño para el modal de navegación */
+}
+
+/* ===== RESPONSIVE ESPECÍFICO PARA NAVEGACIÓN ===== */
+@media (max-width: 768px) {
+    .modal-content-modern {
+        width: 95%;
+        max-height: 90vh;
+    }
+
+    .col-md-6 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+
+    .modal-footer-modern {
+        flex-direction: column-reverse;
+        gap: 0.75rem;
+    }
+
+    .btn-modern {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 576px) {
+    .modal-content-modern {
+        width: 98%;
+        margin: 1rem;
+    }
+
+    .modal-header-modern {
+        padding: 0.75rem 1rem;
+    }
+
+    .modal-body-modern {
+        padding: 1rem;
+    }
+
+    .modal-footer-modern {
+        padding: 0.75rem 1rem;
+    }
+
+    .modal-title-modern {
+        font-size: 1.1rem;
+    }
+
+    .btn-modern {
+        padding: 0.6rem 1.2rem;
+        font-size: 0.85rem;
+    }
+}

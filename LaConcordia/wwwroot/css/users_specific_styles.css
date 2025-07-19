@@ -1,0 +1,114 @@
+/* ===== ESTILOS ESPECÍFICOS PARA GESTIÓN DE USUARIOS ===== */
+
+/* ===== TABLA DE USUARIOS ===== */
+.user-table {
+    /* Hereda de .admin-table en AdminCommon.css */
+}
+
+.user-table thead {
+    /* Hereda de .admin-table thead en AdminCommon.css */
+}
+
+.user-table th {
+    /* Hereda de .admin-table th en AdminCommon.css */
+}
+
+.user-table td {
+    /* Hereda de .admin-table td en AdminCommon.css */
+}
+
+.user-table tbody tr {
+    /* Hereda de .admin-table tbody tr en AdminCommon.css */
+}
+
+.user-table tbody tr:hover {
+    /* Hereda de .admin-table tbody tr:hover en AdminCommon.css */
+}
+
+/* ===== INFORMACIÓN DE USUARIO ===== */
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 1.2rem;
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-name {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.user-email {
+    font-size: 0.875rem;
+    color: #7f8c8d;
+}
+
+/* ===== BADGES DE ROLES ===== */
+.role-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin: 0.125rem;
+}
+
+.role-admin {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.role-user {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.role-pending {
+    background: #fff3e0;
+    color: #f57c00;
+}
+
+/* ===== RESPONSIVE ESPECÍFICO PARA USUARIOS ===== */
+@media (max-width: 768px) {
+    .user-table {
+        font-size: 0.85rem;
+    }
+
+    .user-table th,
+    .user-table td {
+        padding: 0.75rem 0.5rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .user-table {
+        font-size: 0.8rem;
+    }
+
+    .user-table th,
+    .user-table td {
+        padding: 0.6rem 0.4rem;
+    }
+
+    .role-badge {
+        font-size: 0.65rem;
+        padding: 0.15rem 0.5rem;
+    }
+}
