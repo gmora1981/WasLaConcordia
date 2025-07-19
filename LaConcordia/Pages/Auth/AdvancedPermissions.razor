@@ -1,0 +1,981 @@
+﻿@page "/admin/advanced-permissions"
+@using Identity.Api.Interfaces
+@using LaConcordia.Model
+@using LaConcordia.Repository
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IUsersRepository usersRepository
+@inject INavigationRepository navigationRepository
+@inject IPermissionService permissionService
+@inject HttpClient httpClient
+@inject IJSRuntime JSRuntime
+@inject IDisplayMessage displayMessage
+@attribute [Authorize(Roles = "Admin")]
+
+<!-- Importar CSS común -->
+<link href="~/css/AdminCommon.css" rel="stylesheet" />
+
+<div class="page-container">
+    <div class="content-card">
+        <div class="header-section">
+            <h1 class="page-title">
+                <i class="fas fa-shield-alt"></i> Gestión Avanzada de Permisos
+            </h1>
+            <div style="display: flex; gap: 1rem;">
+                <button class="btn-modern btn-primary-modern" @onclick="ShowPermissionMatrix">
+                    <i class="fas fa-table"></i> Matriz de Permisos
+                </button>
+                <button class="btn-modern btn-secondary-modern" @onclick="ShowBulkAssignment">
+                    <i class="fas fa-users-cog"></i> Asignación Masiva
+                </button>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert-modern alert-danger">
+                <i class="fas fa-exclamation-triangle"></i>
+                @errorMessage
+                <button type="button" style="background: transparent; border: none; color: inherit; margin-left: auto; cursor: pointer;" @onclick="() => errorMessage = null">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(successMessage))
+        {
+            <div class="alert-modern alert-success">
+                <i class="fas fa-check-circle"></i>
+                @successMessage
+                <button type="button" style="background: transparent; border: none; color: inherit; margin-left: auto; cursor: pointer;" @onclick="() => successMessage = null">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        }
+
+        <!-- Pestañas -->
+        <div class="tab-container">
+            <div class="tab-headers">
+                <button class="tab-header @(activeTab == "users" ? "active" : "")" @onclick="() => SetActiveTab(\" users\")">
+                    <i class="fas fa-users"></i> Permisos por Usuario
+                </button>
+                <button class="tab-header @(activeTab == "roles" ? "active" : "")" @onclick="() => SetActiveTab(\" roles\")">
+                    <i class="fas fa-user-tag"></i> Permisos por Rol
+                </button>
+                <button class="tab-header @(activeTab == "navigation" ? "active" : "")" @onclick="() => SetActiveTab(\" navigation\")">
+                    <i class="fas fa-sitemap"></i> Items de Navegación
+                </button>
+                <button class="tab-header @(activeTab == "tools" ? "active" : "")" @onclick="() => SetActiveTab(\" tools\")">
+                    <i class="fas fa-tools"></i> Herramientas
+                </button>
+            </div>
+
+            <!-- Contenido de Pestañas -->
+            <div class="tab-content">
+                @if (activeTab == "users")
+                {
+                    <div class="tab-pane">
+                        <h3>Gestión de Permisos por Usuario</h3>
+
+                        <div class="filter-section">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" placeholder="Buscar usuario..." @bind="userSearchTerm" @bind:event="oninput" @onkeyup="FilterUsers" />
+                            </div>
+                            <button class="btn-modern btn-primary-modern" @onclick="LoadUserPermissions">
+                                <i class="fas fa-sync"></i> Actualizar
+                            </button>
+                        </div>
+
+                        @if (isLoadingUsers)
+                        {
+                            <div class="loading-container">
+                                <div class="loading-spinner"></div>
+                                <p>Cargando usuarios...</p>
+                            </div>
+                        }
+                        else if (filteredUsers.Any())
+                        {
+                            <div class="user-permissions-grid">
+                                @foreach (var user in filteredUsers.Take(20))
+                                {
+                                    <div class="user-permission-card">
+                                        <div class="user-info">
+                                            <div class="user-avatar">
+                                                @user.FirstName.Substring(0, 1).ToUpper()
+                                            </div>
+                                            <div class="user-details">
+                                                <h4>@user.FirstName @user.LastName</h4>
+                                                <p>@user.Email</p>
+                                                @if (userRoles.ContainsKey(user.UserId))
+                                                {
+                                                    <div class="user-roles">
+                                                        @foreach (var role in userRoles[user.UserId])
+                                                        {
+                                                            <span class="role-badge">@role</span>
+                                                        }
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="permission-actions">
+                                            <button class="btn-icon btn-edit" @onclick="() => ManageUserPermissions(user)" title="Gestionar Permisos">
+                                                <i class="fas fa-key"></i>
+                                            </button>
+                                            <button class="btn-icon btn-roles" @onclick="() => ViewUserPermissions(user)" title="Ver Permisos">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button class="btn-icon btn-secondary" @onclick="() => CopyUserPermissions(user)" title="Copiar Permisos">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="empty-state">
+                                <i class="fas fa-users-slash"></i>
+                                <p>No se encontraron usuarios</p>
+                            </div>
+                        }
+                    </div>
+                }
+                else if (activeTab == "roles")
+                {
+                    <div class="tab-pane">
+                        <h3>Gestión de Permisos por Rol</h3>
+
+                        @if (isLoadingRoles)
+                        {
+                            <div class="loading-container">
+                                <div class="loading-spinner"></div>
+                                <p>Cargando roles...</p>
+                            </div>
+                        }
+                        else if (roles.Any())
+                        {
+                            <div class="roles-grid">
+                                @foreach (var role in roles)
+                                {
+                                    <div class="role-card">
+                                        <div class="role-header">
+                                            <h4>
+                                                <i class="fas @(role.RoleName == "Admin" ? "fa-crown" : "fa-user")"></i>
+                                                @role.RoleName
+                                            </h4>
+                                            <div class="role-actions">
+                                                <button class="btn-icon btn-edit" @onclick="() => ManageRolePermissions(role)" title="Gestionar Permisos">
+                                                    <i class="fas fa-cog"></i>
+                                                </button>
+                                                <button class="btn-icon btn-roles" @onclick="() => ViewRolePermissions(role)" title="Ver Permisos">
+                                                    <i class="fas fa-list"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="role-stats">
+                                            <p>Usuarios en este rol: <strong>@GetUsersInRoleCount(role.RoleName)</strong></p>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="empty-state">
+                                <i class="fas fa-user-tag"></i>
+                                <p>No se encontraron roles</p>
+                            </div>
+                        }
+                    </div>
+                }
+                else if (activeTab == "navigation")
+                {
+                    <div class="tab-pane">
+                        <h3>Items de Navegación</h3>
+                        <p style="margin-bottom: 1.5rem; color: #7f8c8d;">
+                            Gestiona los elementos del menú de navegación y sus permisos asociados.
+                        </p>
+
+                        @if (isLoadingNavigation)
+                        {
+                            <div class="loading-container">
+                                <div class="loading-spinner"></div>
+                                <p>Cargando navegación...</p>
+                            </div>
+                        }
+                        else if (navigationItems.Any())
+                        {
+                            <div class="navigation-tree">
+                                @foreach (var item in navigationItems.Where(i => i.ParentId == null).OrderBy(i => i.Order))
+                                {
+                                    <div class="nav-tree-item">
+                                        <div class="nav-item-header">
+                                            @if (!string.IsNullOrEmpty(item.Icon))
+                                            {
+                                                <i class="@item.Icon"></i>
+                                            }
+                                            <span class="nav-title">@item.Title</span>
+                                            @if (!string.IsNullOrEmpty(item.RequiredRole))
+                                            {
+                                                <span class="permission-badge">@item.RequiredRole</span>
+                                            }
+                                            <button class="btn-icon btn-edit" @onclick="() => ManageNavigationPermissions(item)" title="Gestionar Permisos">
+                                                <i class="fas fa-key"></i>
+                                            </button>
+                                        </div>
+
+                                        @if (item.Children.Any())
+                                        {
+                                            <div class="nav-children">
+                                                @foreach (var child in item.Children.OrderBy(c => c.Order))
+                                                {
+                                                    <div class="nav-child-item">
+                                                        @if (!string.IsNullOrEmpty(child.Icon))
+                                                        {
+                                                            <i class="@child.Icon"></i>
+                                                        }
+                                                        <span>@child.Title</span>
+                                                        @if (!string.IsNullOrEmpty(child.RequiredRole))
+                                                        {
+                                                            <span class="permission-badge">@child.RequiredRole</span>
+                                                        }
+                                                        <button class="btn-icon btn-edit" @onclick="() => ManageNavigationPermissions(child)" title="Gestionar Permisos">
+                                                            <i class="fas fa-key"></i>
+                                                        </button>
+                                                    </div>
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="empty-state">
+                                <i class="fas fa-sitemap"></i>
+                                <p>No hay elementos de navegación configurados</p>
+                                <a href="/admin/navigation" class="btn-modern btn-primary-modern">
+                                    <i class="fas fa-plus"></i> Crear Elementos
+                                </a>
+                            </div>
+                        }
+                    </div>
+                }
+                else if (activeTab == "tools")
+                {
+                    <div class="tab-pane">
+                        <h3>Herramientas de Gestión</h3>
+
+                        <div class="tools-grid">
+                            <div class="tool-card">
+                                <div class="tool-icon">
+                                    <i class="fas fa-copy"></i>
+                                </div>
+                                <h4>Copiar Permisos</h4>
+                                <p>Copia permisos entre usuarios o roles</p>
+                                <button class="btn-modern btn-primary-modern" @onclick="ShowCopyPermissions">
+                                    Usar Herramienta
+                                </button>
+                            </div>
+
+                            <div class="tool-card">
+                                <div class="tool-icon">
+                                    <i class="fas fa-broom"></i>
+                                </div>
+                                <h4>Limpiar Permisos</h4>
+                                <p>Resetea todos los permisos de un usuario o rol</p>
+                                <button class="btn-modern btn-secondary-modern" @onclick="ShowResetPermissions">
+                                    Usar Herramienta
+                                </button>
+                            </div>
+
+                            <div class="tool-card">
+                                <div class="tool-icon">
+                                    <i class="fas fa-chart-bar"></i>
+                                </div>
+                                <h4>Reporte de Permisos</h4>
+                                <p>Genera reportes detallados de permisos</p>
+                                <button class="btn-modern btn-info" @onclick="GeneratePermissionsReport">
+                                    Generar Reporte
+                                </button>
+                            </div>
+
+                            <div class="tool-card">
+                                <div class="tool-icon">
+                                    <i class="fas fa-history"></i>
+                                </div>
+                                <h4>Auditoría</h4>
+                                <p>Revisa el historial de cambios de permisos</p>
+                                <button class="btn-modern btn-warning" @onclick="ShowAuditLog">
+                                    Ver Auditoría
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de gestión de permisos de usuario -->
+<UserPermissionModal @bind-showModal="showPermissionModal" selectedUser="selectedUserForPermissions" />
+
+@* Aquí van todos los estilos CSS del componente anterior *@
+<style>
+    /* Incluir todos los estilos del componente anterior aquí */
+    .tab-container {
+        margin-top: 2rem;
+    }
+
+    .tab-headers {
+        display: flex;
+        border-bottom: 2px solid #e0e0e0;
+        margin-bottom: 2rem;
+        gap: 0.5rem;
+    }
+
+    .tab-header {
+        padding: 1rem 1.5rem;
+        background: transparent;
+        border: none;
+        border-bottom: 3px solid transparent;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 600;
+        color: #7f8c8d;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+        .tab-header:hover {
+            color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .tab-header.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+    .tab-content {
+        min-height: 500px;
+    }
+
+    .tab-pane {
+        animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    .filter-section {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        align-items: center;
+    }
+
+    .user-permissions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .user-permission-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        border: 1px solid #f0f0f0;
+        transition: all 0.3s ease;
+    }
+
+        .user-permission-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+        }
+
+    .user-info {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .user-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 1.2rem;
+    }
+
+    .user-details h4 {
+        margin: 0 0 0.5rem 0;
+        color: #2c3e50;
+    }
+
+    .user-details p {
+        margin: 0;
+        color: #7f8c8d;
+        font-size: 0.9rem;
+    }
+
+    .user-roles {
+        margin-top: 0.5rem;
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .role-badge {
+        background: #e3f2fd;
+        color: #1976d2;
+        padding: 0.25rem 0.5rem;
+        border-radius: 15px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .permission-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+    }
+
+    .roles-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .role-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        border: 1px solid #f0f0f0;
+    }
+
+    .role-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+        .role-header h4 {
+            margin: 0;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+    .role-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .role-stats p {
+        margin: 0;
+        color: #7f8c8d;
+        font-size: 0.9rem;
+    }
+
+    .navigation-tree {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .nav-tree-item {
+        margin-bottom: 1rem;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .nav-item-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .nav-title {
+        flex: 1;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+    .permission-badge {
+        background: #fff3e0;
+        color: #f57c00;
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .nav-children {
+        padding: 1rem;
+        background: #fafafa;
+    }
+
+    .nav-child-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        background: white;
+        border-radius: 6px;
+        border: 1px solid #e0e0e0;
+    }
+
+        .nav-child-item:last-child {
+            margin-bottom: 0;
+        }
+
+    .tools-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .tool-card {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        text-align: center;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        border: 1px solid #f0f0f0;
+        transition: all 0.3s ease;
+    }
+
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+
+    .tool-icon {
+        width: 60px;
+        height: 60px;
+        margin: 0 auto 1rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.5rem;
+    }
+
+    .tool-card h4 {
+        margin: 0 0 0.5rem;
+        color: #2c3e50;
+    }
+
+    .tool-card p {
+        margin: 0 0 1.5rem;
+        color: #7f8c8d;
+        font-size: 0.9rem;
+    }
+
+    .loading-container {
+        text-align: center;
+        padding: 3rem;
+        color: #7f8c8d;
+    }
+
+    .btn-info {
+        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+        color: white;
+    }
+
+        .btn-info:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(23, 162, 184, 0.4);
+        }
+
+    .btn-warning {
+        background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+        color: #212529;
+    }
+
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 193, 7, 0.4);
+        }
+
+    @media (max-width: 768px) {
+        .tab-headers
+
+    {
+        flex-direction: column;
+    }
+
+    .user-permissions-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .roles-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .tools-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-section {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    }
+</style>
+
+@code {
+    private string activeTab = "users";
+    private string? errorMessage;
+    private string? successMessage;
+
+    // Loading states
+    private bool isLoadingUsers = true;
+    private bool isLoadingRoles = true;
+    private bool isLoadingNavigation = true;
+
+    // Data collections
+    private List<UserDTO> users = new();
+    private List<UserDTO> filteredUsers = new();
+    private List<RoleDTO> roles = new();
+    private List<NavigationItemDto> navigationItems = new();
+    private Dictionary<string, List<string>> userRoles = new();
+    private Dictionary<string, int> roleUserCounts = new();
+
+    // Search and filters
+    private string userSearchTerm = "";
+
+    // Modal state
+    private bool showPermissionModal = false;
+    private UserDTO? selectedUserForPermissions;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAllData();
+    }
+
+    private async Task LoadAllData()
+    {
+        try
+        {
+            await Task.WhenAll(
+                LoadUsers(),
+                LoadRoles(),
+                LoadNavigationItems()
+            );
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al cargar datos: {ex.Message}";
+        }
+    }
+
+    private async Task LoadUsers()
+    {
+        try
+        {
+            isLoadingUsers = true;
+            var paginationDTO = new PaginationDTO { Page = 1, RecordsPerPage = 100 };
+            var response = await usersRepository.GetUsers(paginationDTO);
+            users = response.Response;
+
+            // Cargar roles de usuarios
+            foreach (var user in users)
+            {
+                try
+                {
+                    var userRolesList = await usersRepository.GetUserRoles(user.UserId);
+                    userRoles[user.UserId] = userRolesList;
+                }
+                catch
+                {
+                    userRoles[user.UserId] = new List<string>();
+                }
+            }
+
+            FilterUsers();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al cargar usuarios: {ex.Message}";
+        }
+        finally
+        {
+            isLoadingUsers = false;
+        }
+    }
+
+    private async Task LoadRoles()
+    {
+        try
+        {
+            isLoadingRoles = true;
+            roles = await usersRepository.GetRoles();
+
+            // Cargar conteo de usuarios por rol
+            foreach (var role in roles)
+            {
+                try
+                {
+                    roleUserCounts[role.RoleName] = users.Count(u =>
+                        userRoles.ContainsKey(u.UserId) &&
+                        userRoles[u.UserId].Contains(role.RoleName));
+                }
+                catch
+                {
+                    roleUserCounts[role.RoleName] = 0;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al cargar roles: {ex.Message}";
+        }
+        finally
+        {
+            isLoadingRoles = false;
+        }
+    }
+
+    private async Task LoadNavigationItems()
+    {
+        try
+        {
+            isLoadingNavigation = true;
+            var items = await navigationRepository.GetAllAsync();
+
+            // Construir estructura jerárquica
+            var lookup = items.ToLookup(i => i.ParentId);
+            navigationItems = items.Where(i => i.ParentId == null)
+                .Select(item => new NavigationItemDto
+                {
+                    Id = item.Id,
+                    ParentId = item.ParentId,
+                    Title = item.Title ?? "",
+                    Url = item.Url,
+                    Icon = item.Icon,
+                    Order = item.Order,
+                    IsActive = item.IsActive,
+                    RequiredRole = item.RequiredRole,
+                    Children = lookup[item.Id].Select(child => new NavigationItemDto
+                    {
+                        Id = child.Id,
+                        ParentId = child.ParentId,
+                        Title = child.Title ?? "",
+                        Url = child.Url,
+                        Icon = child.Icon,
+                        Order = child.Order,
+                        IsActive = child.IsActive,
+                        RequiredRole = child.RequiredRole,
+                        Children = new List<NavigationItemDto>()
+                    }).ToList()
+                }).ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al cargar elementos de navegación: {ex.Message}";
+        }
+        finally
+        {
+            isLoadingNavigation = false;
+        }
+    }
+
+    private void FilterUsers()
+    {
+        if (string.IsNullOrWhiteSpace(userSearchTerm))
+        {
+            filteredUsers = new List<UserDTO>(users);
+        }
+        else
+        {
+            var searchLower = userSearchTerm.ToLower();
+            filteredUsers = users.Where(u =>
+                u.Email.ToLower().Contains(searchLower) ||
+                u.FirstName.ToLower().Contains(searchLower) ||
+                u.LastName.ToLower().Contains(searchLower)
+            ).ToList();
+        }
+        StateHasChanged();
+    }
+
+    private void SetActiveTab(string tab)
+    {
+        activeTab = tab;
+        StateHasChanged();
+    }
+
+    private async Task LoadUserPermissions()
+    {
+        await LoadUsers();
+        successMessage = "Lista de usuarios actualizada";
+        StateHasChanged();
+    }
+
+    private int GetUsersInRoleCount(string roleName)
+    {
+        return roleUserCounts.GetValueOrDefault(roleName, 0);
+    }
+
+    // Métodos de gestión de permisos
+    private async Task ManageUserPermissions(UserDTO user)
+    {
+        selectedUserForPermissions = user;
+        showPermissionModal = true;
+        StateHasChanged();
+    }
+
+    private async Task ViewUserPermissions(UserDTO user)
+    {
+        try
+        {
+            var permissions = await permissionService.GetUserPermissionsAsync(user.UserId);
+            var permissionSummary = permissions.Permissions
+                .Where(p => p.CanView || p.CanCreate || p.CanEdit || p.CanDelete)
+                .Select(p => $"• {p.NavigationItemTitle}: {GetPermissionSummary(p)}")
+                .Take(5)
+                .ToList();
+
+            var message = permissionSummary.Any()
+                ? $"Permisos de {user.FirstName} {user.LastName}:\n\n{string.Join("\n", permissionSummary)}"
+                : $"{user.FirstName} {user.LastName} no tiene permisos específicos asignados.";
+
+            await JSRuntime.InvokeVoidAsync("alert", message);
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage($"Error al obtener permisos: {ex.Message}");
+        }
+    }
+
+    private string GetPermissionSummary(NavigationPermissionDto permission)
+    {
+        var perms = new List<string>();
+        if (permission.CanView) perms.Add("Ver");
+        if (permission.CanCreate) perms.Add("Crear");
+        if (permission.CanEdit) perms.Add("Editar");
+        if (permission.CanDelete) perms.Add("Eliminar");
+        return perms.Any() ? string.Join(", ", perms) : "Sin permisos";
+    }
+
+    private async Task CopyUserPermissions(UserDTO user)
+    {
+        await JSRuntime.InvokeVoidAsync("alert", $"Función de copia de permisos para {user.Email} estará disponible próximamente");
+    }
+
+    private async Task ManageRolePermissions(RoleDTO role)
+    {
+        await JSRuntime.InvokeVoidAsync("alert", $"Gestionar permisos del rol {role.RoleName} estará disponible próximamente");
+    }
+
+    private async Task ViewRolePermissions(RoleDTO role)
+    {
+        await JSRuntime.InvokeVoidAsync("alert", $"Ver permisos del rol {role.RoleName} estará disponible próximamente");
+    }
+
+    private async Task ManageNavigationPermissions(NavigationItemDto item)
+    {
+        await JSRuntime.InvokeVoidAsync("alert", $"Gestionar permisos para {item.Title} estará disponible próximamente");
+    }
+
+    // Métodos de herramientas
+    private async Task ShowPermissionMatrix()
+    {
+        try
+        {
+            var matrix = await permissionService.GetPermissionMatrixAsync();
+            await JSRuntime.InvokeVoidAsync("alert", $"Matriz de permisos cargada: {matrix.NavigationItems.Count} items, {matrix.Roles.Count} roles");
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage($"Error al cargar matriz: {ex.Message}");
+        }
+    }
+
+    private async Task ShowBulkAssignment()
+    {
+        await JSRuntime.InvokeVoidAsync("alert", "Herramienta de asignación masiva estará disponible próximamente");
+    }
+
+    private async Task ShowCopyPermissions()
+    {
+        await JSRuntime.InvokeVoidAsync("alert", "Herramienta de copia de permisos estará disponible próximamente");
+    }
+
+    private async Task ShowResetPermissions()
+    {
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm",
+            "¿Está seguro de que desea acceder a la herramienta de reseteo de permisos?");
+
+        if (confirmed)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Herramienta de reseteo de permisos estará disponible próximamente");
+        }
+    }
+
+    private async Task GeneratePermissionsReport()
+    {
+        try
+        {
+            var report = await permissionService.GetAllUsersWithPermissionsAsync();
+            await JSRuntime.InvokeVoidAsync("alert", $"Reporte generado: {report.Count} usuarios con permisos");
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage($"Error al generar reporte: {ex.Message}");
+        }
+    }
+
+    private async Task ShowAuditLog()
+    {
+        try
+        {
+            var endDate = DateTime.UtcNow;
+            var startDate = endDate.AddDays(-30);
+            var audit = await permissionService.GetPermissionAuditAsync(startDate, endDate);
+
+            var totalChanges = audit.UserPermissionChanges.Count + audit.RolePermissionChanges.Count;
+            await JSRuntime.InvokeVoidAsync("alert", $"Auditoría (últimos 30 días): {totalChanges} cambios de permisos");
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage($"Error al obtener auditoría: {ex.Message}");
+        }
+    }
+}

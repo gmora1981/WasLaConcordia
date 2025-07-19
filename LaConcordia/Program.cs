@@ -48,6 +48,8 @@ static void configureservices(IServiceCollection services)
     services.AddScoped<IGenericoRepositorio, GenericoRepositorio>();
     services.AddScoped<IDisplayMessage, DisplayMessage>();
     services.AddScoped<IUsersRepository, UserRepository>();
+    // NUEVO: Servicio de Permisos
+    services.AddScoped<IPermissionService, PermissionService>();
     services.AddAuthorizationCore();
     services.AddScoped<TokenRenewer>();
     services.AddScoped<JWTAuthenticationStateProvider>();

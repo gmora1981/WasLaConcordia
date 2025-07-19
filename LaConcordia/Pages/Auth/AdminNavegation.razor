@@ -160,7 +160,7 @@
 @if (showModal)
 {
     <div class="modal-modern" @onclick="CloseModal">
-        <div class="modal-content-modern" @onclick:stopPropagation="true">
+        <div class="modal-content-modern" style="max-width: 600px;" @onclick:stopPropagation="true">
             <div class="modal-header-modern">
                 <h2 class="modal-title-modern">
                     <i class="fas @(editingItem == null ? "fa-plus" : "fa-edit")"></i>
