@@ -1,4 +1,5 @@
-﻿@using LaConcordia.Model
+﻿@using Identity.Api.Interfaces
+@using LaConcordia.Model
 @using LaConcordia.Repository
 @inject IPermissionService permissionService
 @inject INavigationRepository navigationRepository
@@ -31,15 +32,15 @@
                     <div class="permission-tabs">
                         <div class="tab-headers">
                             <button class="tab-header @(activeTab == "individual" ? "active" : "")"
-                                    @onclick="() => SetActiveTab(" individual")">
+                                    @onclick="@(() => SetActiveTab(" individual"))">
                                 <i class="fas fa-user"></i> Permisos Individuales
                             </button>
                             <button class="tab-header @(activeTab == "effective" ? "active" : "")"
-                                    @onclick="() => SetActiveTab(" effective")">
+                                    @onclick="@(() => SetActiveTab(" effective"))">
                                 <i class="fas fa-eye"></i> Permisos Efectivos
                             </button>
                             <button class="tab-header @(activeTab == "bulk" ? "active" : "")"
-                                    @onclick="() => SetActiveTab(" bulk")">
+                                    @onclick="@(() => SetActiveTab("bulk"))">
                                 <i class="fas fa-layer-group"></i> Asignación Masiva
                             </button>
                         </div>
@@ -740,7 +741,7 @@
         animation: spin 1s linear infinite;
     }
 
-    @keyframes spin {
+    @@keyframes spin {
         0%
 
     {
