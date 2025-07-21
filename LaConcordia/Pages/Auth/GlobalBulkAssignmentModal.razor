@@ -1,0 +1,652 @@
+﻿@using Identity.Api.Interfaces
+@using LaConcordia.Model
+@using LaConcordia.Repository
+@inject IPermissionService permissionService
+@inject INavigationRepository navigationRepository
+@inject IUsersRepository usersRepository
+@inject IDisplayMessage displayMessage
+
+<link href="css/GlobalBulkAssignment.css" rel="stylesheet" />
+
+@if (showModal)
+{
+    <div class="modal-modern" @onclick="CloseModal">
+        <div class="modal-content-modern" style="max-width: 900px; max-height: 90vh;" @onclick:stopPropagation="true">
+            <div class="modal-header-modern">
+                <h2 class="modal-title-modern">
+                    <i class="fas fa-users-cog"></i>
+                    Asignación Masiva de Permisos
+                </h2>
+                <button type="button" class="btn-close-modern" @onclick="CloseModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="modal-body-modern">
+                @if (isLoading)
+                {
+                    <div class="loading-container">
+                        <div class="loading-spinner"></div>
+                        <p>Cargando datos...</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="bulk-assignment-container">
+                        <!-- Paso 1: Seleccionar destinatarios -->
+                        <div class="assignment-step">
+                            <h3><span class="step-number">1</span> Seleccionar Destinatarios</h3>
+                            
+                            <div class="recipient-tabs">
+                                <button class="recipient-tab @(recipientType == "users" ? "active" : "")" 
+                                        @onclick="@(() => SetRecipientType("users"))">
+                                    <i class="fas fa-users"></i> Usuarios
+                                </button>
+                                <button class="recipient-tab @(recipientType == "roles" ? "active" : "")" 
+                                        @onclick="@(() => SetRecipientType("roles"))">
+                                    <i class="fas fa-user-tag"></i> Roles
+                                </button>
+                            </div>
+
+                            <div class="recipient-content">
+                                @if (recipientType == "users")
+                                {
+                                    <div class="search-filter">
+                                        <div class="search-box">
+                                            <i class="fas fa-search"></i>
+                                            <input type="text" placeholder="Buscar usuarios..." 
+                                                   @bind="userSearchTerm" @bind:event="oninput" />
+                                        </div>
+                                        <div class="selection-info">
+                                            <span>@selectedUsers.Count usuarios seleccionados</span>
+                                            <button class="btn-link" @onclick="ToggleAllUsers">
+                                                @(selectedUsers.Count == filteredUsers.Count ? "Deseleccionar todos" : "Seleccionar todos")
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="recipient-list users-list">
+                                        @foreach (var user in GetFilteredUsers())
+                                        {
+                                            <label class="recipient-item @(selectedUsers.Contains(user.UserId) ? "selected" : "")">
+                                                <input type="checkbox" 
+                                                       checked="@selectedUsers.Contains(user.UserId)"
+                                                       @onchange="@(() => ToggleUserSelection(user.UserId))" />
+                                                <div class="recipient-info">
+                                                    <div class="user-avatar-small">
+                                                        @user.FirstName.Substring(0, 1).ToUpper()
+                                                    </div>
+                                                    <div>
+                                                        <div class="recipient-name">@user.FirstName @user.LastName</div>
+                                                        <div class="recipient-detail">@user.Email</div>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="selection-info">
+                                        <span>@selectedRoles.Count roles seleccionados</span>
+                                        <button class="btn-link" @onclick="ToggleAllRoles">
+                                            @(selectedRoles.Count == roles.Count ? "Deseleccionar todos" : "Seleccionar todos")
+                                        </button>
+                                    </div>
+
+                                    <div class="recipient-list roles-list">
+                                        @foreach (var role in roles)
+                                        {
+                                            <label class="recipient-item @(selectedRoles.Contains(role.RoleId) ? "selected" : "")">
+                                                <input type="checkbox" 
+                                                       checked="@selectedRoles.Contains(role.RoleId)"
+                                                       @onchange="@(() => ToggleRoleSelection(role.RoleId))" />
+                                                <div class="recipient-info">
+                                                    <div class="role-icon">
+                                                        <i class="fas @(role.RoleName == "Admin" ? "fa-crown" : "fa-user")"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div class="recipient-name">@role.RoleName</div>
+                                                        <div class="recipient-detail">@GetUsersInRoleCount(role.RoleName) usuarios</div>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Paso 2: Configurar permisos -->
+                        <div class="assignment-step">
+                            <h3><span class="step-number">2</span> Configurar Permisos</h3>
+
+                            <div class="permission-config">
+                                <div class="permission-presets">
+                                    <h4>Plantillas Rápidas</h4>
+                                    <div class="preset-grid">
+                                        <button class="preset-card" @onclick="@(() => ApplyPreset("viewer"))">
+                                            <i class="fas fa-eye"></i>
+                                            <span>Solo Lectura</span>
+                                        </button>
+                                        <button class="preset-card" @onclick="@(() => ApplyPreset("editor"))">
+                                            <i class="fas fa-edit"></i>
+                                            <span>Editor</span>
+                                        </button>
+                                        <button class="preset-card" @onclick="@(() => ApplyPreset("admin"))">
+                                            <i class="fas fa-user-shield"></i>
+                                            <span>Administrador</span>
+                                        </button>
+                                        <button class="preset-card danger" @onclick="@(() => ApplyPreset("none"))">
+                                            <i class="fas fa-ban"></i>
+                                            <span>Sin Acceso</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="permission-details">
+                                    <h4>Permisos Detallados</h4>
+                                    <div class="permission-options">
+                                        <label class="permission-option">
+                                            <input type="checkbox" @bind="bulkPermissions.CanView" />
+                                            <i class="fas fa-eye"></i>
+                                            <span>Ver</span>
+                                        </label>
+                                        <label class="permission-option">
+                                            <input type="checkbox" @bind="bulkPermissions.CanCreate" />
+                                            <i class="fas fa-plus"></i>
+                                            <span>Crear</span>
+                                        </label>
+                                        <label class="permission-option">
+                                            <input type="checkbox" @bind="bulkPermissions.CanEdit" />
+                                            <i class="fas fa-edit"></i>
+                                            <span>Editar</span>
+                                        </label>
+                                        <label class="permission-option">
+                                            <input type="checkbox" @bind="bulkPermissions.CanDelete" />
+                                            <i class="fas fa-trash"></i>
+                                            <span>Eliminar</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Paso 3: Seleccionar páginas/módulos -->
+                        <div class="assignment-step">
+                            <h3><span class="step-number">3</span> Seleccionar Páginas y Módulos</h3>
+
+                            <div class="module-selection">
+                                <div class="selection-controls">
+                                    <button class="btn-small" @onclick="SelectAllModules">Seleccionar Todos</button>
+                                    <button class="btn-small" @onclick="ClearAllModules">Limpiar Selección</button>
+                                    <span class="selection-count">@selectedModules.Count módulos seleccionados</span>
+                                </div>
+
+                                <div class="module-tree">
+                                    @foreach (var item in navigationItems)
+                                    {
+                                        <div class="module-item">
+                                            <label class="module-checkbox">
+                                                <input type="checkbox" 
+                                                       checked="@selectedModules.Contains(item.Id)"
+                                                       @onchange="@(() => ToggleModuleSelection(item.Id))" />
+                                                @if (!string.IsNullOrEmpty(item.Icon))
+                                                {
+                                                    <i class="@item.Icon"></i>
+                                                }
+                                                <span>@item.Title</span>
+                                            </label>
+
+                                            @if (item.Children.Any())
+                                            {
+                                                <div class="module-children">
+                                                    @foreach (var child in item.Children)
+                                                    {
+                                                        <label class="module-checkbox child">
+                                                            <input type="checkbox" 
+                                                                   checked="@selectedModules.Contains(child.Id)"
+                                                                   @onchange="@(() => ToggleModuleSelection(child.Id))" />
+                                                            <i class="fas fa-arrow-right"></i>
+                                                            @if (!string.IsNullOrEmpty(child.Icon))
+                                                            {
+                                                                <i class="@child.Icon"></i>
+                                                            }
+                                                            <span>@child.Title</span>
+                                                        </label>
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Resumen -->
+                        <div class="assignment-summary">
+                            <h4><i class="fas fa-clipboard-check"></i> Resumen de la Operación</h4>
+                            <div class="summary-content">
+                                <div class="summary-item">
+                                    <span class="summary-label">Destinatarios:</span>
+                                    <span class="summary-value">
+                                        @if (recipientType == "users")
+                                        {
+                                            @($"{selectedUsers.Count} usuarios")
+                                        }
+                                        else
+                                        {
+                                            @($"{selectedRoles.Count} roles")
+                                        }
+                                    </span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">Permisos:</span>
+                                    <span class="summary-value">
+                                        @GetPermissionSummary()
+                                    </span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">Módulos:</span>
+                                    <span class="summary-value">@selectedModules.Count páginas/módulos</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="modal-footer-modern">
+                <button type="button" class="btn-modern btn-secondary-modern" @onclick="CloseModal" disabled="@isSaving">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button type="button" class="btn-modern btn-primary-modern" @onclick="ApplyBulkPermissions" disabled="@(!CanApply() || isSaving)">
+                    @if (isSaving)
+                    {
+                        <div class="spinner-border"></div>
+                        <span>Aplicando...</span>
+                    }
+                    else
+                    {
+                        <i class="fas fa-check"></i>
+                        <span>Aplicar Permisos</span>
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool showModal { get; set; }
+    [Parameter] public EventCallback<bool> showModalChanged { get; set; }
+
+    private bool isLoading = true;
+    private bool isSaving = false;
+
+    // Tipo de destinatario
+    private string recipientType = "users";
+
+    // Datos
+    private List<UserDTO> users = new();
+    private List<UserDTO> filteredUsers = new();
+    private List<RoleDTO> roles = new();
+    private List<NavigationItemDto> navigationItems = new();
+    private Dictionary<string, int> roleUserCounts = new();
+    private Dictionary<string, List<string>> userRoles = new();
+
+    // Selecciones
+    private HashSet<string> selectedUsers = new();
+    private HashSet<string> selectedRoles = new();
+    private HashSet<int> selectedModules = new();
+
+    // Búsqueda
+    private string userSearchTerm = "";
+
+    // Permisos a aplicar
+    private BulkPermissionAssignmentDto bulkPermissions = new()
+    {
+        CanView = false,
+        CanCreate = false,
+        CanEdit = false,
+        CanDelete = false,
+        NavigationItemIds = new List<int>()
+    };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (showModal)
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            // Cargar usuarios
+            var paginationDTO = new PaginationDTO { Page = 1, RecordsPerPage = 100 };
+            var response = await usersRepository.GetUsers(paginationDTO);
+            users = response.Response;
+            filteredUsers = new List<UserDTO>(users);
+
+            // Cargar roles
+            roles = await usersRepository.GetRoles();
+
+            // Cargar roles de usuarios
+            foreach (var user in users)
+            {
+                try
+                {
+                    var userRolesList = await usersRepository.GetUserRoles(user.UserId);
+                    userRoles[user.UserId] = userRolesList;
+                }
+                catch
+                {
+                    userRoles[user.UserId] = new List<string>();
+                }
+            }
+
+            // Cargar conteo de usuarios por rol
+            foreach (var role in roles)
+            {
+                try
+                {
+                    var usersInRole = users.Count(u => 
+                        userRoles.ContainsKey(u.UserId) && 
+                        userRoles[u.UserId].Contains(role.RoleName));
+                    roleUserCounts[role.RoleName] = usersInRole;
+                }
+                catch
+                {
+                    roleUserCounts[role.RoleName] = 0;
+                }
+            }
+
+            // Cargar elementos de navegación
+            var navItems = await navigationRepository.GetAllAsync();
+            var lookup = navItems.ToLookup(i => i.ParentId);
+
+            navigationItems = navItems.Where(i => i.ParentId == null)
+                .Select(item => new NavigationItemDto
+                {
+                    Id = item.Id,
+                    ParentId = item.ParentId,
+                    Title = item.Title ?? "",
+                    Url = item.Url,
+                    Icon = item.Icon,
+                    Order = item.Order,
+                    IsActive = item.IsActive,
+                    RequiredRole = item.RequiredRole,
+                    Children = lookup[item.Id].Select(child => new NavigationItemDto
+                    {
+                        Id = child.Id,
+                        ParentId = child.ParentId,
+                        Title = child.Title ?? "",
+                        Url = child.Url,
+                        Icon = child.Icon,
+                        Order = child.Order,
+                        IsActive = child.IsActive,
+                        RequiredRole = child.RequiredRole,
+                        Children = new List<NavigationItemDto>()
+                    }).ToList()
+                }).ToList();
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage($"Error al cargar datos: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void SetRecipientType(string type)
+    {
+        recipientType = type;
+        StateHasChanged();
+    }
+
+    private List<UserDTO> GetFilteredUsers()
+    {
+        if (string.IsNullOrWhiteSpace(userSearchTerm))
+            return users;
+
+        var searchLower = userSearchTerm.ToLower();
+        return users.Where(u =>
+            u.Email.ToLower().Contains(searchLower) ||
+            u.FirstName.ToLower().Contains(searchLower) ||
+            u.LastName.ToLower().Contains(searchLower)
+        ).ToList();
+    }
+
+    private void ToggleUserSelection(string userId)
+    {
+        if (selectedUsers.Contains(userId))
+            selectedUsers.Remove(userId);
+        else
+            selectedUsers.Add(userId);
+        StateHasChanged();
+    }
+
+    private void ToggleRoleSelection(string roleId)
+    {
+        if (selectedRoles.Contains(roleId))
+            selectedRoles.Remove(roleId);
+        else
+            selectedRoles.Add(roleId);
+        StateHasChanged();
+    }
+
+    private void ToggleModuleSelection(int moduleId)
+    {
+        if (selectedModules.Contains(moduleId))
+            selectedModules.Remove(moduleId);
+        else
+            selectedModules.Add(moduleId);
+        StateHasChanged();
+    }
+
+    private void ToggleAllUsers()
+    {
+        var filtered = GetFilteredUsers();
+        if (selectedUsers.Count == filtered.Count)
+        {
+            selectedUsers.Clear();
+        }
+        else
+        {
+            selectedUsers.Clear();
+            foreach (var user in filtered)
+            {
+                selectedUsers.Add(user.UserId);
+            }
+        }
+        StateHasChanged();
+    }
+
+    private void ToggleAllRoles()
+    {
+        if (selectedRoles.Count == roles.Count)
+        {
+            selectedRoles.Clear();
+        }
+        else
+        {
+            selectedRoles.Clear();
+            foreach (var role in roles)
+            {
+                selectedRoles.Add(role.RoleId);
+            }
+        }
+        StateHasChanged();
+    }
+
+    private void SelectAllModules()
+    {
+        selectedModules.Clear();
+        foreach (var item in navigationItems.SelectMany(n => new[] { n }.Concat(n.Children)))
+        {
+            selectedModules.Add(item.Id);
+        }
+        StateHasChanged();
+    }
+
+    private void ClearAllModules()
+    {
+        selectedModules.Clear();
+        StateHasChanged();
+    }
+
+    private void ApplyPreset(string preset)
+    {
+        switch (preset)
+        {
+            case "viewer":
+                bulkPermissions.CanView = true;
+                bulkPermissions.CanCreate = false;
+                bulkPermissions.CanEdit = false;
+                bulkPermissions.CanDelete = false;
+                break;
+            case "editor":
+                bulkPermissions.CanView = true;
+                bulkPermissions.CanCreate = true;
+                bulkPermissions.CanEdit = true;
+                bulkPermissions.CanDelete = false;
+                break;
+            case "admin":
+                bulkPermissions.CanView = true;
+                bulkPermissions.CanCreate = true;
+                bulkPermissions.CanEdit = true;
+                bulkPermissions.CanDelete = true;
+                break;
+            case "none":
+                bulkPermissions.CanView = false;
+                bulkPermissions.CanCreate = false;
+                bulkPermissions.CanEdit = false;
+                bulkPermissions.CanDelete = false;
+                break;
+        }
+        StateHasChanged();
+    }
+
+    private int GetUsersInRoleCount(string roleName)
+    {
+        return roleUserCounts.GetValueOrDefault(roleName, 0);
+    }
+
+    private string GetPermissionSummary()
+    {
+        var perms = new List<string>();
+        if (bulkPermissions.CanView) perms.Add("Ver");
+        if (bulkPermissions.CanCreate) perms.Add("Crear");
+        if (bulkPermissions.CanEdit) perms.Add("Editar");
+        if (bulkPermissions.CanDelete) perms.Add("Eliminar");
+        return perms.Any() ? string.Join(", ", perms) : "Sin permisos";
+    }
+
+    private bool CanApply()
+    {
+        // Verificar que hay destinatarios seleccionados
+        bool hasRecipients = recipientType == "users" ? selectedUsers.Any() : selectedRoles.Any();
+        
+        // Verificar que hay módulos seleccionados
+        bool hasModules = selectedModules.Any();
+        
+        // Verificar que hay al menos un permiso seleccionado
+        bool hasPermissions = bulkPermissions.CanView || bulkPermissions.CanCreate || 
+                             bulkPermissions.CanEdit || bulkPermissions.CanDelete;
+
+        return hasRecipients && hasModules && hasPermissions;
+    }
+
+    private async Task ApplyBulkPermissions()
+    {
+        try
+        {
+            isSaving = true;
+            StateHasChanged();
+
+            bulkPermissions.NavigationItemIds = selectedModules.ToList();
+            int affectedCount = 0;
+
+            if (recipientType == "users")
+            {
+                // Aplicar permisos a usuarios
+                foreach (var userId in selectedUsers)
+                {
+                    try
+                    {
+                        await permissionService.AssignBulkUserPermissionsAsync(userId, bulkPermissions);
+                        affectedCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error applying permissions to user {userId}: {ex.Message}");
+                    }
+                }
+
+                await displayMessage.DisplaySuccessMessage(
+                    $"Permisos aplicados exitosamente a {affectedCount} usuarios en {selectedModules.Count} módulos");
+            }
+            else
+            {
+                // Aplicar permisos a roles
+                foreach (var roleId in selectedRoles)
+                {
+                    try
+                    {
+                        await permissionService.AssignBulkRolePermissionsAsync(roleId, bulkPermissions);
+                        affectedCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error applying permissions to role {roleId}: {ex.Message}");
+                    }
+                }
+
+                await displayMessage.DisplaySuccessMessage(
+                    $"Permisos aplicados exitosamente a {affectedCount} roles en {selectedModules.Count} módulos");
+            }
+
+            await CloseModal();
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage($"Error al aplicar permisos: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CloseModal()
+    {
+        showModal = false;
+        await showModalChanged.InvokeAsync(false);
+        
+        // Limpiar datos
+        selectedUsers.Clear();
+        selectedRoles.Clear();
+        selectedModules.Clear();
+        userRoles.Clear();
+        userSearchTerm = "";
+        recipientType = "users";
+        bulkPermissions = new BulkPermissionAssignmentDto
+        {
+            CanView = false,
+            CanCreate = false,
+            CanEdit = false,
+            CanDelete = false,
+            NavigationItemIds = new List<int>()
+        };
+    }
+}

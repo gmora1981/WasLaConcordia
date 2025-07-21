@@ -93,10 +93,29 @@ namespace LaConcordia.Repository
 
         public async Task UpdateRolePermissionAsync(UpdateRolePermissionDto dto)
         {
-            var response = await httpService.Post<UpdateRolePermissionDto, object>($"{baseURL}/role/update", dto);
-            if (!response.Success)
+            try
             {
-                throw new ApplicationException(await response.GetBody());
+                // AGREGADO: Validación antes de enviar
+                if (string.IsNullOrEmpty(dto.RoleId))
+                {
+                    throw new ArgumentException("RoleId es requerido");
+                }
+
+                if (dto.NavigationItemId <= 0)
+                {
+                    throw new ArgumentException("NavigationItemId debe ser mayor a 0");
+                }
+
+                var response = await httpService.Post<UpdateRolePermissionDto, object>($"{baseURL}/role/update", dto);
+                if (!response.Success)
+                {
+                    var errorBody = await response.GetBody();
+                    throw new ApplicationException($"Error del servidor: {errorBody}");
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new ApplicationException($"Error al actualizar permisos del rol: {ex.Message}");
             }
         }
 

@@ -21,6 +21,7 @@ namespace LaConcordia.Repository
         Task<List<string>> GetUserRoles(string userId);
         Task AssignRole(EditRoleDTO editRole);
         Task RemoveRole(EditRoleDTO editRole);
+        Task<List<RoleInfoDTO>> GetRolesInfo();
 
         // Gestión de contraseñas
         Task ChangeUserPassword(string userId, ChangePasswordDTO changePassword);

@@ -1,0 +1,422 @@
+﻿@using Identity.Api.Interfaces
+@using LaConcordia.Model
+@using LaConcordia.Repository
+@inject IPermissionService permissionService
+@inject INavigationRepository navigationRepository
+@inject IUsersRepository usersRepository
+@inject IDisplayMessage displayMessage
+
+<link href="css/PermissionMatrix.css" rel="stylesheet" />
+
+@if (showModal)
+{
+    <div class="modal-modern" @onclick="CloseModal">
+        <div class="modal-content-modern" style="max-width: 95%; max-height: 90vh;" @onclick:stopPropagation="true">
+            <div class="modal-header-modern">
+                <h2 class="modal-title-modern">
+                    <i class="fas fa-table"></i>
+                    Matriz de Permisos
+                </h2>
+                <button type="button" class="btn-close-modern" @onclick="CloseModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="modal-body-modern">
+                @if (isLoading)
+                {
+                    <div class="loading-container">
+                        <div class="loading-spinner"></div>
+                        <p>Cargando matriz de permisos...</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="matrix-controls">
+                        <div class="filter-controls">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" placeholder="Buscar módulo..." @bind="searchTerm" @bind:event="oninput" />
+                            </div>
+                            <div class="view-options">
+                                <label>
+                                    <input type="checkbox" @bind="showEmptyPermissions" />
+                                    Mostrar módulos sin permisos
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="matrix-container">
+                        <table class="permission-matrix">
+                            <thead>
+                                <tr>
+                                    <th class="module-header">Módulo / Página</th>
+                                    @foreach (var role in roles)
+                                    {
+                                        <th class="role-header" colspan="4">
+                                            <div class="role-title">
+                                                <i class="fas @(role.RoleName == "Admin" ? "fa-crown" : "fa-user")"></i>
+                                                @role.RoleName
+                                            </div>
+                                            <div class="permission-types">
+                                                <span>Ver</span>
+                                                <span>Crear</span>
+                                                <span>Editar</span>
+                                                <span>Eliminar</span>
+                                            </div>
+                                        </th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in GetFilteredNavigationItems())
+                                {
+                                    <tr class="parent-row">
+                                        <td class="module-cell">
+                                            <div class="module-info">
+                                                @if (!string.IsNullOrEmpty(item.Icon))
+                                                {
+                                                    <i class="@item.Icon"></i>
+                                                }
+                                                <span>@item.Title</span>
+                                            </div>
+                                        </td>
+                                        @foreach (var role in roles)
+                                        {
+                                            var permission = GetRolePermission(role.RoleId, item.Id);
+                                            <td class="permission-cell">
+                                                <input type="checkbox" 
+                                                       checked="@permission.CanView"
+                                                       @onchange="@(async (e) => await UpdateRolePermission(role.RoleId, item.Id, "CanView", (bool)e.Value!))"
+                                                       title="Ver" />
+                                            </td>
+                                            <td class="permission-cell">
+                                                <input type="checkbox" 
+                                                       checked="@permission.CanCreate"
+                                                       @onchange="@(async (e) => await UpdateRolePermission(role.RoleId, item.Id, "CanCreate", (bool)e.Value!))"
+                                                       title="Crear" />
+                                            </td>
+                                            <td class="permission-cell">
+                                                <input type="checkbox" 
+                                                       checked="@permission.CanEdit"
+                                                       @onchange="@(async (e) => await UpdateRolePermission(role.RoleId, item.Id, "CanEdit", (bool)e.Value!))"
+                                                       title="Editar" />
+                                            </td>
+                                            <td class="permission-cell">
+                                                <input type="checkbox" 
+                                                       checked="@permission.CanDelete"
+                                                       @onchange="@(async (e) => await UpdateRolePermission(role.RoleId, item.Id, "CanDelete", (bool)e.Value!))"
+                                                       title="Eliminar" />
+                                            </td>
+                                        }
+                                    </tr>
+
+                                    @foreach (var child in item.Children)
+                                    {
+                                        <tr class="child-row">
+                                            <td class="module-cell child">
+                                                <div class="module-info">
+                                                    <i class="fas fa-arrow-right"></i>
+                                                    @if (!string.IsNullOrEmpty(child.Icon))
+                                                    {
+                                                        <i class="@child.Icon"></i>
+                                                    }
+                                                    <span>@child.Title</span>
+                                                </div>
+                                            </td>
+                                            @foreach (var role in roles)
+                                            {
+                                                var childPermission = GetRolePermission(role.RoleId, child.Id);
+                                                <td class="permission-cell">
+                                                    <input type="checkbox" 
+                                                           checked="@childPermission.CanView"
+                                                           @onchange="@(async (e) => await UpdateRolePermission(role.RoleId, child.Id, "CanView", (bool)e.Value!))"
+                                                           title="Ver" />
+                                                </td>
+                                                <td class="permission-cell">
+                                                    <input type="checkbox" 
+                                                           checked="@childPermission.CanCreate"
+                                                           @onchange="@(async (e) => await UpdateRolePermission(role.RoleId, child.Id, "CanCreate", (bool)e.Value!))"
+                                                           title="Crear" />
+                                                </td>
+                                                <td class="permission-cell">
+                                                    <input type="checkbox" 
+                                                           checked="@childPermission.CanEdit"
+                                                           @onchange="@(async (e) => await UpdateRolePermission(role.RoleId, child.Id, "CanEdit", (bool)e.Value!))"
+                                                           title="Editar" />
+                                                </td>
+                                                <td class="permission-cell">
+                                                    <input type="checkbox" 
+                                                           checked="@childPermission.CanDelete"
+                                                           @onchange="@(async (e) => await UpdateRolePermission(role.RoleId, child.Id, "CanDelete", (bool)e.Value!))"
+                                                           title="Eliminar" />
+                                                </td>
+                                            }
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="matrix-summary">
+                        <p><i class="fas fa-info-circle"></i> Total de módulos: <strong>@navigationItems.Count</strong> | Roles: <strong>@roles.Count</strong></p>
+                    </div>
+                }
+            </div>
+
+            <div class="modal-footer-modern">
+                <button type="button" class="btn-modern btn-secondary-modern" @onclick="ExportMatrix">
+                    <i class="fas fa-download"></i> Exportar
+                </button>
+                <button type="button" class="btn-modern btn-primary-modern" @onclick="SaveAllChanges" disabled="@isSaving">
+                    @if (isSaving)
+                    {
+                        <div class="spinner-border"></div>
+                        <span>Guardando...</span>
+                    }
+                    else
+                    {
+                        <i class="fas fa-save"></i>
+                        <span>Guardar Cambios</span>
+                    }
+                </button>
+                <button type="button" class="btn-modern btn-secondary-modern" @onclick="CloseModal">
+                    <i class="fas fa-times"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool showModal { get; set; }
+    [Parameter] public EventCallback<bool> showModalChanged { get; set; }
+
+    private bool isLoading = true;
+    private bool isSaving = false;
+    private string searchTerm = "";
+    private bool showEmptyPermissions = true;
+
+    private List<RoleDTO> roles = new();
+    private List<NavigationItemDto> navigationItems = new();
+    private Dictionary<string, NavigationPermissionDto> rolePermissions = new();
+    private Dictionary<string, NavigationPermissionDto> originalPermissions = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (showModal)
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            // Cargar roles
+            roles = await usersRepository.GetRoles();
+
+            // Cargar elementos de navegación
+            var navItems = await navigationRepository.GetAllAsync();
+            var lookup = navItems.ToLookup(i => i.ParentId);
+
+            navigationItems = navItems.Where(i => i.ParentId == null)
+                .Select(item => new NavigationItemDto
+                {
+                    Id = item.Id,
+                    ParentId = item.ParentId,
+                    Title = item.Title ?? "",
+                    Url = item.Url,
+                    Icon = item.Icon,
+                    Order = item.Order,
+                    IsActive = item.IsActive,
+                    RequiredRole = item.RequiredRole,
+                    Children = lookup[item.Id].Select(child => new NavigationItemDto
+                    {
+                        Id = child.Id,
+                        ParentId = child.ParentId,
+                        Title = child.Title ?? "",
+                        Url = child.Url,
+                        Icon = child.Icon,
+                        Order = child.Order,
+                        IsActive = child.IsActive,
+                        RequiredRole = child.RequiredRole,
+                        Children = new List<NavigationItemDto>()
+                    }).ToList()
+                }).ToList();
+
+            // Cargar permisos de roles
+            rolePermissions.Clear();
+            originalPermissions.Clear();
+
+            foreach (var role in roles)
+            {
+                try
+                {
+                    var rolePerms = await permissionService.GetRolePermissionsAsync(role.RoleId);
+                    foreach (var perm in rolePerms.Permissions)
+                    {
+                        var key = $"{role.RoleId}-{perm.NavigationItemId}";
+                        rolePermissions[key] = perm;
+                        originalPermissions[key] = new NavigationPermissionDto
+                        {
+                            NavigationItemId = perm.NavigationItemId,
+                            CanView = perm.CanView,
+                            CanCreate = perm.CanCreate,
+                            CanEdit = perm.CanEdit,
+                            CanDelete = perm.CanDelete
+                        };
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error loading role permissions: {ex.Message}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage($"Error al cargar datos: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private List<NavigationItemDto> GetFilteredNavigationItems()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+            return navigationItems;
+
+        var searchLower = searchTerm.ToLower();
+        return navigationItems.Where(item =>
+            item.Title.ToLower().Contains(searchLower) ||
+            item.Children.Any(child => child.Title.ToLower().Contains(searchLower))
+        ).ToList();
+    }
+
+    private NavigationPermissionDto GetRolePermission(string roleId, int navigationItemId)
+    {
+        var key = $"{roleId}-{navigationItemId}";
+        if (rolePermissions.TryGetValue(key, out var permission))
+            return permission;
+
+        // Crear permiso vacío si no existe
+        var newPermission = new NavigationPermissionDto
+        {
+            NavigationItemId = navigationItemId,
+            CanView = false,
+            CanCreate = false,
+            CanEdit = false,
+            CanDelete = false
+        };
+        rolePermissions[key] = newPermission;
+        return newPermission;
+    }
+
+    private async Task UpdateRolePermission(string roleId, int navigationItemId, string permissionType, bool value)
+    {
+        var key = $"{roleId}-{navigationItemId}";
+        var permission = GetRolePermission(roleId, navigationItemId);
+
+        switch (permissionType)
+        {
+            case "CanView":
+                permission.CanView = value;
+                break;
+            case "CanCreate":
+                permission.CanCreate = value;
+                break;
+            case "CanEdit":
+                permission.CanEdit = value;
+                break;
+            case "CanDelete":
+                permission.CanDelete = value;
+                break;
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task SaveAllChanges()
+    {
+        try
+        {
+            isSaving = true;
+            StateHasChanged();
+
+            var changedPermissions = 0;
+
+            foreach (var role in roles)
+            {
+                foreach (var navItem in navigationItems.SelectMany(n => new[] { n }.Concat(n.Children)))
+                {
+                    var key = $"{role.RoleId}-{navItem.Id}";
+                    if (!rolePermissions.TryGetValue(key, out var currentPerm))
+                        continue;
+
+                    var originalPerm = originalPermissions.GetValueOrDefault(key);
+                    
+                    // Verificar si hubo cambios
+                    if (originalPerm == null ||
+                        currentPerm.CanView != originalPerm.CanView ||
+                        currentPerm.CanCreate != originalPerm.CanCreate ||
+                        currentPerm.CanEdit != originalPerm.CanEdit ||
+                        currentPerm.CanDelete != originalPerm.CanDelete)
+                    {
+                        var dto = new UpdateRolePermissionDto
+                        {
+                            RoleId = role.RoleId,
+                            NavigationItemId = navItem.Id,
+                            CanView = currentPerm.CanView,
+                            CanCreate = currentPerm.CanCreate,
+                            CanEdit = currentPerm.CanEdit,
+                            CanDelete = currentPerm.CanDelete
+                        };
+
+                        await permissionService.UpdateRolePermissionAsync(dto);
+                        changedPermissions++;
+                    }
+                }
+            }
+
+            await displayMessage.DisplaySuccessMessage($"Se actualizaron {changedPermissions} permisos correctamente");
+            await CloseModal();
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage($"Error al guardar cambios: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ExportMatrix()
+    {
+        await displayMessage.DisplaySuccessMessage("La función de exportación estará disponible próximamente");
+    }
+
+    private async Task CloseModal()
+    {
+        showModal = false;
+        await showModalChanged.InvokeAsync(false);
+        
+        // Limpiar datos
+        roles.Clear();
+        navigationItems.Clear();
+        rolePermissions.Clear();
+        originalPermissions.Clear();
+        searchTerm = "";
+    }
+}

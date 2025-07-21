@@ -31,6 +31,10 @@ namespace LaConcordia.Repository
             return await httpService.GetHelper<List<RoleDTO>>($"{baseURL}/users/roles");
         }
 
+        public async Task<List<RoleInfoDTO>> GetRolesInfo()
+        {
+            return await httpService.GetHelper<List<RoleInfoDTO>>($"{baseURL}/users/roles-info");
+        }
         public async Task AssignRole(EditRoleDTO editRole)
         {
             var response = await httpService.Post<EditRoleDTO, object>($"{baseURL}/users/assignRole", editRole);

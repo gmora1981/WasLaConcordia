@@ -11,8 +11,9 @@
 @inject IDisplayMessage displayMessage
 @attribute [Authorize(Roles = "Admin")]
 
-<!-- Importar CSS común -->
+<!-- Importar CSS -->
 <link href="css/AdminCommon.css" rel="stylesheet" />
+<link href="css/AdvancedPermissions.css" rel="stylesheet" />
 
 <div class="page-container">
     <div class="content-card">
@@ -55,16 +56,16 @@
         <!-- Pestañas -->
         <div class="tab-container">
             <div class="tab-headers">
-                <button class="tab-header @(activeTab == "users" ? "active" : "")" @onclick="@(() => SetActiveTab(" users"))">
+                <button class="tab-header @(activeTab == "users" ? "active" : "")" @onclick="@(() => SetActiveTab("users"))">
                     <i class="fas fa-users"></i> Permisos por Usuario
                 </button>
-                <button class="tab-header @(activeTab == "roles" ? "active" : "")" @onclick="@(() => SetActiveTab(" roles"))">
+                <button class="tab-header @(activeTab == "roles" ? "active" : "")" @onclick="@(() => SetActiveTab("roles"))">
                     <i class="fas fa-user-tag"></i> Permisos por Rol
                 </button>
-                <button class="tab-header @(activeTab == "navigation" ? "active" : "")" @onclick="@(() => SetActiveTab(" navigation"))">
+                <button class="tab-header @(activeTab == "navigation" ? "active" : "")" @onclick="@(() => SetActiveTab("navigation"))">
                     <i class="fas fa-sitemap"></i> Items de Navegación
                 </button>
-                <button class="tab-header @(activeTab == "tools" ? "active" : "")" @onclick="@(() => SetActiveTab(" tools"))">
+                <button class="tab-header @(activeTab == "tools" ? "active" : "")" @onclick="@(() => SetActiveTab("tools"))">
                     <i class="fas fa-tools"></i> Herramientas
                 </button>
             </div>
@@ -323,552 +324,11 @@
 <!-- Modal de gestión de permisos de usuario -->
 <UserPermissionModal @bind-showModal="showPermissionModal" selectedUser="selectedUserForPermissions" />
 
-@* Estilos CSS del componente *@
-<style>
-    /* Estilos generales */
-    .page-container {
-        padding: 2rem;
-        max-width: 1400px;
-        margin: 0 auto;
-    }
-
-    .content-card {
-        background: white;
-        border-radius: 16px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        padding: 2rem;
-    }
-
-    .header-section {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 2rem;
-        flex-wrap: wrap;
-        gap: 1rem;
-    }
-
-    .page-title {
-        margin: 0;
-        color: #2c3e50;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-    }
-
-    /* Botones modernos */
-    .btn-modern {
-        padding: 0.625rem 1.25rem;
-        border: none;
-        border-radius: 8px;
-        font-weight: 600;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        font-size: 0.875rem;
-    }
-
-    .btn-primary-modern {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-    }
-
-        .btn-primary-modern:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-    .btn-secondary-modern {
-        background: #6c757d;
-        color: white;
-    }
-
-        .btn-secondary-modern:hover {
-            background: #5a6268;
-            transform: translateY(-2px);
-        }
-
-    /* Alertas */
-    .alert-modern {
-        padding: 1rem 1.5rem;
-        border-radius: 8px;
-        margin-bottom: 1.5rem;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        animation: slideDown 0.3s ease;
-    }
-
-    .alert-danger {
-        background: #fee;
-        color: #c53030;
-        border-left: 4px solid #fc8181;
-    }
-
-    .alert-success {
-        background: #f0fdf4;
-        color: #166534;
-        border-left: 4px solid #4ade80;
-    }
-
-    @@keyframes slideDown {
-        from
-
-    {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-
-    }
-
-    /* Pestañas */
-    .tab-container {
-        margin-top: 2rem;
-    }
-
-    .tab-headers {
-        display: flex;
-        border-bottom: 2px solid #e0e0e0;
-        margin-bottom: 2rem;
-        gap: 0.5rem;
-    }
-
-    .tab-header {
-        padding: 1rem 1.5rem;
-        background: transparent;
-        border: none;
-        border-bottom: 3px solid transparent;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        font-weight: 600;
-        color: #7f8c8d;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-        .tab-header:hover {
-            color: #667eea;
-            background: rgba(102, 126, 234, 0.1);
-        }
-
-        .tab-header.active {
-            color: #667eea;
-            border-bottom-color: #667eea;
-            background: rgba(102, 126, 234, 0.1);
-        }
-
-    .tab-content {
-        min-height: 500px;
-    }
-
-    .tab-pane {
-        animation: fadeIn 0.3s ease;
-    }
-
-    @@keyframes fadeIn {
-        from
-
-    {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-
-    }
-
-    /* Sección de filtros */
-    .filter-section {
-        display: flex;
-        gap: 1rem;
-        margin-bottom: 2rem;
-        align-items: center;
-    }
-
-    .search-box {
-        position: relative;
-        flex: 1;
-        max-width: 400px;
-    }
-
-        .search-box i {
-            position: absolute;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #6c757d;
-        }
-
-        .search-box input {
-            width: 100%;
-            padding: 0.75rem 1rem 0.75rem 2.5rem;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 0.875rem;
-            transition: all 0.3s ease;
-        }
-
-            .search-box input:focus {
-                outline: none;
-                border-color: #667eea;
-                box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-            }
-
-    /* Grid de usuarios */
-    .user-permissions-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-        gap: 1.5rem;
-    }
-
-    .user-permission-card {
-        background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        border: 1px solid #f0f0f0;
-        transition: all 0.3s ease;
-    }
-
-        .user-permission-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
-        }
-
-    .user-info {
-        display: flex;
-        gap: 1rem;
-        margin-bottom: 1rem;
-    }
-
-    .user-avatar {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-weight: 600;
-        font-size: 1.2rem;
-    }
-
-    .user-details h4 {
-        margin: 0 0 0.5rem 0;
-        color: #2c3e50;
-    }
-
-    .user-details p {
-        margin: 0;
-        color: #7f8c8d;
-        font-size: 0.9rem;
-    }
-
-    .user-roles {
-        margin-top: 0.5rem;
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-    }
-
-    .role-badge {
-        background: #e3f2fd;
-        color: #1976d2;
-        padding: 0.25rem 0.5rem;
-        border-radius: 15px;
-        font-size: 0.75rem;
-        font-weight: 600;
-    }
-
-    .permission-actions {
-        display: flex;
-        gap: 0.5rem;
-        justify-content: flex-end;
-    }
-
-    /* Botones de iconos */
-    .btn-icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 8px;
-        border: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-
-    .btn-edit {
-        background: #f3f4f6;
-        color: #667eea;
-    }
-
-        .btn-edit:hover {
-            background: #667eea;
-            color: white;
-            transform: translateY(-2px);
-        }
-
-    .btn-roles {
-        background: #f3f4f6;
-        color: #10b981;
-    }
-
-        .btn-roles:hover {
-            background: #10b981;
-            color: white;
-            transform: translateY(-2px);
-        }
-
-    /* Grid de roles */
-    .roles-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 1.5rem;
-    }
-
-    .role-card {
-        background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        border: 1px solid #f0f0f0;
-    }
-
-    .role-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1rem;
-    }
-
-        .role-header h4 {
-            margin: 0;
-            color: #2c3e50;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-    .role-actions {
-        display: flex;
-        gap: 0.5rem;
-    }
-
-    .role-stats p {
-        margin: 0;
-        color: #7f8c8d;
-        font-size: 0.9rem;
-    }
-
-    /* Árbol de navegación */
-    .navigation-tree {
-        background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    }
-
-    .nav-tree-item {
-        margin-bottom: 1rem;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        overflow: hidden;
-    }
-
-    .nav-item-header {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        padding: 1rem;
-        background: #f8f9fa;
-        border-bottom: 1px solid #e0e0e0;
-    }
-
-    .nav-title {
-        flex: 1;
-        font-weight: 600;
-        color: #2c3e50;
-    }
-
-    .permission-badge {
-        background: #fff3e0;
-        color: #f57c00;
-        padding: 0.25rem 0.5rem;
-        border-radius: 12px;
-        font-size: 0.75rem;
-        font-weight: 600;
-    }
-
-    .nav-children {
-        padding: 1rem;
-        background: #fafafa;
-    }
-
-    .nav-child-item {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        padding: 0.75rem;
-        margin-bottom: 0.5rem;
-        background: white;
-        border-radius: 6px;
-        border: 1px solid #e0e0e0;
-    }
-
-        .nav-child-item:last-child {
-            margin-bottom: 0;
-        }
-
-    /* Grid de herramientas */
-    .tools-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-        gap: 1.5rem;
-    }
-
-    .tool-card {
-        background: white;
-        border-radius: 12px;
-        padding: 2rem;
-        text-align: center;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        border: 1px solid #f0f0f0;
-        transition: all 0.3s ease;
-    }
-
-        .tool-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-        }
-
-    .tool-icon {
-        width: 60px;
-        height: 60px;
-        margin: 0 auto 1rem;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 1.5rem;
-    }
-
-    .tool-card h4 {
-        margin: 0 0 0.5rem;
-        color: #2c3e50;
-    }
-
-    .tool-card p {
-        margin: 0 0 1.5rem;
-        color: #7f8c8d;
-        font-size: 0.9rem;
-    }
-
-    /* Estados de carga y vacío */
-    .loading-container {
-        text-align: center;
-        padding: 3rem;
-        color: #7f8c8d;
-    }
-
-    .loading-spinner {
-        width: 50px;
-        height: 50px;
-        border: 3px solid #f3f4f6;
-        border-top: 3px solid #667eea;
-        border-radius: 50%;
-        margin: 0 auto 1rem;
-        animation: spin 1s linear infinite;
-    }
-
-    @@keyframes spin {
-        0%
-
-    {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
-
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 3rem;
-        color: #7f8c8d;
-    }
-
-        .empty-state i {
-            font-size: 3rem;
-            color: #e0e0e0;
-            margin-bottom: 1rem;
-        }
-
-    /* Botones adicionales */
-    .btn-info {
-        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-        color: white;
-    }
-
-        .btn-info:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(23, 162, 184, 0.4);
-        }
-
-    .btn-warning {
-        background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
-        color: #212529;
-    }
-
-        .btn-warning:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(255, 193, 7, 0.4);
-        }
-
-    /* Responsive */
-    @@media (max-width: 768px) {
-        .tab-headers
-
-    {
-        flex-direction: column;
-    }
-
-    .user-permissions-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .roles-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .tools-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .filter-section {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    }
-</style>
+<!-- Modal de matriz de permisos -->
+<PermissionMatrixModal @bind-showModal="showMatrixModal" />
+
+<!-- Modal de asignación masiva global -->
+<GlobalBulkAssignmentModal @bind-showModal="showBulkModal" />
 
 @code {
     private string activeTab = "users";
@@ -893,6 +353,8 @@
 
     // Modal state
     private bool showPermissionModal = false;
+    private bool showMatrixModal = false;
+    private bool showBulkModal = false;
     private UserDTO? selectedUserForPermissions;
 
     protected override async Task OnInitializedAsync()
@@ -956,13 +418,14 @@
         try
         {
             isLoadingRoles = true;
-            roles = await usersRepository.GetRoles();
+            roles = await usersRepository.GetRoles(); // Ahora cada role tendrá RoleId
 
-            // Cargar conteo de usuarios por rol
+            // Cargar conteo de usuarios por rol usando RoleId en lugar de RoleName
             foreach (var role in roles)
             {
                 try
                 {
+                    // Cambiar para usar RoleId si es necesario en el futuro
                     roleUserCounts[role.RoleName] = users.Count(u =>
                         userRoles.ContainsKey(u.UserId) &&
                         userRoles[u.UserId].Contains(role.RoleName));
@@ -1127,20 +590,14 @@
     // Métodos de herramientas
     private async Task ShowPermissionMatrix()
     {
-        try
-        {
-            var matrix = await permissionService.GetPermissionMatrixAsync();
-            await JSRuntime.InvokeVoidAsync("alert", $"Matriz de permisos cargada: {matrix.NavigationItems.Count} items, {matrix.Roles.Count} roles");
-        }
-        catch (Exception ex)
-        {
-            await displayMessage.DisplayErrorMessage($"Error al cargar matriz: {ex.Message}");
-        }
+        showMatrixModal = true;
+        StateHasChanged();
     }
 
     private async Task ShowBulkAssignment()
     {
-        await JSRuntime.InvokeVoidAsync("alert", "Herramienta de asignación masiva estará disponible próximamente");
+        showBulkModal = true;
+        StateHasChanged();
     }
 
     private async Task ShowCopyPermissions()

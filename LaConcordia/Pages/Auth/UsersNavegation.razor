@@ -451,18 +451,19 @@
         await LoadData();
     }
 
+   
     private async Task LoadData()
     {
         try
         {
             isLoading = true;
-            
+
             // Load users
             await LoadUsers();
-            
-            // Load roles
+
+            // Load roles - ahora con RoleId disponible
             availableRoles = await usersRepository.GetRoles();
-            
+
             // Load user roles
             await LoadUserRoles();
         }
@@ -475,7 +476,6 @@
             isLoading = false;
         }
     }
-
     private async Task LoadUsers()
     {
         var paginatedResponse = await usersRepository.GetUsers(paginationDTO);
