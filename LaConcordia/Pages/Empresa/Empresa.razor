@@ -1,0 +1,198 @@
+﻿@page "/empresa"
+@using LaConcordia.DTO
+@using LaConcordia.Interface
+@using LaConcordia.Pagination
+@inject IEmpresa empresaRepo
+@inject IJSRuntime JS
+
+<h3>Gestión de Empresas</h3>
+
+<!-- Encabezado: Nuevo, Buscar -->
+<div class="mb-3 d-flex gap-2">
+    <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo</button>
+    <input type="text" class="form-control" placeholder="Buscar por Razón Social..." @bind="razonBusqueda" />
+    <select class="form-select" @bind="estadoFiltro">
+        <option value="">-- Todos --</option>
+        <option value="a">Activo</option>
+        <option value="p">Pasivo</option>
+    </select>
+    <button class="btn btn-success" @onclick="BuscarEmpresas">Buscar =</button>
+</div>
+
+<!-- Lista de empresas -->
+<table class="table table-bordered table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>RUC</th>
+            <th>Razón Social</th>
+            <th>Dirección</th>
+            <th>Teléfono</th>
+            <th>Estado</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (empresas != null && empresas.Count > 0)
+        {
+            @foreach (var empresa in empresas)
+            {
+                <tr @onclick="() => SeleccionarEmpresa(empresa)" class="@(empresa == empresaSeleccionada ? "table-primary" : "")" style="cursor: pointer;">
+                    <td>@empresa.Ruc</td>
+                    <td>@empresa.Razonsocial</td>
+                    <td>@empresa.Direccion</td>
+                    <td>@empresa.Telefono</td>
+                    <td>@ObtenerNombreEstado(empresa.Estado)</td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="5" class="text-center">No se encontraron empresas.</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<!-- Detalles de la empresa -->
+<div class="border rounded p-3 mt-3">
+    <h5>Detalle Empresa</h5>
+    <EditForm Model="empresaSeleccionada">
+        <InputText class="form-control mb-2" @bind-Value="empresaSeleccionada.Ruc" placeholder="RUC" disabled="@(!esNuevo)" />
+        <InputText class="form-control mb-2" @bind-Value="empresaSeleccionada.Razonsocial" placeholder="Razón Social" />
+        <InputText class="form-control mb-2" @bind-Value="empresaSeleccionada.Direccion" placeholder="Dirección" />
+        <InputText class="form-control mb-2" @bind-Value="empresaSeleccionada.Telefono" placeholder="Teléfono" />
+        <InputSelect class="form-control mb-2" @bind-Value="empresaSeleccionada.Estado">
+            <option value="">-- Seleccione Estado --</option>
+            <option value="a">Activo</option>
+            <option value="p">Pasivo</option>
+        </InputSelect>
+    </EditForm>
+
+    <div class="d-flex gap-2 mt-2">
+        <button class="btn btn-warning" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">Actualizar</button>
+        <button class="btn btn-danger" @onclick="EliminarEmpresa" disabled="@(!PuedeEliminar)">Eliminar</button>
+        <button class="btn btn-secondary" @onclick="CancelarEdicion">Cancelar</button>
+    </div>
+</div>
+
+<p class="text-muted mt-2">Total: @TotalUsuarios | Página: @PaginaActual</p>
+
+<!-- Paginación -->
+<Pagination TotalItems="@TotalUsuarios"
+            PageSize="@PageSize"
+            CurrentPage="@PaginaActual"
+            OnPageChanged="OnPageChangedAsync" />
+
+@code {
+    private List<EmpresaDTO> empresas = new();
+    private EmpresaDTO empresaSeleccionada = new();
+    private string razonBusqueda = string.Empty;
+    private string estadoFiltro = string.Empty;
+    private bool esNuevo = false;
+
+    private int PaginaActual = 1;
+    private int PageSize = 8;
+    private int TotalUsuarios = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarEmpresasAsync();
+    }
+
+    private async Task CargarEmpresasAsync()
+    {
+        try
+        {
+            var resultado = await empresaRepo.GetEmpresasPaginados(PaginaActual, PageSize, razonBusqueda, estadoFiltro);
+            empresas = resultado.Items;
+            TotalUsuarios = resultado.TotalItems;
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error al cargar empresas: {ex.Message}");
+        }
+    }
+
+    private async void BuscarEmpresas()
+    {
+        PaginaActual = 1; // reinicia a la primera página
+        await CargarEmpresasAsync();
+    }
+
+    private string ObtenerNombreEstado(string? estado)
+    {
+        return estado switch
+        {
+            "a" => "Activo",
+            "p" => "Pasivo",
+            _ => "Desconocido"
+        };
+    }
+
+    private void SeleccionarEmpresa(EmpresaDTO empresa)
+    {
+        empresaSeleccionada = new EmpresaDTO
+        {
+            Ruc = empresa.Ruc,
+            Razonsocial = empresa.Razonsocial,
+            Direccion = empresa.Direccion,
+            Telefono = empresa.Telefono,
+            Estado = empresa.Estado
+        };
+        esNuevo = false;
+    }
+
+    private void NuevoRegistro()
+    {
+        empresaSeleccionada = new EmpresaDTO();
+        esNuevo = true;
+    }
+
+    private async Task GuardarCambios()
+    {
+        try
+        {
+            if (esNuevo)
+                await empresaRepo.InsertEmpresa(empresaSeleccionada);
+            else
+                await empresaRepo.UpdateEmpresa(empresaSeleccionada);
+
+            await CargarEmpresasAsync();
+            empresaSeleccionada = new EmpresaDTO();
+            esNuevo = false;
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error al guardar: {ex.Message}");
+        }
+    }
+
+    private async Task EliminarEmpresa()
+    {
+        if (!string.IsNullOrEmpty(empresaSeleccionada.Ruc))
+        {
+            bool confirm = await JS.InvokeAsync<bool>("confirm", "¿Estás seguro de eliminar esta empresa?");
+            if (confirm)
+            {
+                await empresaRepo.DeleteEmpresaByRuc(empresaSeleccionada.Ruc.Trim());
+                await CargarEmpresasAsync();
+                empresaSeleccionada = new EmpresaDTO();
+            }
+        }
+    }
+
+    private void CancelarEdicion()
+    {
+        empresaSeleccionada = new EmpresaDTO();
+        esNuevo = false;
+    }
+
+    private async Task OnPageChangedAsync(int nuevaPagina)
+    {
+        PaginaActual = nuevaPagina;
+        await CargarEmpresasAsync();
+    }
+
+    private bool PuedeGuardar => !string.IsNullOrWhiteSpace(empresaSeleccionada.Ruc);
+    private bool PuedeEliminar => !esNuevo && !string.IsNullOrWhiteSpace(empresaSeleccionada.Ruc);
+}
