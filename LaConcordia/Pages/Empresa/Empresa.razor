@@ -4,6 +4,7 @@
 @using LaConcordia.Pagination
 @inject IEmpresa empresaRepo
 @inject IJSRuntime JS
+@inject IDisplayMessage displayMessage
 
 <h3>Gestión de Empresas</h3>
 
@@ -16,7 +17,12 @@
         <option value="a">Activo</option>
         <option value="p">Pasivo</option>
     </select>
-    <button class="btn btn-success" @onclick="BuscarEmpresas">Buscar =</button>
+    <button class="btn btn-success" @onclick="BuscarEmpresas">Buscar</button>
+    <div class="ms-2">
+        <button class="btn btn-danger btn-sm" @onclick="ExportarEmpresasPdf">
+            Exportar PDF <i class="bi bi-file-earmark-pdf-fill"></i>
+        </button>
+    </div>
 </div>
 
 <!-- Lista de empresas -->
@@ -191,6 +197,32 @@
     {
         PaginaActual = nuevaPagina;
         await CargarEmpresasAsync();
+    }
+
+    //exportar pdf
+    private async Task ExportarEmpresasPdf()
+    {
+        try
+        {
+            var pdfBytes = await empresaRepo.ExportarEmpresasPdfAsync( estadoFiltro);
+
+            if (pdfBytes == null || pdfBytes.Length == 0)
+            {
+                await displayMessage.DisplayErrorMessage("El PDF generado está vacío.");
+                return;
+            }
+
+            await JS.InvokeVoidAsync("downloadFileFromByteArray", new
+            {
+                byteArray = pdfBytes,
+                fileName = "EmpresasListado.pdf",
+                contentType = "application/pdf"
+            });
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al exportar PDF: " + ex.Message);
+        }
     }
 
     private bool PuedeGuardar => !string.IsNullOrWhiteSpace(empresaSeleccionada.Ruc);

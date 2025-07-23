@@ -1,6 +1,6 @@
-﻿using System.Net.Http.Json;
-using LaConcordia.DTO;
+﻿using LaConcordia.DTO;
 using LaConcordia.Interface;
+using System.Net.Http.Json;
 
 namespace LaConcordia.Repository
 {
@@ -82,5 +82,20 @@ namespace LaConcordia.Repository
             }
         }
 
+        //exportar PDF
+        public async Task<byte[]> ExportarEmpresasPdfAsync(string filtro)
+        {
+            var url = $"api/Empresa/exportarPDF?filtro={Uri.EscapeDataString(filtro ?? "")}";
+
+            var response = await _httpClient.GetAsync(url);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Error al exportar PDF: {errorContent}");
+            }
+
+            return await response.Content.ReadAsByteArrayAsync();
+        }
     }
 }
