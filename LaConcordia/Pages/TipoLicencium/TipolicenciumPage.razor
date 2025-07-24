@@ -1,0 +1,194 @@
+﻿@page "/tipolicencium"
+@using LaConcordia.DTO
+@using LaConcordia.Interface
+@using LaConcordia.Pagination
+@inject ITipolicencium empresaRepo
+@inject IJSRuntime JS
+@inject IDisplayMessage displayMessage
+
+<h3 class="mb-3">Gestión de Tipos de Licencia</h3>
+
+<!-- Encabezado: Nuevo, Buscar -->
+<div class="d-flex flex-wrap gap-2 align-items-end mb-3">
+    <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo</button>
+
+    <input type="text" class="form-control w-auto" placeholder="Buscar por Descripción..." @bind="filtroBusqueda" />
+
+    <select class="form-select w-auto" @bind="estadoFiltro">
+        <option value="">-- Todos --</option>
+        <option value="a">Activo</option>
+        <option value="p">Pasivo</option>
+    </select>
+
+    <button class="btn btn-success" @onclick="Buscar">Buscar</button>
+</div>
+
+<!-- Tabla de resultados -->
+<table class="table table-striped table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>ID</th>
+            <th>Tipo Licencia</th>
+            <th>Profesional</th>
+            <th>Estado</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (lista != null && lista.Count > 0)
+        {
+            @foreach (var item in lista)
+            {
+                <tr @onclick="() => Seleccionar(item)" class="@(item == seleccionado ? "table-primary" : "")" style="cursor:pointer">
+                    <td>@item.Idtipo</td>
+                    <td>@item.Tipolicencia</td>
+                    <td>@item.Profesional</td>
+                    <td>@ObtenerNombreEstado(item.Estado)</td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr><td colspan="4" class="text-center">No se encontraron registros.</td></tr>
+        }
+    </tbody>
+</table>
+
+<!-- Formulario -->
+<div class="border rounded p-3 shadow-sm">
+    <h5>@(esNuevo ? "Nuevo Tipo de Licencia" : "Editar Tipo de Licencia")</h5>
+    <EditForm Model="seleccionado">
+        <InputText class="form-control mb-2" @bind-Value="seleccionado.Tipolicencia" placeholder="Tipo Licencia" />
+        <InputText class="form-control mb-2" @bind-Value="seleccionado.Profesional" placeholder="Profesional" />
+        <InputSelect class="form-control mb-2" @bind-Value="seleccionado.Estado">
+            <option value="">-- Seleccione Estado --</option>
+            <option value="a">Activo</option>
+            <option value="p">Pasivo</option>
+        </InputSelect>
+    </EditForm>
+
+    <div class="d-flex gap-2 mt-2">
+        <button class="btn btn-warning" @onclick="Guardar" disabled="@(!PuedeGuardar)">Guardar</button>
+        <button class="btn btn-danger" @onclick="Eliminar" disabled="@(!PuedeEliminar)">Eliminar</button>
+        <button class="btn btn-secondary" @onclick="Cancelar">Cancelar</button>
+    </div>
+</div>
+<p class="text-muted mt-2">Total: @TotalItems | Página: @PaginaActual</p>
+<!-- Paginación -->
+<Pagination TotalItems="@TotalItems"
+            PageSize="@PageSize"
+            CurrentPage="@PaginaActual"
+            OnPageChanged="OnPageChangedAsync" />
+
+@code {
+    private List<TipolicenciumDTO> lista = new();
+    private TipolicenciumDTO seleccionado = new();
+    private string filtroBusqueda = string.Empty;
+    private string estadoFiltro = string.Empty;
+    private bool esNuevo = false;
+
+    private int PaginaActual = 1;
+    private int PageSize = 8;
+    private int TotalItems = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        var resultado = await empresaRepo.GetTipoLicenciumPaginados(PaginaActual, PageSize, filtroBusqueda, estadoFiltro);
+        lista = resultado.Items;
+        TotalItems = resultado.TotalItems;
+    }
+
+    private async Task Buscar()
+    {
+        PaginaActual = 1;
+        await CargarAsync();
+    }
+
+    private void Seleccionar(TipolicenciumDTO dto)
+    {
+        seleccionado = new TipolicenciumDTO
+            {
+                Idtipo = dto.Idtipo,
+                Tipolicencia = dto.Tipolicencia,
+                Profesional = dto.Profesional,
+                Estado = dto.Estado
+            };
+        esNuevo = false;
+    }
+
+    private void NuevoRegistro()
+    {
+        seleccionado = new TipolicenciumDTO();
+        esNuevo = true;
+    }
+
+    private async Task Guardar()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(seleccionado.Tipolicencia))
+            {
+                await displayMessage.DisplayErrorMessage("El campo Tipo Licencia es obligatorio.");
+                return;
+            }
+
+            seleccionado.Tipolicencia = seleccionado.Tipolicencia.ToUpper();
+
+            if (esNuevo)
+                await empresaRepo.InsertTipolicencia(seleccionado);
+            else
+                await empresaRepo.UpdateTipolicencia(seleccionado);
+
+            await CargarAsync();
+            seleccionado = new TipolicenciumDTO();
+            esNuevo = false;
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al guardar: " + ex.Message);
+        }
+    }
+
+    private async Task Eliminar()
+    {
+        if (seleccionado.Idtipo > 0)
+        {
+            bool confirm = await JS.InvokeAsync<bool>("confirm", "¿Deseas eliminar este tipo de licencia?");
+            if (confirm)
+            {
+                await empresaRepo.DeleteEmpresaByRuc(seleccionado.Idtipo);
+                await CargarAsync();
+                seleccionado = new TipolicenciumDTO();
+            }
+        }
+    }
+
+    private void Cancelar()
+    {
+        seleccionado = new TipolicenciumDTO();
+        esNuevo = false;
+    }
+
+    private async Task OnPageChangedAsync(int nuevaPagina)
+    {
+        PaginaActual = nuevaPagina;
+        await CargarAsync();
+    }
+
+    private bool PuedeGuardar => !string.IsNullOrWhiteSpace(seleccionado.Tipolicencia);
+    private bool PuedeEliminar => !esNuevo && seleccionado.Idtipo > 0;
+
+    private string ObtenerNombreEstado(string? estado)
+    {
+        return estado switch
+        {
+            "a" => "Activo",
+            "p" => "Pasivo",
+            _ => "Desconocido"
+        };
+    }
+}
