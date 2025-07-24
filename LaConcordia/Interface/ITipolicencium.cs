@@ -12,7 +12,7 @@ namespace LaConcordia.Interface
 
         Task UpdateTipolicencia(TipolicenciumDTO actualizada);
 
-        Task DeleteEmpresaByRuc(int idTipoLicencia);
+        Task DeleteTipolicencia(int idTipoLicencia);
 
         //paginado
         Task<LaConcordia.DTO.PagedResult<TipolicenciumDTO>> GetTipoLicenciumPaginados

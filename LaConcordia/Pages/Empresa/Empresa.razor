@@ -63,6 +63,11 @@
 <div class="border rounded p-3 mt-3">
     <h5>Detalle Empresa</h5>
     <EditForm Model="empresaSeleccionada">
+        @* PONER EL FOCUS CUANDO SE LE DA NUEVO *@
+        <input class="form-control mb-2" @bind="empresaSeleccionada.Ruc"
+               placeholder="RUC"
+               disabled="@(!esNuevo)"
+               @ref="inputTipoLicenciaRef" />
         <InputText class="form-control mb-2" @bind-Value="empresaSeleccionada.Ruc" placeholder="RUC" disabled="@(!esNuevo)" />
         <InputText class="form-control mb-2" @bind-Value="empresaSeleccionada.Razonsocial" placeholder="Razón Social" />
         <InputText class="form-control mb-2" @bind-Value="empresaSeleccionada.Direccion" placeholder="Dirección" />
@@ -90,6 +95,8 @@
             OnPageChanged="OnPageChangedAsync" />
 
 @code {
+    //para focus al dar nuevo
+    private ElementReference inputTipoLicenciaRef;
     private List<EmpresaDTO> empresas = new();
     private EmpresaDTO empresaSeleccionada = new();
     private string razonBusqueda = string.Empty;

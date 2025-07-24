@@ -44,9 +44,9 @@ namespace LaConcordia.Repository
                 throw new Exception($"Error al actualizar Tipolicencia: {errorContent}");
             }
         }
-        public async Task DeleteEmpresaByRuc(int idTipoLicencia)
+        public async Task DeleteTipolicencia(int idTipoLicencia)
         {
-            var response = await _httpClient.DeleteAsync($"api/Tipolicencium/DeleteEmpresaByRuc/{idTipoLicencia}");
+            var response = await _httpClient.DeleteAsync($"api/Tipolicencium/DeleteTipolicencia/{idTipoLicencia}");
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
@@ -57,7 +57,8 @@ namespace LaConcordia.Repository
         // Paginado
         public async Task<PagedResult<TipolicenciumDTO>> GetTipoLicenciumPaginados(int pagina, int pageSize, string? filtro = null, string? estado = null)
         {
-            var url = $"api/Tipolicencium/GetTipoLicenciumPaginados?page={pagina}&pageSize={pageSize}";
+            var url = $"api/Tipolicencium/GetTipoLicenciumPaginados?pagina={pagina}&pageSize={pageSize}";
+
             if (!string.IsNullOrEmpty(filtro))
             {
                 url += $"&filtro={Uri.EscapeDataString(filtro)}";

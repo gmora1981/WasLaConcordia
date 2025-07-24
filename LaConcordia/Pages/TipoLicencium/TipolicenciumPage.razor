@@ -10,7 +10,9 @@
 
 <!-- Encabezado: Nuevo, Buscar -->
 <div class="d-flex flex-wrap gap-2 align-items-end mb-3">
+    @* <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo</button> *@
     <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo</button>
+
 
     <input type="text" class="form-control w-auto" placeholder="Buscar por Descripción..." @bind="filtroBusqueda" />
 
@@ -57,7 +59,10 @@
 <div class="border rounded p-3 shadow-sm">
     <h5>@(esNuevo ? "Nuevo Tipo de Licencia" : "Editar Tipo de Licencia")</h5>
     <EditForm Model="seleccionado">
-        <InputText class="form-control mb-2" @bind-Value="seleccionado.Tipolicencia" placeholder="Tipo Licencia" />
+        @* PONER EL FOCUS CUANDO SE LE DA NUEVO *@
+        <input class="form-control mb-2" @bind="seleccionado.Tipolicencia"
+               placeholder="Tipo Licencia"
+               @ref="inputTipoLicenciaRef" />
         <InputText class="form-control mb-2" @bind-Value="seleccionado.Profesional" placeholder="Profesional" />
         <InputSelect class="form-control mb-2" @bind-Value="seleccionado.Estado">
             <option value="">-- Seleccione Estado --</option>
@@ -80,6 +85,9 @@
             OnPageChanged="OnPageChangedAsync" />
 
 @code {
+    //para focus al dar nuevo
+    private ElementReference inputTipoLicenciaRef;
+
     private List<TipolicenciumDTO> lista = new();
     private TipolicenciumDTO seleccionado = new();
     private string filtroBusqueda = string.Empty;
@@ -120,10 +128,15 @@
         esNuevo = false;
     }
 
-    private void NuevoRegistro()
+    private async Task NuevoRegistro()
     {
         seleccionado = new TipolicenciumDTO();
         esNuevo = true;
+
+        //para que se vaya el focus se debe tener en el index.html
+        // Espera pequeño para que se renderice el DOM
+        await Task.Delay(100); // Esperar a que se renderice
+        await JS.InvokeVoidAsync("focusElement", inputTipoLicenciaRef);
     }
 
     private async Task Guardar()
@@ -160,7 +173,7 @@
             bool confirm = await JS.InvokeAsync<bool>("confirm", "¿Deseas eliminar este tipo de licencia?");
             if (confirm)
             {
-                await empresaRepo.DeleteEmpresaByRuc(seleccionado.Idtipo);
+                await empresaRepo.DeleteTipolicencia(seleccionado.Idtipo);
                 await CargarAsync();
                 seleccionado = new TipolicenciumDTO();
             }
