@@ -346,61 +346,60 @@
         StateHasChanged();
     }
 
-    private async Task SaveAllChanges()
+  private async Task SaveAllChanges()
+{
+    try
     {
-        try
+        isSaving = true;
+        StateHasChanged();
+        
+        var changedPermissions = 0;
+        foreach (var role in roles)
         {
-            isSaving = true;
-            StateHasChanged();
-
-            var changedPermissions = 0;
-
-            foreach (var role in roles)
+            foreach (var navItem in navigationItems.SelectMany(n => new[] { n }.Concat(n.Children)))
             {
-                foreach (var navItem in navigationItems.SelectMany(n => new[] { n }.Concat(n.Children)))
+                var key = $"{role.RoleId}-{navItem.Id}";
+                if (!rolePermissions.TryGetValue(key, out var currentPerm))
+                    continue;
+                var originalPerm = originalPermissions.GetValueOrDefault(key);
+                
+                // Verificar si hubo cambios
+                if (originalPerm == null ||
+                    currentPerm.CanView != originalPerm.CanView ||
+                    currentPerm.CanCreate != originalPerm.CanCreate ||
+                    currentPerm.CanEdit != originalPerm.CanEdit ||
+                    currentPerm.CanDelete != originalPerm.CanDelete)
                 {
-                    var key = $"{role.RoleId}-{navItem.Id}";
-                    if (!rolePermissions.TryGetValue(key, out var currentPerm))
-                        continue;
-
-                    var originalPerm = originalPermissions.GetValueOrDefault(key);
-                    
-                    // Verificar si hubo cambios
-                    if (originalPerm == null ||
-                        currentPerm.CanView != originalPerm.CanView ||
-                        currentPerm.CanCreate != originalPerm.CanCreate ||
-                        currentPerm.CanEdit != originalPerm.CanEdit ||
-                        currentPerm.CanDelete != originalPerm.CanDelete)
+                    var dto = new UpdateRolePermissionDto
                     {
-                        var dto = new UpdateRolePermissionDto
-                        {
-                            RoleId = role.RoleId,
-                            NavigationItemId = navItem.Id,
-                            CanView = currentPerm.CanView,
-                            CanCreate = currentPerm.CanCreate,
-                            CanEdit = currentPerm.CanEdit,
-                            CanDelete = currentPerm.CanDelete
-                        };
-
-                        await permissionService.UpdateRolePermissionAsync(dto);
-                        changedPermissions++;
-                    }
+                        RoleId = role.RoleId,
+                        NavigationItemId = navItem.Id,
+                        CanView = currentPerm.CanView,
+                        CanCreate = currentPerm.CanCreate,
+                        CanEdit = currentPerm.CanEdit,
+                        CanDelete = currentPerm.CanDelete
+                    };
+                    
+                    await permissionService.UpdateRolePermissionAsync(dto);
+                    changedPermissions++;
                 }
             }
-
-            await displayMessage.DisplaySuccessMessage($"Se actualizaron {changedPermissions} permisos correctamente");
-            await CloseModal();
         }
-        catch (Exception ex)
-        {
-            await displayMessage.DisplayErrorMessage($"Error al guardar cambios: {ex.Message}");
-        }
-        finally
-        {
-            isSaving = false;
-            StateHasChanged();
-        }
+        
+        await displayMessage.DisplaySuccessMessage($"Se actualizaron {changedPermissions} permisos correctamente");
+        await CloseModal();
     }
+    catch (Exception ex)
+    {
+        await displayMessage.DisplayErrorMessage($"Error al guardar cambios: {ex.Message}");
+    }
+    finally
+    {
+        isSaving = false;
+        // CLAVE: Usar InvokeAsync para garantizar que se ejecute en el hilo de UI
+        await InvokeAsync(StateHasChanged);
+    }
+}
 
     private async Task ExportMatrix()
     {
