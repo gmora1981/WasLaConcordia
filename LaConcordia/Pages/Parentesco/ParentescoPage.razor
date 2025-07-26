@@ -1,0 +1,186 @@
+﻿@page "/parentesco"
+@using LaConcordia.DTO
+@using LaConcordia.Interface
+@using LaConcordia.Pagination
+@inject IParentesco parentescoRepo
+@inject IJSRuntime JS
+@inject IDisplayMessage displayMessage
+
+<h3>Gestión de Parentescos</h3>
+
+<!-- Encabezado -->
+<div class="mb-3 d-flex gap-2">
+    <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo</button>
+    <input type="text" class="form-control" placeholder="Buscar por nombre..." @bind="filtroBusqueda" />
+    <select class="form-select" @bind="estadoFiltro">
+        <option value="">-- Todos --</option>
+        <option value="ACTIVO">Activo</option>
+        <option value="INACTIVO">Inactivo</option>
+    </select>
+    <button class="btn btn-success" @onclick="BuscarParentescos">Buscar</button>
+</div>
+
+<!-- Tabla -->
+<table class="table table-bordered table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Estado</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (parentescos?.Count > 0)
+        {
+            @foreach (var item in parentescos)
+            {
+                <tr @onclick="() => SeleccionarParentesco(item)" class="@(item.Idparentesco == parentescoSeleccionado?.Idparentesco ? "table-primary" : "")" style="cursor: pointer;">
+                    <td>@item.Idparentesco</td>
+                    <td>@item.Parentesco1</td>
+                    <td>@item.Estado</td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="3" class="text-center">No se encontraron registros.</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<!-- Detalle -->
+<div class="border rounded p-3 mt-3">
+    <h5>Detalle Parentesco</h5>
+    <EditForm Model="parentescoSeleccionado">
+        <InputText class="form-control mb-2" @bind-Value="parentescoSeleccionado.Parentesco1" placeholder="Nombre" />
+        <InputSelect class="form-control mb-2" @bind-Value="parentescoSeleccionado.Estado">
+            <option value="">-- Seleccione Estado --</option>
+            <option value="ACTIVO">Activo</option>
+            <option value="INACTIVO">Inactivo</option>
+        </InputSelect>
+    </EditForm>
+
+    <div class="d-flex gap-2 mt-2">
+        <button class="btn btn-warning" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">Guardar</button>
+        <button class="btn btn-danger" @onclick="EliminarParentesco" disabled="@(!PuedeEliminar)">Eliminar</button>
+        <button class="btn btn-secondary" @onclick="CancelarEdicion">Cancelar</button>
+    </div>
+</div>
+
+<p class="text-muted mt-2">Total: @TotalItems | Página: @PaginaActual</p>
+
+<Pagination TotalItems="@TotalItems"
+            PageSize="@PageSize"
+            CurrentPage="@PaginaActual"
+            OnPageChanged="OnPageChangedAsync" />
+
+@code {
+    private List<ParentescoDTO> parentescos = new();
+    private ParentescoDTO parentescoSeleccionado = new();
+    private string filtroBusqueda = string.Empty;
+    private string estadoFiltro = string.Empty;
+    private bool esNuevo = false;
+
+    private int PaginaActual = 1;
+    private int PageSize = 8;
+    private int TotalItems = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarParentescosAsync();
+    }
+
+    private async Task CargarParentescosAsync()
+    {
+        try
+        {
+            var resultado = await parentescoRepo.GetParentescosPaginados(PaginaActual, PageSize, filtroBusqueda, estadoFiltro);
+            parentescos = resultado.Items ?? new();
+            TotalItems = resultado.TotalItems;
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al cargar los registros: " + ex.Message);
+        }
+    }
+
+    private void NuevoRegistro()
+    {
+        parentescoSeleccionado = new ParentescoDTO();
+        esNuevo = true;
+    }
+
+    private void SeleccionarParentesco(ParentescoDTO item)
+    {
+        parentescoSeleccionado = new ParentescoDTO
+            {
+                Idparentesco = item.Idparentesco,
+                Parentesco1 = item.Parentesco1,
+                Estado = item.Estado
+            };
+        esNuevo = false;
+    }
+
+    private async Task GuardarCambios()
+    {
+        try
+        {
+            if (esNuevo)
+                await parentescoRepo.InsertParentesco(parentescoSeleccionado);
+            else
+                await parentescoRepo.UpdateParentesco(parentescoSeleccionado);
+
+            await CargarParentescosAsync();
+            parentescoSeleccionado = new ParentescoDTO();
+            esNuevo = false;
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al guardar: " + ex.Message);
+        }
+    }
+
+    private async Task EliminarParentesco()
+    {
+        if (parentescoSeleccionado?.Idparentesco > 0)
+        {
+            bool confirm = await JS.InvokeAsync<bool>("confirm", "¿Está seguro de eliminar este parentesco?");
+            if (confirm)
+            {
+                try
+                {
+                    await parentescoRepo.DeleteParentescoById(parentescoSeleccionado.Idparentesco);
+                    await CargarParentescosAsync();
+                    parentescoSeleccionado = new ParentescoDTO();
+                }
+                catch (Exception ex)
+                {
+                    await displayMessage.DisplayErrorMessage("Error al eliminar: " + ex.Message);
+                }
+            }
+        }
+    }
+
+    private void CancelarEdicion()
+    {
+        parentescoSeleccionado = new ParentescoDTO();
+        esNuevo = false;
+    }
+
+    private async Task OnPageChangedAsync(int nuevaPagina)
+    {
+        PaginaActual = nuevaPagina;
+        await CargarParentescosAsync();
+    }
+
+    private void BuscarParentescos()
+    {
+        PaginaActual = 1;
+        _ = CargarParentescosAsync();
+    }
+
+    private bool PuedeGuardar => !string.IsNullOrWhiteSpace(parentescoSeleccionado?.Parentesco1);
+    private bool PuedeEliminar => !esNuevo && parentescoSeleccionado?.Idparentesco > 0;
+}

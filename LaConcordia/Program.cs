@@ -40,6 +40,9 @@ builder.Services.AddScoped<ITipolicencium, TipolicenciumRepository>();
 builder.Services.AddScoped<INacionalidad, NacionalidadRepository>();
 builder.Services.AddScoped<IEstadoCivil, EstadoCivilRepository>();
 builder.Services.AddScoped<INiveleducacion, NiveleducacionRepository>();
+builder.Services.AddScoped<ICargo, CargoRepository>();
+builder.Services.AddScoped<IParentesco, ParentescoRepository>();
+builder.Services.AddScoped<IDuenopuesto, DuenopuestoRepository>();
 
 configureservices(builder.Services);
 

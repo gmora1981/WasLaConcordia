@@ -1,0 +1,184 @@
+﻿@page "/cargo"
+@using LaConcordia.DTO
+@using LaConcordia.Interface
+@using LaConcordia.Pagination
+@inject ICargo cargoRepo
+@inject IJSRuntime JS
+@inject IDisplayMessage displayMessage
+
+<h3>Gestión de Cargos</h3>
+
+<!-- Controles -->
+<div class="mb-3 d-flex gap-2">
+    <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo</button>
+    <input type="text" class="form-control" placeholder="Buscar por nombre..." @bind="filtroBusqueda" />
+    <select class="form-select" @bind="estadoFiltro">
+        <option value="">-- Todos --</option>
+        <option value="ACTIVO">Activo</option>
+        <option value="INACTIVO">Inactivo</option>
+    </select>
+    <button class="btn btn-success" @onclick="BuscarCargos">Buscar</button>
+</div>
+
+<!-- Tabla de Cargos -->
+<table class="table table-bordered table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Estado</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (listaCargos != null && listaCargos.Count > 0)
+        {
+            @foreach (var cargo in listaCargos)
+            {
+                <tr @onclick="() => SeleccionarCargo(cargo)" class="@(cargo.Idcargo == cargoSeleccionado?.Idcargo ? "table-primary" : "")" style="cursor: pointer;">
+                    <td>@cargo.Idcargo</td>
+                    <td>@cargo.Cargo1</td>
+                    <td>@cargo.Estado</td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="3" class="text-center">No se encontraron cargos.</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<!-- Formulario de detalle -->
+<div class="border rounded p-3 mt-3">
+    <h5>Detalle Cargo</h5>
+    <EditForm Model="cargoSeleccionado">
+        <InputText class="form-control mb-2" @bind-Value="cargoSeleccionado.Cargo1" placeholder="Nombre del Cargo" />
+        <InputSelect class="form-control mb-2" @bind-Value="cargoSeleccionado.Estado">
+            <option value="">-- Seleccione Estado --</option>
+            <option value="ACTIVO">Activo</option>
+            <option value="INACTIVO">Inactivo</option>
+        </InputSelect>
+    </EditForm>
+
+    <div class="d-flex gap-2 mt-2">
+        <button class="btn btn-warning" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">Guardar</button>
+        <button class="btn btn-danger" @onclick="EliminarCargo" disabled="@(!PuedeEliminar)">Eliminar</button>
+        <button class="btn btn-secondary" @onclick="CancelarEdicion">Cancelar</button>
+    </div>
+</div>
+
+<p class="text-muted mt-2">Total: @TotalRegistros | Página: @PaginaActual</p>
+
+<!-- Paginación -->
+<Pagination TotalItems="@TotalRegistros"
+            PageSize="@PageSize"
+            CurrentPage="@PaginaActual"
+            OnPageChanged="OnPageChangedAsync" />
+
+@code {
+    private List<CargoDTO> listaCargos = new();
+    private CargoDTO cargoSeleccionado = new();
+    private string filtroBusqueda = string.Empty;
+    private string estadoFiltro = string.Empty;
+
+    private bool esNuevo = false;
+    private int PaginaActual = 1;
+    private int PageSize = 8;
+    private int TotalRegistros = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarCargosAsync();
+    }
+
+    private async Task CargarCargosAsync()
+    {
+        try
+        {
+            var resultado = await cargoRepo.GetCargosPaginados(PaginaActual, PageSize, filtroBusqueda, estadoFiltro);
+            listaCargos = resultado.Items ?? new();
+            TotalRegistros = resultado.TotalItems;
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al cargar los cargos: " + ex.Message);
+        }
+    }
+
+    private async void BuscarCargos()
+    {
+        PaginaActual = 1;
+        await CargarCargosAsync();
+    }
+
+    private void SeleccionarCargo(CargoDTO cargo)
+    {
+        cargoSeleccionado = new CargoDTO
+            {
+                Idcargo = cargo.Idcargo,
+                Cargo1 = cargo.Cargo1,
+                Estado = cargo.Estado
+            };
+        esNuevo = false;
+    }
+
+    private void NuevoRegistro()
+    {
+        cargoSeleccionado = new CargoDTO();
+        esNuevo = true;
+    }
+
+    private async Task GuardarCambios()
+    {
+        try
+        {
+            if (esNuevo)
+                await cargoRepo.InsertCargo(cargoSeleccionado);
+            else
+                await cargoRepo.UpdateCargo(cargoSeleccionado);
+
+            await CargarCargosAsync();
+            cargoSeleccionado = new CargoDTO();
+            esNuevo = false;
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al guardar: " + ex.Message);
+        }
+    }
+
+    private async Task EliminarCargo()
+    {
+        bool confirm = await JS.InvokeAsync<bool>("confirm", "¿Está seguro de eliminar este cargo?");
+        if (confirm)
+        {
+            try
+            {
+                await cargoRepo.DeleteCargoById(cargoSeleccionado.Idcargo);
+                await CargarCargosAsync();
+                cargoSeleccionado = new CargoDTO();
+            }
+            catch (Exception ex)
+            {
+                await displayMessage.DisplayErrorMessage("Error al eliminar: " + ex.Message);
+            }
+        }
+    }
+
+    private void CancelarEdicion()
+    {
+        cargoSeleccionado = new CargoDTO();
+        esNuevo = false;
+    }
+
+    private async Task OnPageChangedAsync(int nuevaPagina)
+    {
+        PaginaActual = nuevaPagina;
+        await CargarCargosAsync();
+    }
+
+    private bool PuedeGuardar => !string.IsNullOrWhiteSpace(cargoSeleccionado.Cargo1);
+    private bool PuedeEliminar => !esNuevo && cargoSeleccionado.Idcargo > 0;
+}

@@ -1,0 +1,187 @@
+﻿@page "/duenopuesto"
+@using LaConcordia.Interface
+
+@inject IDuenopuesto duenopuestoRepo
+@inject IJSRuntime JS
+@using LaConcordia.DTO
+@using LaConcordia.Pagination
+
+<h3>Gestión de Dueños de Puestos</h3>
+
+<div class="mb-3 d-flex gap-2">
+    <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo</button>
+    <input type="text" class="form-control" placeholder="Buscar por cédula..." @bind="filtroCedula" />
+    <input type="text" class="form-control" placeholder="Buscar por nombre..." @bind="filtroNombre" />
+    <input type="text" class="form-control" placeholder="Buscar por apellidos..." @bind="filtroApellidos" />
+    <select class="form-select" @bind="estadoFiltro">
+        <option value="">-- Todos --</option>
+        <option value="a">Activo</option>
+        <option value="p">Pasivo</option>
+    </select>
+    <button class="btn btn-success" @onclick="Buscar">Buscar</button>
+</div>
+
+<table class="table table-bordered table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>Cédula</th>
+            <th>Nombres</th>
+            <th>Apellidos</th>
+            <th>Estado</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (duenopuestos is not null && duenopuestos.Count > 0)
+        {
+            @foreach (var dp in duenopuestos)
+            {
+                <tr @onclick="() => Seleccionar(dp)" class="@(dp.Cedula == duenopuestoSeleccionado?.Cedula ? "table-primary" : "")">
+                    <td>@dp.Cedula</td>
+                    <td>@dp.Nombres</td>
+                    <td>@dp.Apellidos</td>
+                    <td>@MostrarEstado(dp.Estado)</td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr><td colspan="4" class="text-center">No se encontraron registros.</td></tr>
+        }
+    </tbody>
+</table>
+
+<div class="border p-3 rounded">
+    <h5>Detalle</h5>
+    <EditForm Model="duenopuestoSeleccionado">
+        <InputText class="form-control mb-2" @bind-Value="duenopuestoSeleccionado.Cedula" placeholder="Cédula" disabled="@(!esNuevo)" />
+        <InputText class="form-control mb-2" @bind-Value="duenopuestoSeleccionado.Nombres" placeholder="Nombres" />
+        <InputText class="form-control mb-2" @bind-Value="duenopuestoSeleccionado.Apellidos" placeholder="Apellidos" />
+        <InputSelect class="form-control mb-2" @bind-Value="duenopuestoSeleccionado.Estado">
+            <option value="">-- Seleccione Estado --</option>
+            <option value="a">Activo</option>
+            <option value="p">Pasivo</option>
+        </InputSelect>
+    </EditForm>
+    <div class="d-flex gap-2 mt-2">
+        <button class="btn btn-warning" @onclick="Guardar" disabled="@(!PuedeGuardar)">Guardar</button>
+        <button class="btn btn-danger" @onclick="Eliminar" disabled="@(!PuedeEliminar)">Eliminar</button>
+        <button class="btn btn-secondary" @onclick="Cancelar">Cancelar</button>
+    </div>
+</div>
+
+<Pagination TotalItems="@TotalRegistros"
+            PageSize="@PageSize"
+            CurrentPage="@PaginaActual"
+            OnPageChanged="OnPageChangedAsync" />
+
+@code {
+    private List<DuenopuestoDTO> duenopuestos = new();
+    private DuenopuestoDTO duenopuestoSeleccionado = new();
+    private bool esNuevo = false;
+
+    private string filtroCedula = "";
+    private string filtroNombre = "";
+    private string filtroApellidos = "";
+    private string estadoFiltro = "";
+
+    private int PaginaActual = 1;
+    private int PageSize = 10;
+    private int TotalRegistros = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        try
+        {
+            var result = await duenopuestoRepo.GetDuenopuestosPaginados(
+                PaginaActual, PageSize, filtroCedula, filtroNombre, filtroApellidos, estadoFiltro);
+
+            duenopuestos = result.Items;
+            TotalRegistros = result.TotalItems;
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error al cargar: {ex.Message}");
+        }
+    }
+
+    private async Task Buscar()
+    {
+        PaginaActual = 1;
+        await CargarAsync();
+    }
+
+    private void Seleccionar(DuenopuestoDTO dp)
+    {
+        duenopuestoSeleccionado = new DuenopuestoDTO
+            {
+                Cedula = dp.Cedula,
+                Nombres = dp.Nombres,
+                Apellidos = dp.Apellidos,
+                Estado = dp.Estado
+            };
+        esNuevo = false;
+    }
+
+    private void NuevoRegistro()
+    {
+        duenopuestoSeleccionado = new DuenopuestoDTO();
+        esNuevo = true;
+    }
+
+    private async Task Guardar()
+    {
+        try
+        {
+            if (esNuevo)
+                await duenopuestoRepo.InsertDuenopuesto(duenopuestoSeleccionado);
+            else
+                await duenopuestoRepo.UpdateDuenopuesto(duenopuestoSeleccionado);
+
+            await CargarAsync();
+            duenopuestoSeleccionado = new();
+            esNuevo = false;
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error al guardar: {ex.Message}");
+        }
+    }
+
+    private async Task Eliminar()
+    {
+        bool confirm = await JS.InvokeAsync<bool>("confirm", "¿Está seguro de eliminar?");
+        if (confirm)
+        {
+            await duenopuestoRepo.DeleteDuenopuestoByCedula(duenopuestoSeleccionado.Cedula);
+            await CargarAsync();
+            duenopuestoSeleccionado = new();
+        }
+    }
+
+    private void Cancelar()
+    {
+        duenopuestoSeleccionado = new();
+        esNuevo = false;
+    }
+
+    private async Task OnPageChangedAsync(int nuevaPagina)
+    {
+        PaginaActual = nuevaPagina;
+        await CargarAsync();
+    }
+
+    private string MostrarEstado(string? estado) => estado switch
+    {
+        "a" => "Activo",
+        "p" => "Pasivo",
+        _ => "Desconocido"
+    };
+
+    private bool PuedeGuardar => !string.IsNullOrWhiteSpace(duenopuestoSeleccionado.Cedula);
+    private bool PuedeEliminar => !esNuevo && !string.IsNullOrWhiteSpace(duenopuestoSeleccionado.Cedula);
+}
