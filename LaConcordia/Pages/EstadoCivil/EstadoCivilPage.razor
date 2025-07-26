@@ -1,26 +1,26 @@
-﻿@page "/niveleducacion"
+﻿@page "/estadocivil"
 @using LaConcordia.DTO
 @using LaConcordia.Interface
 @using LaConcordia.Pagination
-@inject INiveleducacion niveleducacionRepo
+@inject IEstadoCivil estadoCivilRepo
 @inject IJSRuntime JS
 @inject IDisplayMessage displayMessage
 
-<h3>Gestión de Nivel de Educación</h3>
+<h3>Gestión de Estado Civil</h3>
 
 <!-- Controles de búsqueda y nuevo registro -->
 <div class="mb-3 d-flex gap-2">
     <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo</button>
-    <input type="text" class="form-control" placeholder="Buscar por descripción..." @bind="filtroBusqueda" />
+    <input type="text" class="form-control" placeholder="Buscar por descripción..." @bind="razonBusqueda" />
     <select class="form-select" @bind="estadoFiltro">
         <option value="">-- Todos --</option>
         <option value="a">Activo</option>
         <option value="p">Pasivo</option>
     </select>
-    <button class="btn btn-success" @onclick="BuscarNivelEducacion">Buscar</button>
+    <button class="btn btn-success" @onclick="BuscarEstadoCivil">Buscar</button>
 </div>
 
-<!-- Tabla de niveles de educación -->
+<!-- Tabla de estado civil -->
 <table class="table table-bordered table-hover">
     <thead class="table-dark">
         <tr>
@@ -30,21 +30,21 @@
         </tr>
     </thead>
     <tbody>
-        @if (niveles != null && niveles.Count > 0)
+        @if (estadocivil != null && estadocivil.Count > 0)
         {
-            @foreach (var nivel in niveles)
+            @foreach (var estado in estadocivil)
             {
-                <tr @onclick="() => SeleccionarNivel(nivel)" class="@(nivel.Ideducacion == nivelSeleccionado?.Ideducacion ? "table-primary" : "")" style="cursor: pointer;">
-                    <td>@nivel.Ideducacion</td>
-                    <td>@nivel.Descripcion</td>
-                    <td>@ObtenerNombreEstado(nivel.Estado)</td>
+                <tr @onclick="() => SeleccionarEstadoCivil(estado)" class="@(estado.Idestadocivil == estadoCivilSeleccionado?.Idestadocivil ? "table-primary" : "")" style="cursor: pointer;">
+                    <td>@estado.Idestadocivil</td>
+                    <td>@estado.Descripcion</td>
+                    <td>@ObtenerNombreEstado(estado.Estado)</td>
                 </tr>
             }
         }
         else
         {
             <tr>
-                <td colspan="3" class="text-center">No se encontraron registros.</td>
+                <td colspan="3" class="text-center">No se encontraron estados civiles.</td>
             </tr>
         }
     </tbody>
@@ -52,23 +52,25 @@
 
 <!-- Detalle y formulario -->
 <div class="border rounded p-3 mt-3">
-    <h5>Detalle Nivel de Educación</h5>
-    <EditForm Model="nivelSeleccionado">
-        <input class="form-control mb-2" @bind="nivelSeleccionado.Descripcion" placeholder="Descripción" @ref="inputDescripcionRef" />
-        <InputSelect class="form-control mb-2" @bind-Value="nivelSeleccionado.Estado">
+    <h5>Detalle Estado Civil</h5>
+    <EditForm Model="estadoCivilSeleccionado">
+        <input class="form-control mb-2" @bind="estadoCivilSeleccionado.Descripcion" placeholder="Descripción" @ref="inputDescripcionRef" />
+        <InputSelect class="form-control mb-2" @bind-Value="estadoCivilSeleccionado.Estado">
             <option value="">-- Seleccione Estado --</option>
             <option value="a">Activo</option>
             <option value="p">Pasivo</option>
         </InputSelect>
     </EditForm>
 
+    <!-- Botones de acción -->
     <div class="d-flex gap-2 mt-2">
         <button class="btn btn-warning" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">Guardar</button>
-        <button class="btn btn-danger" @onclick="EliminarNivel" disabled="@(!PuedeEliminar)">Eliminar</button>
+        <button class="btn btn-danger" @onclick="EliminarEstadoCivil" disabled="@(!PuedeEliminar)">Eliminar</button>
         <button class="btn btn-secondary" @onclick="CancelarEdicion">Cancelar</button>
     </div>
 </div>
 
+<!-- Info de paginación -->
 <p class="text-muted mt-2">Total: @TotalRegistros | Página: @PaginaActual</p>
 
 <!-- Paginación -->
@@ -78,12 +80,13 @@
             OnPageChanged="OnPageChangedAsync" />
 
 @code {
+    // Referencia para dar focus al primer input
     private ElementReference inputDescripcionRef;
 
-    private List<NiveleducacionDTO> niveles = new();
-    private NiveleducacionDTO nivelSeleccionado = new();
+    private List<EstadoCivilDTO> estadocivil = new();
+    private EstadoCivilDTO estadoCivilSeleccionado = new();
 
-    private string filtroBusqueda = string.Empty;
+    private string razonBusqueda = string.Empty;
     private string estadoFiltro = string.Empty;
 
     private int PaginaActual = 1;
@@ -94,27 +97,27 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await CargarNivelesAsync();
+        await CargarEstadoCivilAsync();
     }
 
-    private async Task CargarNivelesAsync()
+    private async Task CargarEstadoCivilAsync()
     {
         try
         {
-            var resultado = await niveleducacionRepo.GetNiveleducacionPaginados(PaginaActual, PageSize, filtroBusqueda, estadoFiltro);
-            niveles = resultado.Items;
+            var resultado = await estadoCivilRepo.GetEstadoCivilPaginados(PaginaActual, PageSize, razonBusqueda, estadoFiltro);
+            estadocivil = resultado.Items;
             TotalRegistros = resultado.TotalItems;
         }
         catch (Exception ex)
         {
-            await JS.InvokeVoidAsync("alert", $"Error al cargar niveles de educación: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", $"Error al cargar estados civiles: {ex.Message}");
         }
     }
 
-    private async void BuscarNivelEducacion()
+    private async void BuscarEstadoCivil()
     {
         PaginaActual = 1;
-        await CargarNivelesAsync();
+        await CargarEstadoCivilAsync();
     }
 
     private string ObtenerNombreEstado(string? estado)
@@ -127,21 +130,23 @@
         };
     }
 
-    private void SeleccionarNivel(NiveleducacionDTO nivel)
+    private void SeleccionarEstadoCivil(EstadoCivilDTO estado)
     {
-        nivelSeleccionado = new NiveleducacionDTO
+        estadoCivilSeleccionado = new EstadoCivilDTO
             {
-                Ideducacion = nivel.Ideducacion,
-                Descripcion = nivel.Descripcion,
-                Estado = nivel.Estado
+                Idestadocivil = estado.Idestadocivil,
+                Descripcion = estado.Descripcion,
+                Estado = estado.Estado
             };
         esNuevo = false;
     }
 
     private async void NuevoRegistro()
     {
-        nivelSeleccionado = new NiveleducacionDTO();
+        estadoCivilSeleccionado = new EstadoCivilDTO();
         esNuevo = true;
+
+        // Espera al render para poner focus
         await Task.Yield();
         await JS.InvokeVoidAsync("eval", "document.querySelector('[placeholder=\"Descripción\"]').focus()");
     }
@@ -151,12 +156,12 @@
         try
         {
             if (esNuevo)
-                await niveleducacionRepo.InsertNiveleducacion(nivelSeleccionado);
+                await estadoCivilRepo.InsertEstadoCivil(estadoCivilSeleccionado);
             else
-                await niveleducacionRepo.UpdateNiveleducacion(nivelSeleccionado);
+                await estadoCivilRepo.UpdateEstadoCivil(estadoCivilSeleccionado);
 
-            await CargarNivelesAsync();
-            nivelSeleccionado = new NiveleducacionDTO();
+            await CargarEstadoCivilAsync();
+            estadoCivilSeleccionado = new EstadoCivilDTO();
             esNuevo = false;
         }
         catch (Exception ex)
@@ -165,36 +170,30 @@
         }
     }
 
-    private async Task EliminarNivel()
+    private async Task EliminarEstadoCivil()
     {
-        bool confirm = await JS.InvokeAsync<bool>("confirm", "¿Está seguro de eliminar este nivel?");
+        bool confirm = await JS.InvokeAsync<bool>("confirm", "¿Estás seguro de eliminar este estado civil?");
         if (confirm)
         {
-            try
-            {
-                await niveleducacionRepo.DeleteNiveleducacionById(nivelSeleccionado.Ideducacion);
-                await CargarNivelesAsync();
-                nivelSeleccionado = new NiveleducacionDTO();
-            }
-            catch (Exception ex)
-            {
-                await JS.InvokeVoidAsync("alert", $"Error al eliminar: {ex.Message}");
-            }
+            await estadoCivilRepo.DeleteEstadoCivilById(estadoCivilSeleccionado.Idestadocivil);
+            await CargarEstadoCivilAsync();
+            estadoCivilSeleccionado = new EstadoCivilDTO();
         }
     }
 
     private void CancelarEdicion()
     {
-        nivelSeleccionado = new NiveleducacionDTO();
+        estadoCivilSeleccionado = new EstadoCivilDTO();
         esNuevo = false;
     }
 
     private async Task OnPageChangedAsync(int nuevaPagina)
     {
         PaginaActual = nuevaPagina;
-        await CargarNivelesAsync();
+        await CargarEstadoCivilAsync();
     }
 
-    private bool PuedeGuardar => !string.IsNullOrWhiteSpace(nivelSeleccionado.Descripcion);
-    private bool PuedeEliminar => !esNuevo && nivelSeleccionado.Ideducacion > 0;
+    private bool PuedeGuardar => !string.IsNullOrWhiteSpace(estadoCivilSeleccionado.Descripcion);
+    private bool PuedeEliminar => !esNuevo && estadoCivilSeleccionado.Idestadocivil > 0;
 }
+este es el modelo como quieroi NivelEduacion
