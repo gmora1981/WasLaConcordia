@@ -16,7 +16,8 @@ namespace LaConcordia.Interface
         Task DeleteEmpresaByRuc(string ruc);
 
         //paginado
-        Task<LaConcordia.DTO.PagedResult<EmpresaDTO>> GetEmpresasPaginados(int pagina, int pageSize, string? filtro = null, string? estado = null);
+        Task<LaConcordia.DTO.PagedResult<EmpresaDTO>> GetEmpresasPaginados(int pagina,
+            int pageSize, string? filtro = null, string? estado = null);
 
         //exportar PDF
         Task<byte[]> ExportarEmpresasPdfAsync(string filtro);

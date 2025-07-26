@@ -1,0 +1,200 @@
+﻿@page "/nacionalidad"
+@using LaConcordia.DTO
+@using LaConcordia.Interface
+@using LaConcordia.Pagination
+@inject INacionalidad nacionalidadRepo
+@inject IJSRuntime JS
+
+<h3>Gestión de Nacionalidades</h3>
+
+<div class="mb-3 d-flex gap-2">
+    <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo</button>
+    <input type="text" class="form-control" placeholder="Buscar nacionalidad..." @bind="razonBusqueda" />
+    <select class="form-select" @bind="estadoFiltro">
+        <option value="">-- Todos --</option>
+        <option value="a">Activo</option>
+        <option value="p">Pasivo</option>
+    </select>
+    <button class="btn btn-success" @onclick="BuscarNacionalidades">Buscar</button>
+</div>
+
+@if (!string.IsNullOrEmpty(mensajeError))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @mensajeError
+        <button type="button" class="btn-close" @onclick="@(() => mensajeError = string.Empty)"></button>
+    </div>
+}
+
+<table class="table table-bordered table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>ID</th>
+            <th>Nacionalidad</th>
+            <th>Estado</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (nacionalidades != null && nacionalidades.Count > 0)
+        {
+            @foreach (var item in nacionalidades)
+            {
+                <tr @onclick="() => Seleccionar(item)" class="@(item == nacionalidadSeleccionada ? "table-primary" : "")" style="cursor: pointer;">
+                    <td>@item.Idnacionalidad</td>
+                    <td>@item.Nacionalidad1</td>
+                    <td>@ObtenerNombreEstado(item.Estado)</td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="3" class="text-center">No se encontraron nacionalidades.</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div class="border rounded p-3 shadow-sm">
+    <h5>@(esNuevo ? "Nueva Nacionalidad" : "Editar Nacionalidad")</h5>
+    <div class="mb-3">
+        <label class="form-label">Nacionalidad</label>
+        <input type="text" class="form-control" @bind="nacionalidadSeleccionada.Nacionalidad1" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Estado</label>
+        <select class="form-select" @bind="nacionalidadSeleccionada.Estado">
+            <option value="">-- Seleccione --</option>
+            <option value="a">Activo</option>
+            <option value="p">Pasivo</option>
+        </select>
+    </div>
+
+    <button class="btn btn-success me-2" @onclick="GuardarCambios">Guardar</button>
+    @if (!esNuevo)
+    {
+        <button class="btn btn-danger me-2" @onclick="Eliminar">Eliminar</button>
+    }
+    <button class="btn btn-secondary" @onclick="CancelarEdicion">Cancelar</button>
+
+    <p class="text-muted mt-2">Total: @TotalItems | Página: @PaginaActual</p>
+
+    <Pagination TotalItems="@TotalItems"
+                PageSize="@PageSize"
+                CurrentPage="@PaginaActual"
+                OnPageChanged="OnPageChangedAsync" />
+</div>
+
+@code {
+    private List<NacionalidadDTO> nacionalidades = new();
+    private NacionalidadDTO nacionalidadSeleccionada = new();
+    private string razonBusqueda = string.Empty;
+    private string estadoFiltro = string.Empty;
+    private bool esNuevo = false;
+    private string mensajeError = string.Empty;
+
+    private int PaginaActual = 1;
+    private int PageSize = 8;
+    private int TotalItems = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarNacionalidadesAsync();
+    }
+
+    private async Task BuscarNacionalidades()
+    {
+        PaginaActual = 1;
+        await CargarNacionalidadesAsync();
+    }
+
+    private async Task CargarNacionalidadesAsync()
+    {
+        try
+        {
+            var result = await nacionalidadRepo.GetNacionalidadesPaginados(PaginaActual, PageSize, razonBusqueda, estadoFiltro);
+            nacionalidades = result.Items ?? new();
+            TotalItems = result.TotalItems;
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error al cargar: {ex.Message}";
+        }
+    }
+
+    private string ObtenerNombreEstado(string? estado)
+    {
+        return estado switch
+        {
+            "a" => "Activo",
+            "p" => "Pasivo",
+            _ => "Desconocido"
+        };
+    }
+
+    private void Seleccionar(NacionalidadDTO item)
+    {
+        nacionalidadSeleccionada = new NacionalidadDTO
+            {
+                Idnacionalidad = item.Idnacionalidad,
+                Nacionalidad1 = item.Nacionalidad1,
+                Estado = item.Estado
+            };
+        esNuevo = false;
+    }
+
+    private void NuevoRegistro()
+    {
+        nacionalidadSeleccionada = new NacionalidadDTO();
+        esNuevo = true;
+    }
+
+    private async Task GuardarCambios()
+    {
+        try
+        {
+            if (esNuevo)
+                await nacionalidadRepo.InsertNacionalidad(nacionalidadSeleccionada);
+            else
+                await nacionalidadRepo.UpdateNacionalidad(nacionalidadSeleccionada);
+
+            await CargarNacionalidadesAsync();
+            CancelarEdicion();
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error al guardar: {ex.Message}";
+        }
+    }
+
+    private async Task Eliminar()
+    {
+        bool confirm = await JS.InvokeAsync<bool>("confirm", "¿Estás seguro de eliminar esta nacionalidad?");
+        if (confirm && nacionalidadSeleccionada.Idnacionalidad > 0)
+        {
+            try
+            {
+                await nacionalidadRepo.DeleteNacionalidadById(nacionalidadSeleccionada.Idnacionalidad);
+                await CargarNacionalidadesAsync();
+                CancelarEdicion();
+            }
+            catch (Exception ex)
+            {
+                mensajeError = $"Error al eliminar: {ex.Message}";
+            }
+        }
+    }
+
+    private void CancelarEdicion()
+    {
+        nacionalidadSeleccionada = new NacionalidadDTO();
+        esNuevo = false;
+        mensajeError = string.Empty;
+    }
+
+    private async Task OnPageChangedAsync(int nuevaPagina)
+    {
+        PaginaActual = nuevaPagina;
+        await CargarNacionalidadesAsync();
+    }
+}

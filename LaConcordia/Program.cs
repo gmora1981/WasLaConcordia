@@ -37,6 +37,9 @@ Console.WriteLine("🔧 DESARROLLO - API: http://localhost:5191/");
 //builder.Services.AddTelerikBlazor();
 builder.Services.AddScoped<IEmpresa, EmpresaRepository>();
 builder.Services.AddScoped<ITipolicencium, TipolicenciumRepository>();
+builder.Services.AddScoped<INacionalidad, NacionalidadRepository>();
+builder.Services.AddScoped<IEstadoCivil, EstadoCivilRepository>();
+builder.Services.AddScoped<INiveleducacion, NiveleducacionRepository>();
 
 configureservices(builder.Services);
 
