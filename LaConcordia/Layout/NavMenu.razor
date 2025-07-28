@@ -14,12 +14,39 @@
                 <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
             </NavLink>
         </div>
-        <div class="nav-item px-3">
+
+        @*Si agrega otra solo cambiar los numeros *@
+        <div class="nav-item px-3 text-start position-relative">
+            <div class="dropdown-toggle-blazor" @onclick="() => ToggleDropdown(1)">
+                <i class="bi bi-list"></i> Mantenimiento
+                <span class="dropdown-caret">@((IsDropdownOpen(1)) ? "▲" : "▼")</span>
+            </div>
+            @if (IsDropdownOpen(1))
+            {
+                <div class="dropdown-wrapper-blazor">
+                    <ul class="dropdown-blazor">
+                        <li><NavLink class="dropdown-item" href="empresa">Empresas</NavLink></li>
+                        <li><NavLink class="dropdown-item" href="tipolicencium">Tipo de Licencia</NavLink></li>
+                        <li><NavLink class="dropdown-item" href="nacionalidad">Nacionalidad</NavLink></li>
+                        <li><NavLink class="dropdown-item" href="estadoCivil">Estado Civil</NavLink></li>
+                        <li><NavLink class="dropdown-item" href="niveleducacion">Usuario/Nivel Educación</NavLink></li>
+                        <li><NavLink class="dropdown-item" href="cargo">Cargo</NavLink></li>
+                        <li><NavLink class="dropdown-item" href="parentesco">Parentesco</NavLink></li>
+                        <li><NavLink class="dropdown-item" href="duenopuesto">Dueño de puesto</NavLink></li>
+                        @* <li><NavLink class="dropdown-item" href="cargo">Cargo</NavLink></li>
+                        <li><NavLink class="dropdown-item" href="cargo">Cargo</NavLink></li> *@
+                    </ul>
+                </div>
+            }
+        </div>
+
+
+        @* <div class="nav-item px-3">
             <NavLink class="nav-link" href="counter">
                 <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
             </NavLink>
-        </div>
-        <div class="nav-item px-3">
+        </div> *@
+        @* <div class="nav-item px-3">
             <NavLink class="nav-link" href="empresa">
                 <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Empresa
             </NavLink>
@@ -56,13 +83,21 @@
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="duenopuesto">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Dueñlo de puesto
+                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Dueño de puesto
             </NavLink>
-        </div>
+        </div> *@
     </nav>
 </div>
 
 @code {
+    // private bool collapseNavMenu = true;
+
+    // private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    // private void ToggleNavMenu()
+    // {
+    //     collapseNavMenu = !collapseNavMenu;
+    // }
     private bool collapseNavMenu = true;
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
@@ -71,4 +106,16 @@
     {
         collapseNavMenu = !collapseNavMenu;
     }
+
+    private HashSet<int> openDropdowns = new();
+
+    private void ToggleDropdown(int id)
+    {
+        if (openDropdowns.Contains(id))
+            openDropdowns.Remove(id);
+        else
+            openDropdowns.Add(id);
+    }
+
+    private bool IsDropdownOpen(int id) => openDropdowns.Contains(id);
 }

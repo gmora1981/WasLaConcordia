@@ -112,3 +112,107 @@ code {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+
+/* para los dropdown del menu */
+.dropdown-toggle-blazor {
+    cursor: pointer;
+    padding: 0.4rem 0.8rem;
+    color: #fff;
+    display: inline-flex; /* evita que ocupe todo el ancho */
+    align-items: center;
+    gap: 0.3rem; /*  reduce el espacio entre icono, texto y flecha */
+    font-weight: 500;
+    user-select: none;
+    border-radius: 0.25rem;
+    transition: background-color 0.2s;
+}
+
+
+
+    .dropdown-toggle-blazor:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+/* Flecha que indica estado */
+.dropdown-caret {
+    font-size: 0.8rem;
+    margin-left: 0.5rem;
+}
+
+/* Contenedor flotante */
+/*.dropdown-wrapper-blazor {
+    position: absolute;
+    top: 100%;*/ /* justo debajo del botón */
+/*left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    background: white;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 8px rgba(106, 173, 191);
+}*/
+.dropdown-wrapper-blazor {
+    padding: 0.25rem 0.5rem;
+    background: transparent;
+    border-radius: 0.25rem;
+    box-shadow: none;
+}
+
+
+
+/* Centrado interno */
+/*.dropdown-blazor {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    text-align: center;
+}*/
+.dropdown-blazor {
+    list-style: none;
+    padding: 0;
+    margin: 0.2rem 0 0 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /*  centra horizontalmente */
+    gap: 0.1rem;
+}
+
+    /* Item individual */
+    /*.dropdown-blazor .dropdown-item {
+        display: block;
+        width: 100%;
+        padding: 0.25rem 1rem;
+        color: #0d6efd;
+        text-decoration: none;
+        border-radius: 0.25rem;
+        white-space: nowrap;
+
+
+    }*/
+
+    .dropdown-blazor .dropdown-item {
+        display: block;
+        padding: 0.25rem 1rem;
+        color: #0d6efd;
+        text-decoration: none;
+        border-radius: 0.25rem;
+        white-space: nowrap;
+        text-align: center; /*  centra texto */
+    }
+
+
+
+        /*.dropdown-blazor .dropdown-item:hover,
+        .dropdown-blazor .dropdown-item.active {
+            background-color: rgba(13, 110, 253, 0.1);
+            text-decoration: none;
+            color: #0a58ca;
+        }*/
+
+        .dropdown-blazor .dropdown-item:hover,
+        .dropdown-blazor .dropdown-item.active {
+            background-color: rgba(13, 110, 253, 0.1);
+            text-decoration: none;
+            color: #0a58ca;
+        }
