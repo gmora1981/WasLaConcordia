@@ -14,5 +14,9 @@
             string? nombre = null,
             string? apellidos = null,
             string? estado = null);
+
+        //exportar PDF
+        Task<byte[]> ObtenerDuenoPuestoFiltradas(string filtro);
+
     }
 }

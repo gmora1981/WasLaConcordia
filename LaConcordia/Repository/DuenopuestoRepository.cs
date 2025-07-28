@@ -56,18 +56,18 @@ namespace LaConcordia.Repository
 
         //paginado
         public async Task<PagedResult<DuenopuestoDTO>> GetDuenopuestosPaginados(
-    int pagina,
-    int pageSize,
-    string? cedula = null,
-    string? nombre = null,
-    string? apellidos = null,
-    string? estado = null)
+            int pagina,
+            int pageSize,
+            string? cedula = null,
+            string? nombre = null,
+            string? apellidos = null,
+            string? estado = null)
         {
             var queryParams = new List<string>
-    {
-        $"pagina={pagina}",
-        $"pageSize={pageSize}"
-    };
+            {
+                $"pagina={pagina}",
+                $"pageSize={pageSize}"
+            };
 
             if (!string.IsNullOrWhiteSpace(cedula))
                 queryParams.Add($"cedula={Uri.EscapeDataString(cedula)}");
@@ -91,6 +91,22 @@ namespace LaConcordia.Repository
             {
                 throw new Exception("Hubo un error al obtener los dueños de puestos paginados.", ex);
             }
+        }
+
+        //exportar PDF
+        public async Task<byte[]> ObtenerDuenoPuestoFiltradas(string filtro)
+        {
+            var url = $"api/Duenopuesto/exportarPDF?filtro={Uri.EscapeDataString(filtro ?? "")}";
+
+            var response = await _httpClient.GetAsync(url);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Error al exportar PDF: {errorContent}");
+            }
+
+            return await response.Content.ReadAsByteArrayAsync();
         }
     }
 }

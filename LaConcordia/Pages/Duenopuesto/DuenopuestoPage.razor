@@ -5,6 +5,7 @@
 @inject IJSRuntime JS
 @using LaConcordia.DTO
 @using LaConcordia.Pagination
+@inject IDisplayMessage displayMessage
 
 <h3>Gestión de Dueños de Puestos</h3>
 
@@ -19,6 +20,11 @@
         <option value="p">Pasivo</option>
     </select>
     <button class="btn btn-success" @onclick="Buscar">Buscar</button>
+    <div class="ms-2">
+        <button class="btn btn-danger btn-sm" @onclick="ExportarEmpresasPdf">
+            Exportar PDF <i class="bi bi-file-earmark-pdf-fill"></i>
+        </button>
+    </div>
 </div>
 
 <table class="table table-bordered table-hover">
@@ -181,6 +187,32 @@
         "p" => "Pasivo",
         _ => "Desconocido"
     };
+
+    //exportar pdf
+    private async Task ExportarEmpresasPdf()
+    {
+        try
+        {
+            var pdfBytes = await duenopuestoRepo.ObtenerDuenoPuestoFiltradas(estadoFiltro);
+
+            if (pdfBytes == null || pdfBytes.Length == 0)
+            {
+                await displayMessage.DisplayErrorMessage("El PDF generado está vacío.");
+                return;
+            }
+
+            await JS.InvokeVoidAsync("downloadFileFromByteArray", new
+            {
+                byteArray = pdfBytes,
+                fileName = "ListadoDueñoPuesto.pdf",
+                contentType = "application/pdf"
+            });
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al exportar PDF: " + ex.Message);
+        }
+    }
 
     private bool PuedeGuardar => !string.IsNullOrWhiteSpace(duenopuestoSeleccionado.Cedula);
     private bool PuedeEliminar => !esNuevo && !string.IsNullOrWhiteSpace(duenopuestoSeleccionado.Cedula);
