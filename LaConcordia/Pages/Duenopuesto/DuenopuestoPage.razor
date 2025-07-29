@@ -27,6 +27,11 @@
     </div>
 </div>
 
+<Pagination TotalItems="@TotalRegistros"
+            PageSize="@PageSize"
+            CurrentPage="@PaginaActual"
+            OnPageChanged="OnPageChangedAsync" />
+
 <table class="table table-bordered table-hover">
     <thead class="table-dark">
         <tr>
@@ -75,10 +80,7 @@
     </div>
 </div>
 
-<Pagination TotalItems="@TotalRegistros"
-            PageSize="@PageSize"
-            CurrentPage="@PaginaActual"
-            OnPageChanged="OnPageChangedAsync" />
+
 
 @code {
     private List<DuenopuestoDTO> duenopuestos = new();

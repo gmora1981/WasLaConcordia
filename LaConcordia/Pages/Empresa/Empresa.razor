@@ -25,6 +25,15 @@
     </div>
 </div>
 
+<p class="text-muted mt-2">Total: @TotalUsuarios | Página: @PaginaActual</p>
+
+<!-- Paginación -->
+<Pagination TotalItems="@TotalUsuarios"
+            PageSize="@PageSize"
+            CurrentPage="@PaginaActual"
+            OnPageChanged="OnPageChangedAsync" />
+
+
 <!-- Lista de empresas -->
 <table class="table table-bordered table-hover">
     <thead class="table-dark">
@@ -86,13 +95,6 @@
     </div>
 </div>
 
-<p class="text-muted mt-2">Total: @TotalUsuarios | Página: @PaginaActual</p>
-
-<!-- Paginación -->
-<Pagination TotalItems="@TotalUsuarios"
-            PageSize="@PageSize"
-            CurrentPage="@PaginaActual"
-            OnPageChanged="OnPageChangedAsync" />
 
 @code {
     //para focus al dar nuevo

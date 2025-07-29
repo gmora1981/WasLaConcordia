@@ -20,6 +20,16 @@
     <button class="btn btn-success" @onclick="BuscarEstadoCivil">Buscar</button>
 </div>
 
+<!-- Info de paginación -->
+<p class="text-muted mt-2">Total: @TotalRegistros | Página: @PaginaActual</p>
+
+<!-- Paginación -->
+<Pagination TotalItems="@TotalRegistros"
+            PageSize="@PageSize"
+            CurrentPage="@PaginaActual"
+            OnPageChanged="OnPageChangedAsync" />
+
+
 <!-- Tabla de estado civil -->
 <table class="table table-bordered table-hover">
     <thead class="table-dark">
@@ -70,14 +80,6 @@
     </div>
 </div>
 
-<!-- Info de paginación -->
-<p class="text-muted mt-2">Total: @TotalRegistros | Página: @PaginaActual</p>
-
-<!-- Paginación -->
-<Pagination TotalItems="@TotalRegistros"
-            PageSize="@PageSize"
-            CurrentPage="@PaginaActual"
-            OnPageChanged="OnPageChangedAsync" />
 
 @code {
     // Referencia para dar focus al primer input

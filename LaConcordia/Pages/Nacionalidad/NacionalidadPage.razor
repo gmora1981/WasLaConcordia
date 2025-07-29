@@ -18,6 +18,13 @@
     <button class="btn btn-success" @onclick="BuscarNacionalidades">Buscar</button>
 </div>
 
+<p class="text-muted mt-2">Total: @TotalItems | Página: @PaginaActual</p>
+
+<Pagination TotalItems="@TotalItems"
+            PageSize="@PageSize"
+            CurrentPage="@PaginaActual"
+            OnPageChanged="OnPageChangedAsync" />
+
 @if (!string.IsNullOrEmpty(mensajeError))
 {
     <div class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -77,12 +84,7 @@
     }
     <button class="btn btn-secondary" @onclick="CancelarEdicion">Cancelar</button>
 
-    <p class="text-muted mt-2">Total: @TotalItems | Página: @PaginaActual</p>
-
-    <Pagination TotalItems="@TotalItems"
-                PageSize="@PageSize"
-                CurrentPage="@PaginaActual"
-                OnPageChanged="OnPageChangedAsync" />
+   
 </div>
 
 @code {

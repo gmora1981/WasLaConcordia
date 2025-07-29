@@ -20,6 +20,14 @@
     <button class="btn btn-success" @onclick="BuscarNivelEducacion">Buscar</button>
 </div>
 
+<p class="text-muted mt-2">Total: @TotalRegistros | Página: @PaginaActual</p>
+
+<!-- Paginación -->
+<Pagination TotalItems="@TotalRegistros"
+            PageSize="@PageSize"
+            CurrentPage="@PaginaActual"
+            OnPageChanged="OnPageChangedAsync" />
+
 <!-- Tabla de niveles de educación -->
 <table class="table table-bordered table-hover">
     <thead class="table-dark">
@@ -69,13 +77,7 @@
     </div>
 </div>
 
-<p class="text-muted mt-2">Total: @TotalRegistros | Página: @PaginaActual</p>
 
-<!-- Paginación -->
-<Pagination TotalItems="@TotalRegistros"
-            PageSize="@PageSize"
-            CurrentPage="@PaginaActual"
-            OnPageChanged="OnPageChangedAsync" />
 
 @code {
     private ElementReference inputDescripcionRef;
