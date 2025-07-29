@@ -43,6 +43,7 @@ builder.Services.AddScoped<INiveleducacion, NiveleducacionRepository>();
 builder.Services.AddScoped<ICargo, CargoRepository>();
 builder.Services.AddScoped<IParentesco, ParentescoRepository>();
 builder.Services.AddScoped<IDuenopuesto, DuenopuestoRepository>();
+builder.Services.AddScoped<IUnidad, UnidadRepository>();
 
 configureservices(builder.Services);
 
