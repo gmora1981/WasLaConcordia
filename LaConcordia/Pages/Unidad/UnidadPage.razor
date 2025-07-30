@@ -1,7 +1,6 @@
 ﻿@page "/unidad"
 @using LaConcordia.Interface
-
-@inject IDuenopuesto duenopuestoRepo
+@inject IUnidad unidadRepo
 @inject IJSRuntime JS
 @using LaConcordia.DTO
 @using LaConcordia.Pagination
@@ -11,7 +10,8 @@
 
 <div class="mb-3 d-flex gap-2">
     <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo</button>
-    <input type="text" class="form-control" placeholder="Buscar por cédula..." @bind="filtroCedula" />
+    <input type="text" class="form-control" placeholder="Buscar por placa..." @bind="filtroPlaca" />
+    <input type="text" class="form-control" placeholder="Buscar por propietario..." @bind="filtroPropietario" />
 
     <select class="form-select" @bind="estadoFiltro">
         <option value="">-- Todos --</option>
@@ -19,11 +19,6 @@
         <option value="p">Pasivo</option>
     </select>
     <button class="btn btn-success" @onclick="Buscar">Buscar</button>
-    <div class="ms-2">
-        @* <button class="btn btn-danger btn-sm" @onclick="ExportarEmpresasPdf">
-            Exportar PDF <i class="bi bi-file-earmark-pdf-fill"></i>
-        </button> *@
-    </div>
 </div>
 
 <p class="text-muted mt-2">Total: @TotalRegistros | Página: @PaginaActual</p>
@@ -32,42 +27,56 @@
             PageSize="@PageSize"
             CurrentPage="@PaginaActual"
             OnPageChanged="OnPageChangedAsync" />
+
 <table class="table table-bordered table-hover">
     <thead class="table-dark">
         <tr>
+            <th>Unidad</th>
+            <th>Placa</th>
             <th>Cédula</th>
-            <th>Nombres</th>
-            <th>Apellidos</th>
+            <th>Propietario</th>
+            <th>Marca</th>
+            <th>Modelo</th>
+            <th>Año</th>
             <th>Estado</th>
         </tr>
     </thead>
     <tbody>
-        @if (duenopuestos is not null && duenopuestos.Count > 0)
+        @if (unidades is not null && unidades.Count > 0)
         {
-            @foreach (var dp in duenopuestos)
+            @foreach (var u in unidades)
             {
-                <tr @onclick="() => Seleccionar(dp)" class="@(dp.Cedula == duenopuestoSeleccionado?.Cedula ? "table-primary" : "")">
-                    <td>@dp.Cedula</td>
-                    <td>@dp.Nombres</td>
-                    <td>@dp.Apellidos</td>
-                    <td>@MostrarEstado(dp.Estado)</td>
+                <tr @onclick="() => Seleccionar(u)" class="@(u.Unidad1 == unidadSeleccionada?.Unidad1 ? "table-primary" : "")">
+                    <td>@u.Unidad1</td>
+                    <td>@u.Placa</td>
+                    <td>@u.Idpropietario</td>
+                    <td>@u.Propietario</td>
+                    <td>@u.Marca</td>
+                    <td>@u.Modelo</td>
+                    <td>@u.Anio</td>
+                    <td>@MostrarEstado(u.Estado)</td>
                 </tr>
             }
         }
         else
         {
-            <tr><td colspan="4" class="text-center">No se encontraron registros.</td></tr>
+            <tr><td colspan="7" class="text-center">No se encontraron registros.</td></tr>
         }
     </tbody>
 </table>
 
 <div class="border p-3 rounded">
     <h5>Detalle</h5>
-    <EditForm Model="duenopuestoSeleccionado">
-        <InputText class="form-control mb-2" @bind-Value="duenopuestoSeleccionado.Cedula" placeholder="Cédula" disabled="@(!esNuevo)" />
-        <InputText class="form-control mb-2" @bind-Value="duenopuestoSeleccionado.Nombres" placeholder="Nombres" />
-        <InputText class="form-control mb-2" @bind-Value="duenopuestoSeleccionado.Apellidos" placeholder="Apellidos" />
-        <InputSelect class="form-control mb-2" @bind-Value="duenopuestoSeleccionado.Estado">
+    <EditForm Model="unidadSeleccionada">
+        <InputText class="form-control mb-2" @bind-Value="unidadSeleccionada.Unidad1" placeholder="Unidad" disabled="@(!esNuevo)" />
+        <InputText class="form-control mb-2" @bind-Value="unidadSeleccionada.Placa" placeholder="Placa" />
+        <InputText class="form-control mb-2" @bind-Value="unidadSeleccionada.Idpropietario" placeholder="Cédula" />
+        <InputText class="form-control mb-2" @bind-Value="unidadSeleccionada.Propietario" placeholder="Propietario" />
+        <InputText class="form-control mb-2" @bind-Value="unidadSeleccionada.Marca" placeholder="Marca" />
+        <InputText class="form-control mb-2" @bind-Value="unidadSeleccionada.Modelo" placeholder="Modelo" />
+        <InputNumber class="form-control mb-2" @bind-Value="unidadSeleccionada.Anio" placeholder="Año" />
+        <InputText class="form-control mb-2" @bind-Value="unidadSeleccionada.Color" placeholder="Color" />
+        <InputSelect class="form-control mb-2" @bind-Value="unidadSeleccionada.Estado">
             <option value="">-- Seleccione Estado --</option>
             <option value="a">Activo</option>
             <option value="p">Pasivo</option>
@@ -80,16 +89,13 @@
     </div>
 </div>
 
-
-
 @code {
-    private List<DuenopuestoDTO> duenopuestos = new();
-    private DuenopuestoDTO duenopuestoSeleccionado = new();
+    private List<UnidadDTO> unidades = new();
+    private UnidadDTO unidadSeleccionada = new();
     private bool esNuevo = false;
 
-    private string filtroCedula = "";
-    private string filtroNombre = "";
-    private string filtroApellidos = "";
+    private string filtroPlaca = "";
+    private string filtroPropietario = "";
     private string estadoFiltro = "";
 
     private int PaginaActual = 1;
@@ -103,18 +109,11 @@
 
     private async Task CargarAsync()
     {
-        try
-        {
-            var result = await duenopuestoRepo.GetDuenopuestosPaginados(
-                PaginaActual, PageSize, filtroCedula, filtroNombre, filtroApellidos, estadoFiltro);
+        var result = await unidadRepo.GetUnidadPaginados(
+            PaginaActual, PageSize, filtroPlaca, null, null, filtroPropietario, estadoFiltro);
 
-            duenopuestos = result.Items;
-            TotalRegistros = result.TotalItems;
-        }
-        catch (Exception ex)
-        {
-            await JS.InvokeVoidAsync("alert", $"Error al cargar: {ex.Message}");
-        }
+        unidades = result.Items;
+        TotalRegistros = result.TotalItems;
     }
 
     private async Task Buscar()
@@ -123,21 +122,26 @@
         await CargarAsync();
     }
 
-    private void Seleccionar(DuenopuestoDTO dp)
+    private void Seleccionar(UnidadDTO u)
     {
-        duenopuestoSeleccionado = new DuenopuestoDTO
+        unidadSeleccionada = new UnidadDTO
             {
-                Cedula = dp.Cedula,
-                Nombres = dp.Nombres,
-                Apellidos = dp.Apellidos,
-                Estado = dp.Estado
+                Unidad1 = u.Unidad1,
+                Placa = u.Placa,
+                Propietario = u.Propietario,
+                Marca = u.Marca,
+                Modelo = u.Modelo,
+                Anio = u.Anio,
+                Estado = u.Estado,
+                Color = u.Color,
+                Idpropietario = u.Idpropietario
             };
         esNuevo = false;
     }
 
     private void NuevoRegistro()
     {
-        duenopuestoSeleccionado = new DuenopuestoDTO();
+        unidadSeleccionada = new UnidadDTO();
         esNuevo = true;
     }
 
@@ -146,12 +150,12 @@
         try
         {
             if (esNuevo)
-                await duenopuestoRepo.InsertDuenopuesto(duenopuestoSeleccionado);
+                await unidadRepo.InsertUnidad(unidadSeleccionada);
             else
-                await duenopuestoRepo.UpdateDuenopuesto(duenopuestoSeleccionado);
+                await unidadRepo.UpdateUnidad(unidadSeleccionada);
 
             await CargarAsync();
-            duenopuestoSeleccionado = new();
+            unidadSeleccionada = new();
             esNuevo = false;
         }
         catch (Exception ex)
@@ -165,15 +169,15 @@
         bool confirm = await JS.InvokeAsync<bool>("confirm", "¿Está seguro de eliminar?");
         if (confirm)
         {
-            await duenopuestoRepo.DeleteDuenopuestoByCedula(duenopuestoSeleccionado.Cedula);
+            await unidadRepo.DeleteUnidadById(unidadSeleccionada.Unidad1);
             await CargarAsync();
-            duenopuestoSeleccionado = new();
+            unidadSeleccionada = new();
         }
     }
 
     private void Cancelar()
     {
-        duenopuestoSeleccionado = new();
+        unidadSeleccionada = new();
         esNuevo = false;
     }
 
@@ -190,32 +194,6 @@
         _ => "Desconocido"
     };
 
-    //exportar pdf
-    // private async Task ExportarEmpresasPdf()
-    // {
-    //     try
-    //     {
-    //         var pdfBytes = await duenopuestoRepo.ObtenerDuenoPuestoFiltradas(estadoFiltro);
-
-    //         if (pdfBytes == null || pdfBytes.Length == 0)
-    //         {
-    //             await displayMessage.DisplayErrorMessage("El PDF generado está vacío.");
-    //             return;
-    //         }
-
-    //         await JS.InvokeVoidAsync("downloadFileFromByteArray", new
-    //         {
-    //             byteArray = pdfBytes,
-    //             fileName = "ListadoDueñoPuesto.pdf",
-    //             contentType = "application/pdf"
-    //         });
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         await displayMessage.DisplayErrorMessage("Error al exportar PDF: " + ex.Message);
-    //     }
-    // }
-
-    private bool PuedeGuardar => !string.IsNullOrWhiteSpace(duenopuestoSeleccionado.Cedula);
-    private bool PuedeEliminar => !esNuevo && !string.IsNullOrWhiteSpace(duenopuestoSeleccionado.Cedula);
+    private bool PuedeGuardar => !string.IsNullOrWhiteSpace(unidadSeleccionada.Unidad1) && !string.IsNullOrWhiteSpace(unidadSeleccionada.Placa);
+    private bool PuedeEliminar => !esNuevo && !string.IsNullOrWhiteSpace(unidadSeleccionada.Unidad1);
 }
