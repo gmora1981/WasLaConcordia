@@ -7,9 +7,6 @@ using LaConcordia.Repository;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
-using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Net.Http;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -19,8 +16,8 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 // DESARROLLO: Tu API local debe estar corriendo en puerto 5191
 builder.Services.AddScoped(sp => new HttpClient
 {
-     BaseAddress = new Uri("http://localhost:5191/"),
-   // BaseAddress = new Uri("https://api.laconcordia.compugtech.com/"),
+    BaseAddress = new Uri("http://localhost:5191/"),
+    // BaseAddress = new Uri("https://api.laconcordia.compugtech.com/"),
     Timeout = TimeSpan.FromSeconds(30)
 });
 Console.WriteLine("🔧 DESARROLLO - API: http://localhost:5191/");
@@ -44,6 +41,7 @@ builder.Services.AddScoped<ICargo, CargoRepository>();
 builder.Services.AddScoped<IParentesco, ParentescoRepository>();
 builder.Services.AddScoped<IDuenopuesto, DuenopuestoRepository>();
 builder.Services.AddScoped<IUnidad, UnidadRepository>();
+builder.Services.AddScoped<IFichapersonal, FichapersonalRepository>();
 
 configureservices(builder.Services);
 

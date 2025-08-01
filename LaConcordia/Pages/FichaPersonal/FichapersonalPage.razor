@@ -1,0 +1,218 @@
+﻿@page "/ficha-persona"
+
+@using LaConcordia.DTO
+@using LaConcordia.Interface
+@using LaConcordia.Pagination
+@inject IFichapersonal fichaRepo
+@inject IJSRuntime JS
+@inject IDisplayMessage displayMessage
+
+<h3>Fichapersonal La Concordia</h3>
+
+<!-- Encabezado: Nuevo, Buscar -->
+<div class="mb-3 d-flex gap-2">
+    <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo</button>
+    <input type="text" class="form-control" placeholder="Buscar por Cédula o Nombre..." @bind="razonBusqueda" />
+    <select class="form-select" @bind="estadoFiltro">
+        <option value="">-- Todos --</option>
+        <option value="a">Activo</option>
+        <option value="p">Pasivo</option>
+    </select>
+    <button class="btn btn-success" @onclick="BuscarFichas">Buscar</button>
+</div>
+
+<!-- Paginación -->
+<div class="d-flex justify-content-between align-items-center mt-3">
+    <div class="flex-grow-1">
+        <p class="text-muted mb-0">Total: @TotalUsuarios | Página: @PaginaActual</p>
+    </div>
+    <div class="d-flex justify-content-center flex-grow-1">
+        <Pagination TotalItems="@TotalUsuarios"
+                    PageSize="@PageSize"
+                    CurrentPage="@PaginaActual"
+                    OnPageChanged="OnPageChangedAsync" />
+    </div>
+    <div class="flex-grow-1 text-end"></div>
+</div>
+
+<!-- Tabla de fichas personales -->
+<table class="table table-bordered table-hover mt-3">
+    <thead class="table-dark">
+        <tr>
+            <th>Cédula</th>
+            <th>Apellidos</th>
+            <th>Nombre</th>
+            <th>Celular</th>
+            <th>Fecha Nac.</th>
+            <th>Ingreso</th>
+            <th>Estado</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (fichas != null && fichas.Count > 0)
+        {
+            @foreach (var ficha in fichas)
+            {
+                <tr @onclick="() => SeleccionarFicha(ficha)" class="@(ficha == fichaSeleccionada ? "table-primary" : "")" style="cursor: pointer;">
+                    <td>@ficha.Cedula</td>
+                    <td>@ficha.Apellidos</td>
+                    <td>@ficha.Nombre</td>
+                    <td>@ficha.Celular</td>
+                    <td>@ficha.Fechanacimiento</td>
+                    <td>@ficha.Fechaingreso</td>
+                    <td>@ObtenerNombreEstado(ficha.Estado)</td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="7" class="text-center">No se encontraron registros.</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<!-- Detalle -->
+<div class="border rounded p-3 mt-3">
+    <h5>Detalle Ficha Personal</h5>
+    <EditForm Model="fichaSeleccionada">
+        <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Cedula" placeholder="Cédula" disabled="@(!esNuevo)" />
+        <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Nombre" placeholder="Nombre" />
+        <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Apellidos" placeholder="Apellidos" />
+        <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Correo" placeholder="Correo" />
+        <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Telefono" placeholder="Teléfono" />
+        <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Celular" placeholder="Celular" />
+        <InputDate class="form-control mb-2" @bind-Value="fichaSeleccionada.Fechanacimiento" />
+        <InputDate class="form-control mb-2" @bind-Value="fichaSeleccionada.Fechaingreso" />
+        <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Domicilio" placeholder="Domicilio" />
+        <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Referencia" placeholder="Referencia" />
+        <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Estadoservicio" placeholder="Estado del Servicio" />
+        <InputNumber class="form-control mb-2" @bind-Value="fichaSeleccionada.Cuotaf" placeholder="Cuota F" />
+        <InputSelect class="form-control mb-2" @bind-Value="fichaSeleccionada.Estado">
+            <option value="">-- Estado --</option>
+            <option value="a">Activo</option>
+            <option value="p">Pasivo</option>
+        </InputSelect>
+    </EditForm>
+    <div class="d-flex gap-2 mt-2">
+        <button class="btn btn-warning" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">Actualizar</button>
+        <button class="btn btn-danger" @onclick="EliminarFicha" disabled="@(!PuedeEliminar)">Eliminar</button>
+        <button class="btn btn-secondary" @onclick="CancelarEdicion">Cancelar</button>
+    </div>
+</div>
+
+@code {
+    private List<FichapersonalDTO> fichas = new();
+    private FichapersonalDTO fichaSeleccionada = new();
+    private string razonBusqueda = string.Empty;
+    private string estadoFiltro = string.Empty;
+    private bool esNuevo = false;
+
+    private int PaginaActual = 1;
+    private int PageSize = 8;
+    private int TotalUsuarios = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarFichasAsync();
+    }
+
+    private async Task CargarFichasAsync()
+    {
+        var resultado = await fichaRepo.GetFichaPersonalPaginados(PaginaActual, PageSize, razonBusqueda, estadoFiltro);
+        fichas = resultado.Items;
+        TotalUsuarios = resultado.TotalItems;
+    }
+
+    private async void BuscarFichas()
+    {
+        PaginaActual = 1;
+        await CargarFichasAsync();
+    }
+
+    private void SeleccionarFicha(FichapersonalDTO ficha)
+    {
+        fichaSeleccionada = new FichapersonalDTO
+        {
+            Cedula = ficha.Cedula,
+            Nombre = ficha.Nombre,
+            Apellidos = ficha.Apellidos,
+            Correo = ficha.Correo,
+            Telefono = ficha.Telefono,
+            Celular = ficha.Celular,
+            Fechanacimiento = ficha.Fechanacimiento,
+            Fechaingreso = ficha.Fechaingreso,
+            Domicilio = ficha.Domicilio,
+            Referencia = ficha.Referencia,
+            Estadoservicio = ficha.Estadoservicio,
+            Cuotaf = ficha.Cuotaf,
+            Estado = ficha.Estado
+        };
+        esNuevo = false;
+    }
+
+    private void NuevoRegistro()
+    {
+        fichaSeleccionada = new FichapersonalDTO();
+        esNuevo = true;
+    }
+
+    private async Task GuardarCambios()
+    {
+        try
+        {
+            if (esNuevo)
+                await fichaRepo.InsertFichaPersonal(fichaSeleccionada);
+            else
+                await fichaRepo.UpdateFichaPersonal(fichaSeleccionada);
+
+            await CargarFichasAsync();
+            fichaSeleccionada = new FichapersonalDTO();
+            esNuevo = false;
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error al guardar: {ex.Message}");
+        }
+    }
+
+    private async Task EliminarFicha()
+    {
+        if (!string.IsNullOrEmpty(fichaSeleccionada.Cedula))
+        {
+            bool confirm = await JS.InvokeAsync<bool>("confirm", "¿Estás seguro de eliminar esta ficha?");
+            if (confirm)
+            {
+                await fichaRepo.DeleteFichaPersonalById(fichaSeleccionada.Cedula);
+                await CargarFichasAsync();
+                fichaSeleccionada = new FichapersonalDTO();
+            }
+        }
+    }
+
+    private void CancelarEdicion()
+    {
+        fichaSeleccionada = new FichapersonalDTO();
+        esNuevo = false;
+    }
+
+    private async Task OnPageChangedAsync(int nuevaPagina)
+    {
+        PaginaActual = nuevaPagina;
+        await CargarFichasAsync();
+    }
+
+    private string ObtenerNombreEstado(string? estado)
+    {
+        return estado switch
+        {
+            "a" => "Activo",
+            "p" => "Pasivo",
+            _ => "Desconocido"
+        };
+    }
+
+    private bool PuedeGuardar => !string.IsNullOrWhiteSpace(fichaSeleccionada.Cedula);
+    private bool PuedeEliminar => !esNuevo && !string.IsNullOrWhiteSpace(fichaSeleccionada.Cedula);
+}
