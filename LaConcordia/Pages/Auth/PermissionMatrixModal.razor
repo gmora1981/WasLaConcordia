@@ -48,13 +48,14 @@
                     </div>
 
                     <div class="matrix-container">
-                        <table class="permission-matrix">
+                         <div class="matrix-scroll-wrapper">
+                            <table class="permission-matrix">
                             <thead>
                                 <tr>
                                     <th class="module-header">Módulo / Página</th>
                                     @foreach (var role in roles)
                                     {
-                                        <th class="role-header" colspan="4">
+                                        <th class="role-header" colspan=4 >
                                             <div class="role-title">
                                                 <i class="fas @(role.RoleName == "Admin" ? "fa-crown" : "fa-user")"></i>
                                                 @role.RoleName
@@ -159,13 +160,14 @@
                             </tbody>
                         </table>
                     </div>
-
+                    </div>
                     <div class="matrix-summary">
                         <p><i class="fas fa-info-circle"></i> Total de módulos: <strong>@navigationItems.Count</strong> | Roles: <strong>@roles.Count</strong></p>
                     </div>
+                    
                 }
             </div>
-
+          
             <div class="modal-footer-modern">
                 <button type="button" class="btn-modern btn-secondary-modern" @onclick="ExportMatrix">
                     <i class="fas fa-download"></i> Exportar
