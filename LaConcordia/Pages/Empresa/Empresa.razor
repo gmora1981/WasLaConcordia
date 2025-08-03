@@ -85,20 +85,37 @@
 <div class="border rounded p-3 mt-3">
     <h5>Detalle Empresa</h5>
     <EditForm Model="empresaSeleccionada">
-        @* PONER EL FOCUS CUANDO SE LE DA NUEVO *@
-        <input class="form-control mb-2" @bind="empresaSeleccionada.Ruc"
-               placeholder="RUC"
-               disabled="@(!esNuevo)"
-               @ref="inputTipoLicenciaRef" />
-        <InputText class="form-control mb-2" @bind-Value="empresaSeleccionada.Ruc" placeholder="RUC" disabled="@(!esNuevo)" />
-        <InputText class="form-control mb-2" @bind-Value="empresaSeleccionada.Razonsocial" placeholder="Razón Social" />
-        <InputText class="form-control mb-2" @bind-Value="empresaSeleccionada.Direccion" placeholder="Dirección" />
-        <InputText class="form-control mb-2" @bind-Value="empresaSeleccionada.Telefono" placeholder="Teléfono" />
-        <InputSelect class="form-control mb-2" @bind-Value="empresaSeleccionada.Estado">
-            <option value="">-- Seleccione Estado --</option>
-            <option value="a">Activo</option>
-            <option value="p">Pasivo</option>
-        </InputSelect>
+        <div class="row">
+            <!-- Columna 1 -->
+            <div class="col-md-6">
+                @* RUC *@
+                <input class="form-control mb-2" @bind="empresaSeleccionada.Ruc"
+                       placeholder="RUC"
+                       disabled="@(!esNuevo)"
+                       @ref="inputTipoLicenciaRef" />
+
+                @* Dirección *@
+                <InputText class="form-control mb-2" @bind-Value="empresaSeleccionada.Direccion" placeholder="Dirección" />
+            </div>
+
+            <!-- Columna 2 -->
+            <div class="col-md-6">
+                @* Razón Social *@
+                <InputText class="form-control mb-2" @bind-Value="empresaSeleccionada.Razonsocial" placeholder="Razón Social" />
+
+                @* Teléfono *@
+                <InputText class="form-control mb-2" @bind-Value="empresaSeleccionada.Telefono" placeholder="Teléfono" />
+            </div>
+
+            <!-- Columna completa para el Estado -->
+            <div class="col-md-12">
+                <InputSelect class="form-control mb-2" @bind-Value="empresaSeleccionada.Estado">
+                    <option value="">-- Seleccione Estado --</option>
+                    <option value="a">Activo</option>
+                    <option value="p">Pasivo</option>
+                </InputSelect>
+            </div>
+        </div>
     </EditForm>
 
     <div class="d-flex gap-2 mt-2">
@@ -107,6 +124,7 @@
         <button class="btn btn-secondary" @onclick="CancelarEdicion">Cancelar</button>
     </div>
 </div>
+
 
 
 @code {

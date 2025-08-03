@@ -77,30 +77,86 @@
 <div class="border rounded p-3 mt-3">
     <h5>Detalle Ficha Personal</h5>
     <EditForm Model="fichaSeleccionada">
-        <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Cedula" placeholder="Cédula" disabled="@(!esNuevo)" />
-        <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Nombre" placeholder="Nombre" />
-        <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Apellidos" placeholder="Apellidos" />
-        <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Correo" placeholder="Correo" />
-        <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Telefono" placeholder="Teléfono" />
-        <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Celular" placeholder="Celular" />
-        <InputDate class="form-control mb-2" @bind-Value="fichaSeleccionada.Fechanacimiento" />
-        <InputDate class="form-control mb-2" @bind-Value="fichaSeleccionada.Fechaingreso" />
-        <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Domicilio" placeholder="Domicilio" />
-        <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Referencia" placeholder="Referencia" />
-        <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Estadoservicio" placeholder="Estado del Servicio" />
-        <InputNumber class="form-control mb-2" @bind-Value="fichaSeleccionada.Cuotaf" placeholder="Cuota F" />
-        <InputSelect class="form-control mb-2" @bind-Value="fichaSeleccionada.Estado">
-            <option value="">-- Estado --</option>
-            <option value="a">Activo</option>
-            <option value="p">Pasivo</option>
-        </InputSelect>
+        <div class="row">
+            <!-- Columna 1 -->
+            <div class="col-md-6">
+
+                <div class="mb-2">
+                    <label class="form-label">Cedula</label>
+                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Cedula" placeholder="Cédula" disabled="@(!esNuevo)" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Fecha Nacimiento</label>
+                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Apellidos" placeholder="Apellidos" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Telefono</label>
+                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Telefono" placeholder="Teléfono" />
+
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label">Fecha Nacimiento</label>
+                    <InputDate class="form-control" @bind-Value="fichaSeleccionada.Fechanacimiento" />
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label">Domicilio</label>
+                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Domicilio" placeholder="Domicilio" />
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label">CUOTA</label>
+                    <InputNumber class="form-control mb-2" @bind-Value="fichaSeleccionada.Cuotaf" placeholder="Cuota F" />
+                </div>
+            </div>
+
+            <!-- Columna 2 -->
+            <div class="col-md-6">
+                <div class="mb-2">
+                    <label class="form-label">Nombre</label>
+                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Nombre" placeholder="Nombre" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Correo</label>
+                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Correo" placeholder="Correo" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Celular</label>
+                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Celular" placeholder="Celular" />
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label">Fecha Ingreso</label>
+                    <InputDate class="form-control" @bind-Value="fichaSeleccionada.Fechaingreso" />
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label">Fecha Ingreso</label>
+                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Referencia" placeholder="Referencia" />
+                </div>
+
+                @* <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Estadoservicio" placeholder="Estado del Servicio" /> *@
+            </div>
+
+            <!-- Estado en toda la fila -->
+            <div class="col-md-12">
+                <InputSelect class="form-control mb-2" @bind-Value="fichaSeleccionada.Estado">
+                    <option value="">-- Estado --</option>
+                    <option value="a">Activo</option>
+                    <option value="p">Pasivo</option>
+                </InputSelect>
+            </div>
+        </div>
     </EditForm>
+
     <div class="d-flex gap-2 mt-2">
         <button class="btn btn-warning" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">Actualizar</button>
         <button class="btn btn-danger" @onclick="EliminarFicha" disabled="@(!PuedeEliminar)">Eliminar</button>
         <button class="btn btn-secondary" @onclick="CancelarEdicion">Cancelar</button>
     </div>
 </div>
+
 
 @code {
     private List<FichapersonalDTO> fichas = new();

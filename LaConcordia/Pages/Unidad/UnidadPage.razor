@@ -81,26 +81,37 @@
 <div class="border p-3 rounded">
     <h5>Detalle</h5>
     <EditForm Model="unidadSeleccionada">
-        <InputText class="form-control mb-2" @bind-Value="unidadSeleccionada.Unidad1" placeholder="Unidad" disabled="@(!esNuevo)" />
-        <InputText class="form-control mb-2" @bind-Value="unidadSeleccionada.Placa" placeholder="Placa" />
-        <InputText class="form-control mb-2" @bind-Value="unidadSeleccionada.Idpropietario" placeholder="Cédula" />
-        <InputText class="form-control mb-2" @bind-Value="unidadSeleccionada.Propietario" placeholder="Propietario" />
-        <InputText class="form-control mb-2" @bind-Value="unidadSeleccionada.Marca" placeholder="Marca" />
-        <InputText class="form-control mb-2" @bind-Value="unidadSeleccionada.Modelo" placeholder="Modelo" />
-        <InputNumber class="form-control mb-2" @bind-Value="unidadSeleccionada.Anio" placeholder="Año" />
-        <InputText class="form-control mb-2" @bind-Value="unidadSeleccionada.Color" placeholder="Color" />
-        <InputSelect class="form-control mb-2" @bind-Value="unidadSeleccionada.Estado">
-            <option value="">-- Seleccione Estado --</option>
-            <option value="a">Activo</option>
-            <option value="p">Pasivo</option>
-        </InputSelect>
+        <div class="row">
+            <!-- Columna 1 -->
+            <div class="col-md-6">
+                <InputText class="form-control mb-2" @bind-Value="unidadSeleccionada.Unidad1" placeholder="Unidad" disabled="@(!esNuevo)" />
+                <InputText class="form-control mb-2" @bind-Value="unidadSeleccionada.Idpropietario" placeholder="Cédula" />
+                <InputText class="form-control mb-2" @bind-Value="unidadSeleccionada.Marca" placeholder="Marca" />
+                <InputNumber class="form-control mb-2" @bind-Value="unidadSeleccionada.Anio" placeholder="Año" />
+                <InputSelect class="form-control mb-2" @bind-Value="unidadSeleccionada.Estado">
+                    <option value="">-- Seleccione Estado --</option>
+                    <option value="a">Activo</option>
+                    <option value="p">Pasivo</option>
+                </InputSelect>
+            </div>
+
+            <!-- Columna 2 -->
+            <div class="col-md-6">
+                <InputText class="form-control mb-2" @bind-Value="unidadSeleccionada.Placa" placeholder="Placa" />
+                <InputText class="form-control mb-2" @bind-Value="unidadSeleccionada.Propietario" placeholder="Propietario" />
+                <InputText class="form-control mb-2" @bind-Value="unidadSeleccionada.Modelo" placeholder="Modelo" />
+                <InputText class="form-control mb-2" @bind-Value="unidadSeleccionada.Color" placeholder="Color" />
+            </div>
+        </div>
     </EditForm>
+
     <div class="d-flex gap-2 mt-2">
         <button class="btn btn-warning" @onclick="Guardar" disabled="@(!PuedeGuardar)">Guardar</button>
         <button class="btn btn-danger" @onclick="Eliminar" disabled="@(!PuedeEliminar)">Eliminar</button>
         <button class="btn btn-secondary" @onclick="Cancelar">Cancelar</button>
     </div>
 </div>
+
 
 @code {
     private List<UnidadDTO> unidades = new();
