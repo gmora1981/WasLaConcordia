@@ -15,7 +15,7 @@ namespace LaConcordia.Repository
         {
             try
             {
-                return await _httpClient.GetFromJsonAsync<List<TipolicenciumDTO>>("api/Tipolicencium/GetTipolicenciaInfoAll");
+                return await _httpClient.GetFromJsonAsync<List<TipolicenciumDTO>>("api/Tipolicencium/TipolicenciaInfoAll");
             }
             catch (HttpRequestException ex)
             {
