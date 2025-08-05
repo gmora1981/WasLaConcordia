@@ -52,6 +52,7 @@
             <th>Ingreso</th>
             <th>Estado</th>
             <th></th>
+            <th></th>
         </tr>
     </thead>
     <tbody>
@@ -65,9 +66,10 @@
                     <td>@ficha.Nombre</td>
                     <td>@ficha.Celular</td>
                     <td>@ficha.Fechanacimiento</td>
-                    <td>@ficha.Fechaingreso</td>&
+                    <td>@ficha.Fechaingreso</td>
                     <td>@ObtenerNombreEstado(ficha.Estado)</td>
-                    <td>Boton</td>
+                    <td>Boton ver memos</td>
+                    <td>Boton ver beneficiarios</td>
                 </tr>
             }
         }
@@ -89,15 +91,15 @@
             <div class="col-md-6">
                 <div class="mb-2">
                     <label class="form-label">Cedula</label>
-                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Cedula" placeholder="Cédula" disabled="@(!esNuevo)" />
+                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Cedula"  disabled="@(!esNuevo)" />
                 </div>
                 <div class="mb-2">
                     <label class="form-label">Apellidos</label>
-                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Apellidos" placeholder="Apellidos" />
+                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Apellidos"  />
                 </div>
                 <div class="mb-2">
                     <label class="form-label">Telefono</label>
-                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Telefono" placeholder="Teléfono" />
+                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Telefono" />
                 </div>
                 <div class="mb-2">
                     <label class="form-label">Fecha Nacimiento</label>
@@ -105,7 +107,7 @@
                 </div>
                 <div class="mb-2">
                     <label class="form-label">Domicilio</label>
-                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Domicilio" placeholder="Domicilio" />
+                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Domicilio" />
                 </div>
 
                 <!-- Tipo Licencia -->
@@ -132,25 +134,22 @@
                     </InputSelect>
                 </div>
 
-                <div class="mb-2">
-                    <label class="form-label">CUOTA</label>
-                    <InputNumber class="form-control mb-2" @bind-Value="fichaSeleccionada.Cuotaf" placeholder="Cuota F" />
-                </div>
+                
             </div>
 
             <!-- Columna 2 -->
             <div class="col-md-6">
                 <div class="mb-2">
                     <label class="form-label">Nombre</label>
-                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Nombre" placeholder="Nombre" />
+                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Nombre"/>
                 </div>
                 <div class="mb-2">
                     <label class="form-label">Correo</label>
-                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Correo" placeholder="Correo" />
+                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Correo"  />
                 </div>
                 <div class="mb-2">
                     <label class="form-label">Celular</label>
-                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Celular" placeholder="Celular" />
+                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Celular"/>
                 </div>
                 <div class="mb-2">
                     <label class="form-label">Fecha Ingreso</label>
@@ -158,7 +157,7 @@
                 </div>
                 <div class="mb-2">
                     <label class="form-label">Referencia</label>
-                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Referencia" placeholder="Referencia" />
+                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Referencia"  />
                 </div>
 
                 <!-- Nacionalidad -->
@@ -172,6 +171,10 @@
                         }
                     </InputSelect>
                 </div>
+                <div class="mb-2">
+                    <label class="form-label">CUOTA</label>
+                    <InputNumber class="form-control mb-2" @bind-Value="fichaSeleccionada.Cuotaf" />
+                </div>
             </div>
 
             <!-- Sección Gestión de Unidad -->
@@ -180,7 +183,7 @@
 
                 <div class="row">
                     <div class="col-md-4">
-                        <InputText class="form-control mb-2" placeholder="Código de Unidad" @bind-Value="codigoUnidad" />
+                        <InputText class="form-control mb-2" @bind-Value="codigoUnidad" />
                     </div>
                     <div class="col-md-2">
                         <button class="btn btn-outline-primary" @onclick="BuscarUnidad">Buscar Unidad</button>
@@ -207,7 +210,7 @@
 
                 <div class="row">
                     <div class="col-md-4">
-                        <InputText class="form-control mb-2" placeholder="Cédula del Dueño del Puesto" @bind-Value="cedulaDuenopuesto" />
+                        <InputText class="form-control mb-2"@bind-Value="cedulaDuenopuesto" />
                     </div>
                     <div class="col-md-2">
                         <button class="btn btn-outline-primary" @onclick="BuscarDuenopuesto">Buscar Dueño</button>
