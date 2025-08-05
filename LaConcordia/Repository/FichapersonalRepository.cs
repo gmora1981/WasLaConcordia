@@ -62,12 +62,12 @@ namespace LaConcordia.Repository
         //paginado
 
         public async Task<PagedResult<FichapersonalDTO>> GetFichaPersonalPaginados(int pagina,
-            int pageSize, string? filtro = null, string? estado = null)
+    int pageSize, string? filtro = null, string? estado = null)
         {
             var url = $"api/Fichapersona/GetFichaPersonalPaginados?pagina={pagina}&pageSize={pageSize}";
 
             if (!string.IsNullOrEmpty(filtro))
-                url += $"&razonsocial={Uri.EscapeDataString(filtro)}"; // usa "razonsocial" si ese es el filtro que manejas
+                url += $"&filtro={Uri.EscapeDataString(filtro)}"; // CORREGIDO aquí
 
             if (!string.IsNullOrEmpty(estado))
                 url += $"&estado={Uri.EscapeDataString(estado)}";
@@ -82,5 +82,6 @@ namespace LaConcordia.Repository
                 throw new Exception("Error al obtener ficha personal paginadas desde el servidor.", ex);
             }
         }
+
     }
 }

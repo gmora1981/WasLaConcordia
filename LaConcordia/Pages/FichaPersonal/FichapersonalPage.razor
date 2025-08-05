@@ -17,7 +17,7 @@
 <!-- Encabezado: Nuevo, Buscar -->
 <div class="mb-3 d-flex gap-2">
     <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo</button>
-    <input type="text" class="form-control" placeholder="Buscar por Cédula o Nombre..." @bind="razonBusqueda" />
+    <input type="text" class="form-control" placeholder="Buscar por Cédula, Nombre o apellidos..." @bind="razonBusqueda" />
     <select class="form-select" @bind="estadoFiltro">
         <option value="">-- Todos --</option>
         <option value="a">Activo</option>
@@ -51,6 +51,7 @@
             <th>Fecha Nac.</th>
             <th>Ingreso</th>
             <th>Estado</th>
+            <th></th>
         </tr>
     </thead>
     <tbody>
@@ -64,8 +65,9 @@
                     <td>@ficha.Nombre</td>
                     <td>@ficha.Celular</td>
                     <td>@ficha.Fechanacimiento</td>
-                    <td>@ficha.Fechaingreso</td>
+                    <td>@ficha.Fechaingreso</td>&
                     <td>@ObtenerNombreEstado(ficha.Estado)</td>
+                    <td>Boton</td>
                 </tr>
             }
         }
@@ -291,7 +293,7 @@
     }
 
     // Acción del botón Buscar
-    private async void BuscarFichas()
+    private async Task BuscarFichas()
     {
         PaginaActual = 1;
         await CargarFichasAsync();
