@@ -13,7 +13,7 @@
     <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo</button>
     <input type="text" class="form-control" placeholder="Buscar por nombre..." @bind="filtroBusqueda" />
     <select class="form-select" @bind="estadoFiltro">
-        <option value="">-- Todos --</option>
+
         <option value="ACTIVO">Activo</option>
         <option value="INACTIVO">Inactivo</option>
     </select>
@@ -57,7 +57,7 @@
                 <tr @onclick="() => SeleccionarParentesco(item)" class="@(item.Idparentesco == parentescoSeleccionado?.Idparentesco ? "table-primary" : "")" style="cursor: pointer;">
                     <td>@item.Idparentesco</td>
                     <td>@item.Parentesco1</td>
-                    <td>@item.Estado</td>
+                    <td>@ObtenerNombreEstado(item.Estado)</td>
                 </tr>
             }
         }
@@ -77,8 +77,8 @@
         <InputText class="form-control mb-2" @bind-Value="parentescoSeleccionado.Parentesco1" placeholder="Nombre" />
         <InputSelect class="form-control mb-2" @bind-Value="parentescoSeleccionado.Estado">
             <option value="">-- Seleccione Estado --</option>
-            <option value="ACTIVO">Activo</option>
-            <option value="INACTIVO">Inactivo</option>
+            <option value="a">Activo</option>
+            <option value="p">Pasivo</option>
         </InputSelect>
     </EditForm>
 
@@ -125,6 +125,16 @@
     {
         parentescoSeleccionado = new ParentescoDTO();
         esNuevo = true;
+    }
+
+    private string ObtenerNombreEstado(string? estado)
+    {
+        return estado switch
+        {
+            "a" => "Activo",
+            "p" => "Pasivo",
+            _ => "Desconocido"
+        };
     }
 
     private void SeleccionarParentesco(ParentescoDTO item)
