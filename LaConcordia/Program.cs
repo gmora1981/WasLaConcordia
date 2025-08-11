@@ -42,6 +42,7 @@ builder.Services.AddScoped<IParentesco, ParentescoRepository>();
 builder.Services.AddScoped<IDuenopuesto, DuenopuestoRepository>();
 builder.Services.AddScoped<IUnidad, UnidadRepository>();
 builder.Services.AddScoped<IFichapersonal, FichapersonalRepository>();
+builder.Services.AddScoped<IFichaobservacione, FichaobservacioneRepository>();
 
 configureservices(builder.Services);
 

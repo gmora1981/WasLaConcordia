@@ -2,6 +2,7 @@
 
 @using LaConcordia.DTO
 @using LaConcordia.Interface
+@using LaConcordia.Pages.FichaObservaciones
 @using LaConcordia.Pagination
 @inject IFichapersonal fichaRepo
 @inject IJSRuntime JS
@@ -11,7 +12,7 @@
 @inject ITipolicencium tipolicenciaRepo
 @inject ICargo cargoRepo
 @inject IDuenopuesto duenopuestoRepo
-
+@inject IFichaobservacione fichaobservacioneRepo
 <h3>Fichapersonal La Concordia</h3>
 
 <!-- Encabezado: Nuevo, Buscar -->
@@ -51,7 +52,7 @@
             <th>Fecha Nac.</th>
             <th>Ingreso</th>
             <th>Estado</th>
-            <th></th>
+            <th>Observaciones</th>
             <th></th>
         </tr>
     </thead>
@@ -68,7 +69,15 @@
                     <td>@ficha.Fechanacimiento</td>
                     <td>@ficha.Fechaingreso</td>
                     <td>@ObtenerNombreEstado(ficha.Estado)</td>
-                    <td>Boton ver memos</td>
+                    <td>
+                        <button class="btn btn-info btn-sm"
+                                @onclick="() => AbrirModalObservaciones(ficha.Cedula)"
+                                @onclick:stopPropagation="true">
+                            Observaciones
+                        </button>
+
+                    </td>
+
                     <td>Boton ver beneficiarios</td>
                 </tr>
             }
@@ -244,6 +253,9 @@
     </div>
 </div>
 
+<FichaObservacionesModal @ref="modalObservaciones" OnClose="CerrarModalObservaciones" />
+
+
 @code {
     // Listado paginado de fichas personales
     private List<FichapersonalDTO> fichas = new();
@@ -266,11 +278,41 @@
     private UnidadDTO? unidadEncontrada;
     private string cedulaDuenopuesto = string.Empty;
     private DuenopuestoDTO? duenopuestoEncontrado;
+    private FichaObservacionesModal modalObservaciones;
+
 
     // Paginación
     private int PaginaActual = 1;
     private int PageSize = 8;
     private int TotalUsuarios = 0;
+
+    // Para las observaciones y paginación en modal
+    private List<FichaobservacioneDTO> observaciones = new();
+    private string cedulaObservacionesActual = string.Empty;
+    private int paginaObservaciones = 1;
+    private int pageSizeObservaciones = 5;
+    private int totalObservaciones = 0;
+    private bool modalObservacionesVisible = false;
+
+    private async Task AbrirModalObservaciones(string cedula)
+    {
+        await modalObservaciones.Show(cedula);
+    }
+
+    private async Task CargarObservaciones()
+    {
+        var resultado = await fichaobservacioneRepo.GetFichaObservacionePaginadosByCedula(
+            paginaObservaciones, pageSizeObservaciones, cedulaObservacionesActual);
+
+        observaciones = resultado.Items;
+        totalObservaciones = resultado.TotalItems;
+    }
+
+    private void CerrarModalObservaciones()
+    {
+        StateHasChanged();
+    }
+
 
     // Inicialización al cargar la página
     protected override async Task OnInitializedAsync()
