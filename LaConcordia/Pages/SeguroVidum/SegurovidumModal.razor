@@ -15,11 +15,17 @@
                         <div class="col-md-7" style="max-height: 400px; overflow-y: auto;">
                             @if (beneficiarios == null)
                             {
-                                <p>Cargando...</p>
+                                <div class="text-center">
+                                    <strong>Cargando datos...</strong>
+                                    <div class="progress mt-2" style="height: 20px;">
+                                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 100%"></div>
+                                    </div>
+                                </div>
+
                             }
                             else if (!beneficiarios.Any())
                             {
-                                <p>No se encontraron beneficiarios.</p>
+                                <p3>No se encontraron beneficiarios.</p3>
                             }
                             else
                             {
@@ -72,7 +78,14 @@
                                 <ValidationSummary />
 
                                 <div class="mb-3">
-                                    <label class="form-label">Cédula</label>
+                                    <label class="form-label">Cédula Afiliado</label>
+                                    <InputText class="form-control"
+                                               @bind-Value="beneficiarioSeleccionado.CiAfiliado"
+                                               readonly />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Cédula Beneficiario</label>
                                     <InputText class="form-control" @bind-Value="beneficiarioSeleccionado.CiBeneficiario" disabled="@soloLectura" />
                                 </div>
 
@@ -216,48 +229,52 @@
                 Nombres = string.Empty,
                 Apellidos = string.Empty,
                 CiAfiliado = cedulaActual
+
             };
         soloLectura = false;
     }
 
     private async Task GuardarBeneficiario()
+{
+    if (guardando) return;
+
+    try
     {
-        if (guardando) return;
+        guardando = true;
 
-        try
+        if (string.IsNullOrWhiteSpace(beneficiarioSeleccionado.CiBeneficiario))
         {
-            guardando = true;
-
-            if (string.IsNullOrWhiteSpace(beneficiarioSeleccionado.CiBeneficiario))
-            {
-                // Aquí puedes mostrar un mensaje de validación
-                guardando = false;
-                return;
-            }
-
-            bool existe = beneficiarios?.Any(b => b.CiBeneficiario == beneficiarioSeleccionado.CiBeneficiario) ?? false;
-
-            if (existe)
-            {
-                await seguroVidaRepo.UpdateSegurovidum(beneficiarioSeleccionado);
-            }
-            else
-            {
-                beneficiarioSeleccionado.CiAfiliado = cedulaActual;
-                await seguroVidaRepo.InsertSegurovidum(beneficiarioSeleccionado);
-            }
-
-            await CargarBeneficiarios();
-
-            soloLectura = true;
+            // Aquí puedes mostrar un mensaje de validación
             guardando = false;
-            StateHasChanged();
+            return;
         }
-        catch (Exception ex)
+
+        // Siempre forzar el valor correcto antes de guardar
+        beneficiarioSeleccionado.CiAfiliado = cedulaActual;
+
+        bool existe = beneficiarios?.Any(b => b.CiBeneficiario == beneficiarioSeleccionado.CiBeneficiario) ?? false;
+
+        if (existe)
         {
-            guardando = false;
-            Console.Error.WriteLine($"Error al guardar beneficiario: {ex.Message}");
-            // Aquí puedes mostrar un mensaje de error al usuario
+            await seguroVidaRepo.UpdateSegurovidum(beneficiarioSeleccionado);
         }
+        else
+        {
+            await seguroVidaRepo.InsertSegurovidum(beneficiarioSeleccionado);
+        }
+
+        await CargarBeneficiarios();
+
+        soloLectura = true;
+        guardando = false;
+        StateHasChanged();
     }
+    catch (Exception ex)
+    {
+        guardando = false;
+        Console.Error.WriteLine($"Error al guardar beneficiario: {ex.Message}");
+        // Aquí puedes mostrar un mensaje de error al usuario
+    }
+}
+
 }
