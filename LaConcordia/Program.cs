@@ -43,6 +43,7 @@ builder.Services.AddScoped<IDuenopuesto, DuenopuestoRepository>();
 builder.Services.AddScoped<IUnidad, UnidadRepository>();
 builder.Services.AddScoped<IFichapersonal, FichapersonalRepository>();
 builder.Services.AddScoped<IFichaobservacione, FichaobservacioneRepository>();
+builder.Services.AddScoped<ISegurovidum, SegurovidumRepository>();
 
 configureservices(builder.Services);
 

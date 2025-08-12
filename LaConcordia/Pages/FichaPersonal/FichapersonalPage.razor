@@ -3,6 +3,7 @@
 @using LaConcordia.DTO
 @using LaConcordia.Interface
 @using LaConcordia.Pages.FichaObservaciones
+@using LaConcordia.Pages.SeguroVidum
 @using LaConcordia.Pagination
 @inject IFichapersonal fichaRepo
 @inject IJSRuntime JS
@@ -13,6 +14,9 @@
 @inject ICargo cargoRepo
 @inject IDuenopuesto duenopuestoRepo
 @inject IFichaobservacione fichaobservacioneRepo
+@inject ISegurovidum segurovidumRepo
+@inject IParentesco parentescoRepo
+
 <h3>Fichapersonal La Concordia</h3>
 
 <!-- Encabezado: Nuevo, Buscar -->
@@ -34,9 +38,9 @@
     </div>
     <div class="d-flex justify-content-center flex-grow-1">
         <Pagination TotalItems="@TotalUsuarios"
-                    PageSize="@PageSize"
-                    CurrentPage="@PaginaActual"
-                    OnPageChanged="OnPageChangedAsync" />
+        PageSize="@PageSize"
+        CurrentPage="@PaginaActual"
+        OnPageChanged="OnPageChangedAsync" />
     </div>
     <div class="flex-grow-1 text-end"></div>
 </div>
@@ -71,14 +75,21 @@
                     <td>@ObtenerNombreEstado(ficha.Estado)</td>
                     <td>
                         <button class="btn btn-info btn-sm"
-                                @onclick="() => AbrirModalObservaciones(ficha.Cedula)"
-                                @onclick:stopPropagation="true">
+                        @onclick="() => AbrirModalObservaciones(ficha.Cedula)"
+                        @onclick:stopPropagation="true">
                             Observaciones
                         </button>
 
                     </td>
 
-                    <td>Boton ver beneficiarios</td>
+                    <td>
+                        <button class="btn btn-primary"
+                                @onclick="() => AbrirModalBeneficiarios(ficha.Cedula)"
+                                @onclick:stopPropagation="true">
+                            Ver Beneficiarios
+                        </button>
+
+                    </td>
                 </tr>
             }
         }
@@ -143,7 +154,7 @@
                     </InputSelect>
                 </div>
 
-                
+
             </div>
 
             <!-- Columna 2 -->
@@ -255,6 +266,9 @@
 
 <FichaObservacionesModal @ref="modalObservaciones" OnClose="CerrarModalObservaciones" />
 
+<SegurovidumModal @ref="modalBeneficiarios" Parentesco="listaParentesco" />
+
+
 
 @code {
     // Listado paginado de fichas personales
@@ -313,6 +327,15 @@
         StateHasChanged();
     }
 
+    //beneficiarios
+    private List<ParentescoDTO> listaParentesco = new();
+
+    private SegurovidumModal modalBeneficiarios;
+
+    private async Task AbrirModalBeneficiarios(string cedula)
+    {
+        await modalBeneficiarios.Show(cedula);
+    }
 
     // Inicialización al cargar la página
     protected override async Task OnInitializedAsync()
@@ -324,6 +347,7 @@
     // Método que carga los datos para combos
     private async Task CargarListasRelacionadas()
     {
+		listaParentesco = await parentescoRepo.ParentescoInfoAll();
         listaCargos = await cargoRepo.GetCargoInfoAll();
         listaTipoLicencia = await tipolicenciaRepo.GetTipolicenciaInfoAll();
         listaNacionalidad = await nacionalidadRepo.GetNacionalidadesAll();
