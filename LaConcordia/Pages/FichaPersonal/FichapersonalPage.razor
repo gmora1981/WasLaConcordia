@@ -105,6 +105,7 @@
 <!-- Detalle -->
 <div class="border rounded p-3 mt-3">
     <h5>Detalle Ficha Personal</h5>
+
     <EditForm Model="fichaSeleccionada">
         <div class="row">
             <!-- Columna 1 -->
@@ -261,6 +262,11 @@
         <button class="btn btn-warning" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">Actualizar</button>
         <button class="btn btn-danger" @onclick="EliminarFicha" disabled="@(!PuedeEliminar)">Eliminar</button>
         <button class="btn btn-secondary" @onclick="CancelarEdicion">Cancelar</button>
+        <div class="ms-2">
+            <button class="btn btn-danger btn-sm" @onclick="ExportarFicha">
+                Exportar PDF <i class="bi bi-file-earmark-pdf-fill"></i>
+            </button>
+        </div>
     </div>
 </div>
 
@@ -336,6 +342,19 @@
     {
         await modalBeneficiarios.Show(cedula);
     }
+    private List<SegurovidumDTO> beneficiarios = new();
+    private int paginaBeneficiarios = 1;
+    private int pageSizeBeneficiarios = 10; // o el tamaño que quieras
+    private PagedResult<SegurovidumDTO> beneficiariosPaginados = new();
+
+    private async Task CargarBeneficiarios(string cedula)
+    {
+        if (!string.IsNullOrWhiteSpace(cedula))
+        {
+            beneficiariosPaginados = await segurovidumRepo.GetSegurovidumPaginadosByCedulaAfiliado(paginaBeneficiarios, pageSizeBeneficiarios, cedula);
+            beneficiarios = beneficiariosPaginados.Items;
+        }
+    }
 
     // Inicialización al cargar la página
     protected override async Task OnInitializedAsync()
@@ -347,6 +366,7 @@
     // Método que carga los datos para combos
     private async Task CargarListasRelacionadas()
     {
+
 		listaParentesco = await parentescoRepo.ParentescoInfoAll();
         listaCargos = await cargoRepo.GetCargoInfoAll();
         listaTipoLicencia = await tipolicenciaRepo.GetTipolicenciaInfoAll();
@@ -390,6 +410,11 @@
     // Selecciona un registro de la tabla para editar
     private async void SeleccionarFicha(FichapersonalDTO ficha)
     {
+        await CargarBeneficiarios(ficha.Cedula);
+
+        esNuevo = false;
+        StateHasChanged(); // refrescar UI
+
         // Cargar listas para que los combos tengan opciones y puedan seleccionar valor
         await CargarListasRelacionadas();
 
@@ -528,6 +553,50 @@
             }
         }
     }
+
+    //exportar 
+    private async Task ExportarFicha()
+    {
+        if (string.IsNullOrEmpty(fichaSeleccionada?.Cedula))
+        {
+            await JS.InvokeVoidAsync("alert", "No hay ficha seleccionada para exportar.");
+            return;
+        }
+
+        var exportData = new ExportFichaDTO
+        {
+            Ficha = fichaSeleccionada,
+            Unidad = unidadEncontrada,
+            Duenopuesto = duenopuestoEncontrado,
+            Beneficiarios = beneficiarios
+        };
+
+        try
+        {
+            var pdfBytes = await fichaRepo.ExportarFichaCompleta(exportData);
+
+            if (pdfBytes == null || pdfBytes.Length == 0)
+            {
+                await JS.InvokeVoidAsync("alert", "El PDF generado está vacío.");
+                return;
+            }
+
+            await JS.InvokeVoidAsync("downloadFileFromByteArray", new
+            {
+                byteArray = pdfBytes,
+                fileName = "FichaCompleta.pdf",
+                contentType = "application/pdf"
+            });
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error al exportar PDF: {ex.Message}");
+        }
+    }
+
+
+
+
 
     // Validaciones para habilitar botones
     private bool PuedeGuardar => !string.IsNullOrWhiteSpace(fichaSeleccionada.Cedula);

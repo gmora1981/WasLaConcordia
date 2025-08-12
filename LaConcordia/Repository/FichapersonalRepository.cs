@@ -62,7 +62,7 @@ namespace LaConcordia.Repository
         //paginado
 
         public async Task<PagedResult<FichapersonalDTO>> GetFichaPersonalPaginados(int pagina,
-    int pageSize, string? filtro = null, string? estado = null)
+        int pageSize, string? filtro = null, string? estado = null)
         {
             var url = $"api/Fichapersona/GetFichaPersonalPaginados?pagina={pagina}&pageSize={pageSize}";
 
@@ -82,6 +82,20 @@ namespace LaConcordia.Repository
                 throw new Exception("Error al obtener ficha personal paginadas desde el servidor.", ex);
             }
         }
+        //exportar
+        public async Task<byte[]> ExportarFichaCompleta(ExportFichaDTO exportData)
+        {
+            var response = await _httpClient.PostAsJsonAsync("api/Fichapersona/ExportarFichaCompleta", exportData);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Error al exportar ficha completa: {errorContent}");
+            }
+
+            return await response.Content.ReadAsByteArrayAsync();
+        }
+
 
     }
 }

@@ -17,5 +17,9 @@ namespace LaConcordia.Interface
         //paginado
         Task<LaConcordia.DTO.PagedResult<FichapersonalDTO>> GetFichaPersonalPaginados(int pagina,
             int pageSize, string? filtro = null, string? estado = null);
+
+        //exportar 
+        Task<byte[]> ExportarFichaCompleta(ExportFichaDTO exportData);
+
     }
 }
