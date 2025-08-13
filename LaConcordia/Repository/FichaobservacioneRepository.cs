@@ -1,6 +1,6 @@
 ﻿using LaConcordia.DTO;
-using System.Net.Http.Json;
 using LaConcordia.Interface;
+using System.Net.Http.Json;
 
 namespace LaConcordia.Repository
 {
@@ -56,10 +56,10 @@ namespace LaConcordia.Repository
             }
         }
 
-        public async Task DeleteFichaObservacioneByCedula(int cedula)
+        public async Task DeleteFichaObservacioneByCedula(int idfichaobs)
         {
             var response = await _httpClient.DeleteAsync(
-                $"api/Fichaobservacione/DeleteFichaObservacioneByCedula/{cedula}");
+                $"api/Fichaobservacione/DeleteFichaObservacioneByCedula/{idfichaobs}");
 
             if (!response.IsSuccessStatusCode)
             {

@@ -17,7 +17,7 @@
 @inject ISegurovidum segurovidumRepo
 @inject IParentesco parentescoRepo
 
-<h3>Fichapersonal La Concordia</h3>
+<h3>Control Ficha Personal</h3>
 
 <!-- Encabezado: Nuevo, Buscar -->
 <div class="mb-3 d-flex gap-2">
@@ -74,7 +74,7 @@
                     <td>@ObtenerNombreEstado(ficha.Estado)</td>
                     <td>
                         <button class="btn btn-info btn-sm"
-                        @onclick="() => AbrirModalObservaciones(ficha.Cedula)"
+                        @onclick="() => AbrirModalObservaciones(ficha.Cedula, ficha.Fkunidad)"
                         @onclick:stopPropagation="true">
                             Observaciones
                         </button>
@@ -313,9 +313,9 @@
     private int totalObservaciones = 0;
     private bool modalObservacionesVisible = false;
 
-    private async Task AbrirModalObservaciones(string cedula)
+    private async Task AbrirModalObservaciones(string cedula, string fkunidad)
     {
-        await modalObservaciones.Show(cedula);
+        await modalObservaciones.Show(cedula, fkunidad);
     }
 
     private async Task CargarObservaciones()
