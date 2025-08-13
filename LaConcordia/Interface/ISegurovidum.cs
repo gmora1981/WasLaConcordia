@@ -8,7 +8,7 @@ namespace LaConcordia.Interface
         Task<List<SegurovidumDTO>> GetSegurovidumByCedula(string CiAfiliado);
         Task InsertSegurovidum(SegurovidumDTO nueva);
         Task UpdateSegurovidum(SegurovidumDTO actualizada);
-        Task DeleteSegurovidumByCedula(int CiBeneficiario);
+        Task DeleteSegurovidumByCedula(string CiBeneficiario, string CiAfiliado);
         Task<PagedResult<SegurovidumDTO>> GetSegurovidumPaginados(int pagina, int pageSize, string CiBeneficiario = null, string CiAfiliado = null);
         Task<PagedResult<SegurovidumDTO>> GetSegurovidumPaginadosByCedulaAfiliado(int pagina, int pageSize, string CiAfiliado);
     }

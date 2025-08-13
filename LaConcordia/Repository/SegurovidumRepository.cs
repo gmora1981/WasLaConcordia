@@ -54,10 +54,10 @@ namespace LaConcordia.Repository
             }
         }
 
-        public async Task DeleteSegurovidumByCedula(int CiBeneficiario)
+        public async Task DeleteSegurovidumByCedula(string CiBeneficiario, string CiAfiliado)
         {
             var response = await _httpClient.DeleteAsync(
-                $"api/Segurovidum/DeleteSegurovidumByCedula/{CiBeneficiario}");
+                $"api/Segurovidum/DeleteSegurovidumByCedula/{CiBeneficiario}/{CiAfiliado}");
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
