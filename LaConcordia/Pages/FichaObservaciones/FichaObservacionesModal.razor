@@ -46,58 +46,50 @@
                             }
                         </div>
 
-                        <!-- Derecha: formulario nueva observación -->
+                        <!-- Derecha: formulario -->
                         <div class="col-md-5 border-start ps-3">
-                            <h6>Nueva Observación</h6>
-                            <EditForm Model="nuevaObservacion" OnValidSubmit="GuardarNuevaObservacion">
+                            <h6>@(observacionSeleccionada == null ? "Nueva Observación" : "Editar Observación")</h6>
+                            <EditForm Model="formObservacion" OnValidSubmit="GuardarOActualizarObservacion">
                                 <DataAnnotationsValidator />
                                 <ValidationSummary />
 
                                 <div class="mb-3">
                                     <label class="form-label">Fecha</label>
-                                    <InputDate class="form-control" @bind-Value="nuevaObservacion.Fecha" />
+                                    <InputDate class="form-control" @bind-Value="formObservacion.Fecha" Disabled="true" />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Cédula</label>
+                                    <InputText class="form-control" @bind-Value="formObservacion.Fkcedula" readonly />
                                 </div>
 
                                 <div class="mb-3">
                                     <label class="form-label">Unidad</label>
-                                    <InputText class="form-control" rows="5" @bind-Value="nuevaObservacion.Fkunidad" />
+                                    <InputText class="form-control" @bind-Value="formObservacion.Fkunidad" readonly />
                                 </div>
 
                                 <div class="mb-3">
                                     <label class="form-label">Motivo</label>
-                                    <InputTextArea class="form-control" rows="5" @bind-Value="nuevaObservacion.Motivo" />
+                                    <InputTextArea class="form-control" rows="5" @bind-Value="formObservacion.Motivo" />
                                 </div>
 
-                                <button type="submit" class="btn btn-primary" disabled="@(!PuedeGuardarNueva || guardando)">
+                                <button type="submit" class="btn btn-primary" disabled="@(!PuedeGuardar || guardando)">
                                     @if (guardando)
                                     {
-                                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true">Guardando...</span>
-                                        
+                                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"> Guardando...</span>
                                     }
                                     else
                                     {
-                                        <span>Guardar</span>
+                                        <span>@(observacionSeleccionada == null ? "Guardar" : "Actualizar")</span>
                                     }
                                 </button>
-                            </EditForm>
 
-                            @if (observacionSeleccionada != null)
-                            {
-                                <hr />
-                                <h6>Observación seleccionada</h6>
-                                <div class="mb-3">
-                                    <label class="form-label">Fecha</label>
-                                    <InputDate class="form-control" @bind-Value="observacionSeleccionada.Fecha" Disabled="true" />
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Unidad</label>
-                                    <InputText class="form-control" rows="5" @bind-Value="observacionSeleccionada.Fkunidad" Disabled="true" />
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Motivo</label>
-                                    <InputTextArea class="form-control" rows="5" @bind-Value="observacionSeleccionada.Motivo" Disabled="true" />
-                                </div>
-                            }
+                                @if (observacionSeleccionada != null)
+                                {
+                                    <button type="button" class="btn btn-secondary ms-2" @onclick="CancelarEdicion">Cancelar</button>
+                                    <button type="button" class="btn btn-danger ms-2" @onclick="ConfirmarEliminar">Eliminar</button>
+                                }
+                            </EditForm>
                         </div>
                     </div>
                 </div>
@@ -110,37 +102,32 @@
 }
 
 @code {
-    [Parameter]
-    public string Cedula { get; set; } = "";
+    [Parameter] public string Cedula { get; set; } = "";
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
 
-    [Parameter]
-    public EventCallback OnClose { get; set; }
 
     private bool IsVisible { get; set; } = false;
-
     private List<FichaobservacioneDTO> observaciones = new();
     private int paginaObservaciones = 1;
     private int pageSizeObservaciones = 5;
     private int totalObservaciones = 0;
 
     private bool guardando = false;
-
-    // Modelo para nueva observación
-    private FichaobservacioneDTO nuevaObservacion = new();
-
-    // Observación seleccionada de la tabla para mostrar detalles (solo lectura)
+    private FichaobservacioneDTO formObservacion = new();
     private FichaobservacioneDTO? observacionSeleccionada;
 
-    public async Task Show(string cedula)
+    public async Task Show(string cedula, string fkunidad)
     {
         Cedula = cedula;
         paginaObservaciones = 1;
         IsVisible = true;
         observacionSeleccionada = null;
-        nuevaObservacion = new FichaobservacioneDTO
+        formObservacion = new FichaobservacioneDTO
         {
             Fkcedula = Cedula,
-            Fecha = DateOnly.FromDateTime(DateTime.Now) // fecha actual por defecto
+            Fkunidad = fkunidad,
+            Fecha = DateOnly.FromDateTime(DateTime.Now)
         };
         await CargarObservaciones();
         await InvokeAsync(StateHasChanged);
@@ -148,7 +135,8 @@
 
     private async Task CargarObservaciones()
     {
-        var resultado = await fichaobservacioneRepo.GetFichaObservacionePaginadosByCedula(paginaObservaciones, pageSizeObservaciones, Cedula);
+        var resultado = await fichaobservacioneRepo.GetFichaObservacionePaginadosByCedula(
+            paginaObservaciones, pageSizeObservaciones, Cedula);
         observaciones = resultado.Items;
         totalObservaciones = resultado.TotalItems;
     }
@@ -169,43 +157,81 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task GuardarNuevaObservacion()
+    private async Task GuardarOActualizarObservacion()
     {
         try
         {
             guardando = true;
-            // Forzar que la cedula esté igual al parámetro
-            nuevaObservacion.Fkcedula = Cedula;
-
-            await fichaobservacioneRepo.InsertFichaObservacione(nuevaObservacion);
-
-            // Recargar listado de observaciones
-            await CargarObservaciones();
-
-            // Limpiar formulario para nueva observación
-            nuevaObservacion = new FichaobservacioneDTO
+            if (observacionSeleccionada == null)
             {
-                Fkcedula = Cedula,
-                Fecha = DateOnly.FromDateTime(DateTime.Now)
-            };
+                // Nuevo registro
+                await fichaobservacioneRepo.InsertFichaObservacione(formObservacion);
+            }
+            else
+            {
+                // Actualizar existente
+                await fichaobservacioneRepo.UpdateFichaObservacione(formObservacion);
+            }
 
+            await CargarObservaciones();
+            CancelarEdicion();
             guardando = false;
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception ex)
         {
             guardando = false;
-            Console.Error.WriteLine($"Error al guardar observación: {ex.Message}");
+            Console.Error.WriteLine($"Error al guardar/actualizar observación: {ex.Message}");
         }
     }
 
-    private bool PuedeGuardarNueva =>
-        !string.IsNullOrWhiteSpace(nuevaObservacion.Motivo) &&
-        nuevaObservacion.Fecha != null &&
+    private async Task ConfirmarEliminar()
+    {
+        bool confirmado = await JSRuntime.InvokeAsync<bool>("confirm", "¿Desea eliminar esta observación?");
+        if (confirmado && observacionSeleccionada != null)
+        {
+            try
+            {
+                guardando = true;
+                await fichaobservacioneRepo.DeleteFichaObservacioneByCedula(observacionSeleccionada.Idfichaobs);
+                await CargarObservaciones();
+                CancelarEdicion();
+                guardando = false;
+                await InvokeAsync(StateHasChanged);
+            }
+            catch (Exception ex)
+            {
+                guardando = false;
+                Console.Error.WriteLine($"Error al eliminar observación: {ex.Message}");
+            }
+        }
+    }
+
+    private bool PuedeGuardar =>
+        !string.IsNullOrWhiteSpace(formObservacion.Motivo) &&
+        formObservacion.Fecha != null &&
         !guardando;
 
     private void SeleccionarObservacion(FichaobservacioneDTO obs)
     {
         observacionSeleccionada = obs;
+        formObservacion = new FichaobservacioneDTO
+        {
+            Idfichaobs = obs.Idfichaobs,
+            Fkcedula = obs.Fkcedula,
+            Fkunidad = obs.Fkunidad,
+            Fecha = obs.Fecha,
+            Motivo = obs.Motivo
+        };
+    }
+
+    private void CancelarEdicion()
+    {
+        observacionSeleccionada = null;
+        formObservacion = new FichaobservacioneDTO
+        {
+            Fkcedula = Cedula,
+            Fecha = DateOnly.FromDateTime(DateTime.Now)
+        };
     }
 }
