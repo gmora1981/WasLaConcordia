@@ -104,11 +104,33 @@
 <!-- Detalle -->
 <div class="border rounded p-3 mt-3">
     <h5>Detalle Ficha Personal</h5>
+    @* inhreso de foto  *@
+    <h5>Gestión de Foto del Chofer</h5>
 
+    <div class="mb-2">
+        <label>Cédula del chofer:</label>
+        <InputText @bind-Value="cedulaChofer" class="form-control" />
+    </div>
+
+    <InputFile OnChange="OnFileSelected" />
+    <button class="btn btn-primary mt-2" @onclick="SubirImagen">Subir Imagen</button>
+    <button class="btn btn-success mt-2" @onclick="BuscarImagen">Buscar Imagen</button>
+    <button class="btn btn-danger mt-2" @onclick="EliminarImagen">Eliminar Imagen</button>
+
+    @if (!string.IsNullOrEmpty(imagenUrl))
+    {
+        <div class="mt-3">
+            <p>Imagen encontrada:</p>
+            <img src="@imagenUrl" alt="Foto del chofer" style="max-width:200px;" />
+        </div>
+    }
     <EditForm Model="fichaSeleccionada">
         <div class="row">
             <!-- Columna 1 -->
             <div class="col-md-6">
+                
+
+
                 <div class="mb-2">
                     <label class="form-label">Cedula</label>
                     <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Cedula"  disabled="@(!esNuevo)" />
@@ -592,10 +614,58 @@
             await JS.InvokeVoidAsync("alert", $"Error al exportar PDF: {ex.Message}");
         }
     }
+    //imagenes 
+    private string cedulaChofer;
+    private IBrowserFile archivoSeleccionado;
+    private string imagenUrl;
 
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        archivoSeleccionado = e.File;
+    }
 
+    private async Task SubirImagen()
+    {
+        if (archivoSeleccionado == null || string.IsNullOrEmpty(cedulaChofer))
+        {
+            Console.WriteLine("Debe seleccionar un archivo y colocar la cédula.");
+            return;
+        }
 
+        using var stream = archivoSeleccionado.OpenReadStream(5_000_000);
+        var nombreArchivo = $"{cedulaChofer}{Path.GetExtension(archivoSeleccionado.Name)}";
 
+        await fichaRepo.SubirImagenChoferAsync(stream, nombreArchivo, cedulaChofer);
+
+        Console.WriteLine("Imagen subida con éxito.");
+    }
+    private async Task BuscarImagen()
+    {
+        if (string.IsNullOrEmpty(cedulaChofer))
+            return;
+
+        var result = await fichaRepo.BuscarImagenChoferAsync(cedulaChofer);
+
+        if (!string.IsNullOrEmpty(result))
+        {
+            imagenUrl = result; // el backend devuelve la URL o path
+        }
+        else
+        {
+            imagenUrl = null;
+            Console.WriteLine("No se encontró ninguna imagen para esa cédula.");
+        }
+    }
+    private async Task EliminarImagen()
+    {
+        if (string.IsNullOrEmpty(cedulaChofer))
+            return;
+
+        await fichaRepo.EliminarImagenChoferAsync(cedulaChofer);
+        imagenUrl = null;
+
+        Console.WriteLine("Imagen eliminada correctamente.");
+    }
 
     // Validaciones para habilitar botones
     private bool PuedeGuardar => !string.IsNullOrWhiteSpace(fichaSeleccionada.Cedula);

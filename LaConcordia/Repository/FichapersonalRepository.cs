@@ -1,5 +1,6 @@
 ﻿using LaConcordia.DTO;
 using LaConcordia.Interface;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 
 namespace LaConcordia.Repository
@@ -96,6 +97,52 @@ namespace LaConcordia.Repository
             return await response.Content.ReadAsByteArrayAsync();
         }
 
+        //ingresa imagen del chofer
+        public async Task SubirImagenChoferAsync(Stream contenido, string nombreArchivo, string cedulaChofer)
+        {
+            var content = new MultipartFormDataContent();
+            var streamContent = new StreamContent(contenido);
+            streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+
+            content.Add(streamContent, "file", nombreArchivo);
+            content.Add(new StringContent(cedulaChofer), "cedulaChofer");
+
+            try
+            {
+                var response = await _httpClient.PostAsync("api/Fichapersona/UploadImagenChofer", content);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var mensaje = await response.Content.ReadAsStringAsync();
+                    throw new Exception($"Error al subir imagen: {mensaje}");
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error al subir la imagen: {ex.Message}", ex);
+            }
+        }
+        ////busca imagen del chofer por cedula
+
+        public async Task<string?> BuscarImagenChoferAsync(string cedulaChofer)
+        {
+            var response = await _httpClient.GetFromJsonAsync<string?>(
+                $"api/Fichapersona/BuscarImagenChofer?cedulaChofer={cedulaChofer}");
+
+            return response; // null si no existe
+        }
+
+        //elimina imagen del chofer
+        public async Task EliminarImagenChoferAsync(string cedulaChofer)
+        {
+            var response = await _httpClient.DeleteAsync($"api/Fichapersona/EliminarImagenChofer?cedulaChofer={cedulaChofer}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Error al eliminar imagen: {error}");
+            }
+        }
 
     }
 }
