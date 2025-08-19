@@ -97,19 +97,19 @@ namespace LaConcordia.Repository
             return await response.Content.ReadAsByteArrayAsync();
         }
 
-        //ingresa imagen del chofer
+        // 🚀 Repository - Subir imagen del chofer
         public async Task SubirImagenChoferAsync(Stream contenido, string nombreArchivo, string cedulaChofer)
         {
             var content = new MultipartFormDataContent();
             var streamContent = new StreamContent(contenido);
             streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
 
-            content.Add(streamContent, "file", nombreArchivo);
-            content.Add(new StringContent(cedulaChofer), "cedulaChofer");
+            content.Add(streamContent, "archivo", nombreArchivo); // ⚠️ coincide con [FromForm] IFormFile archivo
+            content.Add(new StringContent(cedulaChofer), "cedula");
 
             try
             {
-                var response = await _httpClient.PostAsync("api/Fichapersona/UploadImagenChofer", content);
+                var response = await _httpClient.PostAsync("api/Fichapersona/SubirImagenChofer", content);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -122,20 +122,23 @@ namespace LaConcordia.Repository
                 throw new Exception($"Error al subir la imagen: {ex.Message}", ex);
             }
         }
-        ////busca imagen del chofer por cedula
 
+        // 🚀 Repository - Buscar imagen del chofer por cédula
         public async Task<string?> BuscarImagenChoferAsync(string cedulaChofer)
         {
-            var response = await _httpClient.GetFromJsonAsync<string?>(
-                $"api/Fichapersona/BuscarImagenChofer?cedulaChofer={cedulaChofer}");
+            var response = await _httpClient.GetAsync($"api/Fichapersona/BuscarImagenChofer/{cedulaChofer}");
 
-            return response; // null si no existe
+            if (!response.IsSuccessStatusCode)
+                return null;
+
+            var url = await response.Content.ReadAsStringAsync();
+            return string.IsNullOrWhiteSpace(url) ? null : url;
         }
 
-        //elimina imagen del chofer
+        // 🚀 Repository - Eliminar imagen del chofer
         public async Task EliminarImagenChoferAsync(string cedulaChofer)
         {
-            var response = await _httpClient.DeleteAsync($"api/Fichapersona/EliminarImagenChofer?cedulaChofer={cedulaChofer}");
+            var response = await _httpClient.DeleteAsync($"api/Fichapersona/EliminarImagenChofer/{cedulaChofer}");
 
             if (!response.IsSuccessStatusCode)
             {
@@ -143,6 +146,7 @@ namespace LaConcordia.Repository
                 throw new Exception($"Error al eliminar imagen: {error}");
             }
         }
+
 
     }
 }

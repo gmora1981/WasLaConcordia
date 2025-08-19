@@ -104,24 +104,18 @@
 <!-- Detalle -->
 <div class="border rounded p-3 mt-3">
     <h5>Detalle Ficha Personal</h5>
-    @* inhreso de foto  *@
+
     <h5>Gestión de Foto del Chofer</h5>
 
-    <div class="mb-2">
-        <label>Cédula del chofer:</label>
-        <InputText @bind-Value="cedulaChofer" class="form-control" />
-    </div>
 
     <InputFile OnChange="OnFileSelected" />
-    <button class="btn btn-primary mt-2" @onclick="SubirImagen">Subir Imagen</button>
-    <button class="btn btn-success mt-2" @onclick="BuscarImagen">Buscar Imagen</button>
-    <button class="btn btn-danger mt-2" @onclick="EliminarImagen">Eliminar Imagen</button>
 
     @if (!string.IsNullOrEmpty(imagenUrl))
     {
         <div class="mt-3">
             <p>Imagen encontrada:</p>
             <img src="@imagenUrl" alt="Foto del chofer" style="max-width:200px;" />
+            <p><a href="@imagenUrl" target="_blank">@imagenUrl</a></p>
         </div>
     }
     <EditForm Model="fichaSeleccionada">
@@ -473,6 +467,8 @@
         // Buscar datos relacionados
         await BuscarUnidad();
         await BuscarDuenopuesto();
+        // 👉 AQUI: cargar link/preview de la imagen
+        await CargarImagenPorCedula(ficha.Cedula);
 
         esNuevo = false;
         StateHasChanged(); // Refrescar UI
@@ -486,6 +482,8 @@
         duenopuestoEncontrado = null;
         codigoUnidad = string.Empty;
         cedulaDuenopuesto = string.Empty;
+        archivoSeleccionado = null;
+        imagenUrl = null;          // 👉 limpia preview
         esNuevo = true;
     }
 
@@ -495,14 +493,35 @@
         try
         {
             if (esNuevo)
+            {
+                // Insertar ficha nueva
                 await fichaRepo.InsertFichaPersonal(fichaSeleccionada);
+
+                // Subir foto si existe
+                if (archivoSeleccionado != null && !string.IsNullOrEmpty(fichaSeleccionada.Cedula))
+                {
+                    await SubirImagen();
+                }
+            }
             else
+            {
+                // Actualizar ficha existente
                 await fichaRepo.UpdateFichaPersonal(fichaSeleccionada);
 
+                // Subir nueva foto SOLO si escogieron una
+                if (archivoSeleccionado != null && !string.IsNullOrEmpty(fichaSeleccionada.Cedula))
+                {
+                    await SubirImagen();
+                }
+            }
+
+            // Recargar listado
             await CargarFichasAsync();
+
+            // Reset
             fichaSeleccionada = new FichapersonalDTO();
-            unidadEncontrada = null;
-            duenopuestoEncontrado = null;
+            archivoSeleccionado = null;
+            imagenUrl = null;
             esNuevo = false;
         }
         catch (Exception ex)
@@ -510,6 +529,8 @@
             await JS.InvokeVoidAsync("alert", $"Error al guardar: {ex.Message}");
         }
     }
+
+
 
     // Elimina la ficha seleccionada
     private async Task EliminarFicha()
@@ -519,14 +540,22 @@
             bool confirm = await JS.InvokeAsync<bool>("confirm", "¿Estás seguro de eliminar esta ficha?");
             if (confirm)
             {
+                // Eliminar imagen de la carpeta
+                await EliminarImagen();
+
+                // Eliminar ficha
                 await fichaRepo.DeleteFichaPersonalById(fichaSeleccionada.Cedula);
+
+                // Reset
                 await CargarFichasAsync();
                 fichaSeleccionada = new FichapersonalDTO();
-                unidadEncontrada = null;
-                duenopuestoEncontrado = null;
+                archivoSeleccionado = null;
+                imagenUrl = null;
+                esNuevo = false;
             }
         }
     }
+
 
     // Cancela edición y limpia el formulario
     private void CancelarEdicion()
@@ -619,52 +648,63 @@
     private IBrowserFile archivoSeleccionado;
     private string imagenUrl;
 
-    private void OnFileSelected(InputFileChangeEventArgs e)
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
     {
         archivoSeleccionado = e.File;
+        await SubirImagen();
     }
 
     private async Task SubirImagen()
     {
-        if (archivoSeleccionado == null || string.IsNullOrEmpty(cedulaChofer))
+        if (archivoSeleccionado == null || string.IsNullOrEmpty(fichaSeleccionada.Cedula))
         {
             Console.WriteLine("Debe seleccionar un archivo y colocar la cédula.");
             return;
         }
 
         using var stream = archivoSeleccionado.OpenReadStream(5_000_000);
-        var nombreArchivo = $"{cedulaChofer}{Path.GetExtension(archivoSeleccionado.Name)}";
+        var nombreArchivo = $"{fichaSeleccionada.Cedula}{Path.GetExtension(archivoSeleccionado.Name)}";
 
-        await fichaRepo.SubirImagenChoferAsync(stream, nombreArchivo, cedulaChofer);
+        await fichaRepo.SubirImagenChoferAsync(stream, nombreArchivo, fichaSeleccionada.Cedula);
 
+        await CargarImagenPorCedula(); // refrescar preview
         Console.WriteLine("Imagen subida con éxito.");
     }
+
     private async Task BuscarImagen()
     {
-        if (string.IsNullOrEmpty(cedulaChofer))
-            return;
-
-        var result = await fichaRepo.BuscarImagenChoferAsync(cedulaChofer);
-
-        if (!string.IsNullOrEmpty(result))
-        {
-            imagenUrl = result; // el backend devuelve la URL o path
-        }
-        else
+        if (string.IsNullOrEmpty(fichaSeleccionada?.Cedula))
         {
             imagenUrl = null;
-            Console.WriteLine("No se encontró ninguna imagen para esa cédula.");
+            return;
         }
+
+        imagenUrl = await fichaRepo.BuscarImagenChoferAsync(fichaSeleccionada.Cedula);
+        StateHasChanged();
     }
     private async Task EliminarImagen()
     {
-        if (string.IsNullOrEmpty(cedulaChofer))
+        if (string.IsNullOrEmpty(fichaSeleccionada?.Cedula))
             return;
 
-        await fichaRepo.EliminarImagenChoferAsync(cedulaChofer);
+        await fichaRepo.EliminarImagenChoferAsync(fichaSeleccionada.Cedula);
         imagenUrl = null;
+        StateHasChanged();
 
         Console.WriteLine("Imagen eliminada correctamente.");
+    }
+
+	// Cargar imagen al seleccionar o cambiar la cédula en el formulario
+    private async Task CargarImagenPorCedula(string? cedula = null)
+    {
+        var id = cedula ?? fichaSeleccionada?.Cedula;
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            imagenUrl = null;
+            return;
+        }
+
+        imagenUrl = await fichaRepo.BuscarImagenChoferAsync(id);
     }
 
     // Validaciones para habilitar botones
