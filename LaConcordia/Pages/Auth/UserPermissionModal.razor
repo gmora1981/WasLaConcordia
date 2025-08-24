@@ -1,1025 +1,620 @@
-﻿@using Identity.Api.Interfaces
-@using LaConcordia.Model
-@using LaConcordia.Repository
+﻿@using LaConcordia.Model
+@using Identity.Api.Interfaces
+@using System.Text
+@using System.Text.Json
 @inject IPermissionService permissionService
-@inject INavigationRepository navigationRepository
-@inject IDisplayMessage displayMessage
+@inject IJSRuntime JSRuntime
+@inject HttpClient httpClient
 
-@if (showModal)
+@if (showModal && selectedUser != null)
 {
-    <div class="modal-modern" @onclick="CloseModal">
-        <div class="modal-content-modern" style="max-width: 800px; max-height: 90vh;" @onclick:stopPropagation="true">
+    <div class="modal-modern" @onclick="CloseModalBackground" @onclick:stopPropagation="false">
+        <div class="modal-content-modern" style="max-width: 800px;" @onclick:stopPropagation="true">
             <div class="modal-header-modern">
-                <h2 class="modal-title-modern">
-                    <i class="fas fa-user-shield"></i>
-                    Gestionar Permisos - @selectedUser?.FirstName @selectedUser?.LastName
-                </h2>
+                <h3 class="modal-title-modern">
+                    <i class="fas fa-key"></i> Gestionar Permisos - @selectedUser.FirstName @selectedUser.LastName
+                </h3>
                 <button type="button" class="btn-close-modern" @onclick="CloseModal">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
 
             <div class="modal-body-modern">
-                @if (isLoading)
-                {
-                    <div class="loading-container">
-                        <div class="loading-spinner"></div>
-                        <p>Cargando permisos...</p>
+                <!-- Pestañas del modal -->
+                <div class="tab-container">
+                    <div class="tab-headers">
+                        <button class="tab-header @GetTabActiveClass("individual")"
+                                @onclick="@(() => SetActiveModalTab("individual"))">
+                            <i class="fas fa-user"></i> Permisos Individuales
+                        </button>
+                        <button class="tab-header @GetTabActiveClass("effective")"
+                                @onclick="@(() => SetActiveModalTab("effective"))">
+                            <i class="fas fa-eye"></i> Permisos Efectivos
+                        </button>
+                        <button class="tab-header @GetTabActiveClass("bulk")"
+                                @onclick="@(() => SetActiveModalTab("bulk"))">
+                            <i class="fas fa-list"></i> Asignación Masiva
+                        </button>
                     </div>
-                }
-                else
-                {
-                    <div class="permission-tabs">
-                        <div class="tab-headers">
-                            <button class="tab-header @(activeTab == "individual" ? "active" : "")"
-                                    @onclick="@(() => SetActiveTab(" individual"))">
-                                <i class="fas fa-user"></i> Permisos Individuales
-                            </button>
-                            <button class="tab-header @(activeTab == "effective" ? "active" : "")"
-                                    @onclick="@(() => SetActiveTab(" effective"))">
-                                <i class="fas fa-eye"></i> Permisos Efectivos
-                            </button>
-                            <button class="tab-header @(activeTab == "bulk" ? "active" : "")"
-                                    @onclick="@(() => SetActiveTab("bulk"))">
-                                <i class="fas fa-layer-group"></i> Asignación Masiva
-                            </button>
-                        </div>
 
-                        <div class="tab-content">
-                            @if (activeTab == "individual")
-                            {
-                                <div class="permission-grid">
-                                    <div class="grid-header">
-                                        <span>Página/Módulo</span>
-                                        <span>Ver</span>
-                                        <span>Crear</span>
-                                        <span>Editar</span>
-                                        <span>Eliminar</span>
+                    <div class="tab-content" style="min-height: 400px; margin-top: 1rem;">
+                        @if (activeModalTab == "individual")
+                        {
+                            <div class="tab-pane">
+                                @if (isLoadingPermissions)
+                                {
+                                    <div class="loading-container">
+                                        <div class="loading-spinner"></div>
+                                        <p>Cargando permisos individuales...</p>
                                     </div>
-
-                                    @if (navigationItems != null)
-                                    {
-                                        @foreach (var item in navigationItems.Where(i => i.ParentId == null).OrderBy(i => i.Order))
+                                }
+                                else if (userPermissions != null && userPermissions.Any())
+                                {
+                                    <div class="permissions-list">
+                                        @foreach (var permission in userPermissions)
                                         {
-                                            <div class="permission-row parent-row">
-                                                <div class="item-info">
-                                                    @if (!string.IsNullOrEmpty(item.Icon))
-                                                    {
-                                                        <i class="@item.Icon"></i>
-                                                    }
-                                                    <span class="item-title">@item.Title</span>
+                                            <div class="permission-item">
+                                                <div class="permission-header">
+                                                    <h5>@permission.NavigationItemTitle</h5>
+                                                    <small class="text-muted">ID: @permission.NavigationItemId</small>
                                                 </div>
-                                                @{
-                                                    var permission = GetPermissionForItem(item.Id);
-                                                }
-                                                <label class="permission-checkbox">
-                                                    <input type="checkbox"
-                                                           checked="@permission.CanView"
-                                                           @onchange="@(async (e) => await UpdatePermission(item.Id, nameof(permission.CanView), (bool)e.Value!))" />
-                                                </label>
-                                                <label class="permission-checkbox">
-                                                    <input type="checkbox"
-                                                           checked="@permission.CanCreate"
-                                                           @onchange="@(async (e) => await UpdatePermission(item.Id, nameof(permission.CanCreate), (bool)e.Value!))" />
-                                                </label>
-                                                <label class="permission-checkbox">
-                                                    <input type="checkbox"
-                                                           checked="@permission.CanEdit"
-                                                           @onchange="@(async (e) => await UpdatePermission(item.Id, nameof(permission.CanEdit), (bool)e.Value!))" />
-                                                </label>
-                                                <label class="permission-checkbox">
-                                                    <input type="checkbox"
-                                                           checked="@permission.CanDelete"
-                                                           @onchange="@(async (e) => await UpdatePermission(item.Id, nameof(permission.CanDelete), (bool)e.Value!))" />
-                                                </label>
-                                            </div>
-
-                                            @foreach (var child in item.Children.OrderBy(c => c.Order))
-                                            {
-                                                <div class="permission-row child-row">
-                                                    <div class="item-info">
-                                                        <i class="fas fa-arrow-right child-arrow"></i>
-                                                        @if (!string.IsNullOrEmpty(child.Icon))
-                                                        {
-                                                            <i class="@child.Icon"></i>
-                                                        }
-                                                        <span class="item-title">@child.Title</span>
+                                                <div class="permission-checkboxes">
+                                                    <div class="form-check">
+                                                        <input type="checkbox" class="form-check-input" @bind="permission.CanView" />
+                                                        <label class="form-check-label">Ver</label>
                                                     </div>
-                                                    @{
-                                                        var childPermission = GetPermissionForItem(child.Id);
-                                                    }
-                                                    <label class="permission-checkbox">
-                                                        <input type="checkbox"
-                                                               checked="@childPermission.CanView"
-                                                               @onchange="@(async (e) => await UpdatePermission(child.Id, nameof(childPermission.CanView), (bool)e.Value!))" />
-                                                    </label>
-                                                    <label class="permission-checkbox">
-                                                        <input type="checkbox"
-                                                               checked="@childPermission.CanCreate"
-                                                               @onchange="@(async (e) => await UpdatePermission(child.Id, nameof(childPermission.CanCreate), (bool)e.Value!))" />
-                                                    </label>
-                                                    <label class="permission-checkbox">
-                                                        <input type="checkbox"
-                                                               checked="@childPermission.CanEdit"
-                                                               @onchange="@(async (e) => await UpdatePermission(child.Id, nameof(childPermission.CanEdit), (bool)e.Value!))" />
-                                                    </label>
-                                                    <label class="permission-checkbox">
-                                                        <input type="checkbox"
-                                                               checked="@childPermission.CanDelete"
-                                                               @onchange="@(async (e) => await UpdatePermission(child.Id, nameof(childPermission.CanDelete), (bool)e.Value!))" />
-                                                    </label>
+                                                    <div class="form-check">
+                                                        <input type="checkbox" class="form-check-input" @bind="permission.CanCreate" />
+                                                        <label class="form-check-label">Crear</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input type="checkbox" class="form-check-input" @bind="permission.CanEdit" />
+                                                        <label class="form-check-label">Editar</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input type="checkbox" class="form-check-input" @bind="permission.CanDelete" />
+                                                        <label class="form-check-label">Eliminar</label>
+                                                    </div>
                                                 </div>
-                                            }
+                                            </div>
                                         }
-                                    }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="empty-state">
+                                        <i class="fas fa-lock"></i>
+                                        <p>Este usuario no tiene permisos individuales asignados</p>
+                                        <small class="text-muted">Los permisos pueden venir de sus roles</small>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else if (activeModalTab == "effective")
+                        {
+                            <div class="tab-pane">
+                                <div class="tab-description">
+                                    <p><strong>Permisos Efectivos</strong> - Combinación de permisos directos y permisos heredados de roles</p>
                                 </div>
-                            }
-                            else if (activeTab == "effective")
-                            {
-                                <div class="effective-permissions">
-                                    <p class="info-text">
-                                        <i class="fas fa-info-circle"></i>
-                                        Los permisos efectivos combinan los permisos del rol y los permisos individuales del usuario.
-                                    </p>
 
-                                    @if (effectivePermissions != null)
-                                    {
-                                        @foreach (var permission in effectivePermissions.Where(p => p.ParentId == null))
+                                @if (isLoadingEffective)
+                                {
+                                    <div class="loading-container">
+                                        <div class="loading-spinner"></div>
+                                        <p>Cargando permisos efectivos...</p>
+                                    </div>
+                                }
+                                else if (effectivePermissions != null && effectivePermissions.Any())
+                                {
+                                    <div class="permissions-list">
+                                        @foreach (var permission in effectivePermissions)
                                         {
-                                            <div class="effective-item">
-                                                <div class="item-header">
-                                                    @if (!string.IsNullOrEmpty(permission.NavigationItemIcon))
-                                                    {
-                                                        <i class="@permission.NavigationItemIcon"></i>
-                                                    }
-                                                    <span class="item-name">@permission.NavigationItemTitle</span>
+                                            <div class="permission-item effective">
+                                                <div class="permission-header">
+                                                    <h5>
+                                                        @if (!string.IsNullOrEmpty(permission.NavigationItemTitle))
+                                                        {
+                                                            @permission.NavigationItemTitle
+                                                        }
+                                                        else
+                                                        {
+                                                            <text>Item ID: @permission.NavigationItemId</text>
+                                                        }
+                                                    </h5>
+                                                    <span class="badge badge-info">Efectivo</span>
                                                 </div>
-                                                <div class="permission-badges">
+                                                <div class="permission-display">
                                                     @if (permission.CanView)
                                                     {
-                                                        <span class="permission-badge view">Ver</span>
+                                                        <span class="badge badge-success">Ver</span>
                                                     }
                                                     @if (permission.CanCreate)
                                                     {
-                                                        <span class="permission-badge create">Crear</span>
+                                                        <span class="badge badge-success">Crear</span>
                                                     }
                                                     @if (permission.CanEdit)
                                                     {
-                                                        <span class="permission-badge edit">Editar</span>
+                                                        <span class="badge badge-success">Editar</span>
                                                     }
                                                     @if (permission.CanDelete)
                                                     {
-                                                        <span class="permission-badge delete">Eliminar</span>
+                                                        <span class="badge badge-success">Eliminar</span>
                                                     }
                                                     @if (!permission.CanView && !permission.CanCreate && !permission.CanEdit && !permission.CanDelete)
                                                     {
-                                                        <span class="permission-badge none">Sin acceso</span>
+                                                        <span class="badge badge-secondary">Sin permisos</span>
                                                     }
                                                 </div>
                                             </div>
-
-                                            @foreach (var child in permission.Children)
-                                            {
-                                                <div class="effective-item child">
-                                                    <div class="item-header">
-                                                        <i class="fas fa-arrow-right"></i>
-                                                        @if (!string.IsNullOrEmpty(child.NavigationItemIcon))
-                                                        {
-                                                            <i class="@child.NavigationItemIcon"></i>
-                                                        }
-                                                        <span class="item-name">@child.NavigationItemTitle</span>
-                                                    </div>
-                                                    <div class="permission-badges">
-                                                        @if (child.CanView)
-                                                        {
-                                                            <span class="permission-badge view">Ver</span>
-                                                        }
-                                                        @if (child.CanCreate)
-                                                        {
-                                                            <span class="permission-badge create">Crear</span>
-                                                        }
-                                                        @if (child.CanEdit)
-                                                        {
-                                                            <span class="permission-badge edit">Editar</span>
-                                                        }
-                                                        @if (child.CanDelete)
-                                                        {
-                                                            <span class="permission-badge delete">Eliminar</span>
-                                                        }
-                                                        @if (!child.CanView && !child.CanCreate && !child.CanEdit && !child.CanDelete)
-                                                        {
-                                                            <span class="permission-badge none">Sin acceso</span>
-                                                        }
-                                                    </div>
-                                                </div>
-                                            }
                                         }
-                                    }
-                                </div>
-                            }
-                            else if (activeTab == "bulk")
-                            {
-                                <div class="bulk-assignment">
-                                    <div class="bulk-controls">
-                                        <h4>Asignación Masiva de Permisos</h4>
-                                        <p>Selecciona las páginas y los permisos que deseas asignar:</p>
-
-                                        <div class="permission-preset">
-                                            <label>Tipo de Permiso:</label>
-                                            <div class="preset-buttons">
-                                                <button class="btn-preset" @onclick="() => SetBulkPermissions(true, false, false, false)">
-                                                    Solo Ver
-                                                </button>
-                                                <button class="btn-preset" @onclick="() => SetBulkPermissions(true, true, true, false)">
-                                                    Ver, Crear, Editar
-                                                </button>
-                                                <button class="btn-preset" @onclick="() => SetBulkPermissions(true, true, true, true)">
-                                                    Acceso Completo
-                                                </button>
-                                                <button class="btn-preset danger" @onclick="() => SetBulkPermissions(false, false, false, false)">
-                                                    Sin Acceso
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <div class="bulk-permissions">
-                                            <div class="permission-checkboxes">
-                                                <label>
-                                                    <input type="checkbox" @bind="bulkCanView" />
-                                                    Ver
-                                                </label>
-                                                <label>
-                                                    <input type="checkbox" @bind="bulkCanCreate" />
-                                                    Crear
-                                                </label>
-                                                <label>
-                                                    <input type="checkbox" @bind="bulkCanEdit" />
-                                                    Editar
-                                                </label>
-                                                <label>
-                                                    <input type="checkbox" @bind="bulkCanDelete" />
-                                                    Eliminar
-                                                </label>
-                                            </div>
-                                        </div>
-
-                                        <div class="page-selection">
-                                            <h5>Seleccionar Páginas:</h5>
-                                            <div class="selection-controls">
-                                                <button class="btn-small" @onclick="SelectAllPages">Seleccionar Todas</button>
-                                                <button class="btn-small" @onclick="ClearAllPages">Limpiar Selección</button>
-                                            </div>
-
-                                            <div class="page-list">
-                                                @if (navigationItems != null)
-                                                {
-                                                    @foreach (var item in navigationItems.Where(i => i.ParentId == null).OrderBy(i => i.Order))
-                                                    {
-                                                        <div class="page-item">
-                                                            <label class="page-checkbox">
-                                                                <input type="checkbox" @bind="selectedPageIds[item.Id]" />
-                                                                @if (!string.IsNullOrEmpty(item.Icon))
-                                                                {
-                                                                    <i class="@item.Icon"></i>
-                                                                }
-                                                                @item.Title
-                                                            </label>
-
-                                                            @foreach (var child in item.Children.OrderBy(c => c.Order))
-                                                            {
-                                                                <div class="child-page-item">
-                                                                    <label class="page-checkbox">
-                                                                        <input type="checkbox" @bind="selectedPageIds[child.Id]" />
-                                                                        <i class="fas fa-arrow-right"></i>
-                                                                        @if (!string.IsNullOrEmpty(child.Icon))
-                                                                        {
-                                                                            <i class="@child.Icon"></i>
-                                                                        }
-                                                                        @child.Title
-                                                                    </label>
-                                                                </div>
-                                                            }
-                                                        </div>
-                                                    }
-                                                }
-                                            </div>
-                                        </div>
-
-                                        <button class="btn-modern btn-primary-modern" @onclick="ApplyBulkPermissions" disabled="@isSaving">
-                                            @if (isSaving)
-                                            {
-                                                <div class="spinner-border"></div>
-                                                <span>Aplicando...</span>
-                                            }
-                                            else
-                                            {
-                                                <i class="fas fa-save"></i>
-                                                <span>Aplicar Permisos</span>
-                                            }
-                                        </button>
                                     </div>
-                                </div>
-                            }
-                        </div>
+                                }
+                                else
+                                {
+                                    <div class="empty-state">
+                                        <i class="fas fa-ban"></i>
+                                        <p>Este usuario no tiene permisos efectivos</p>
+                                        <small class="text-muted">Puede que necesite roles asignados o permisos directos</small>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else if (activeModalTab == "bulk")
+                        {
+                            <div class="tab-pane">
+                                <h4>Asignación Masiva de Permisos</h4>
+                                <p class="text-muted">Seleccione los elementos de navegación y los tipos de permisos a asignar:</p>
+
+                                @if (isLoadingBulk)
+                                {
+                                    <div class="loading-container">
+                                        <div class="loading-spinner"></div>
+                                        <p>Cargando elementos de navegación...</p>
+                                    </div>
+                                }
+                                else if (availableNavigationItems != null && availableNavigationItems.Any())
+                                {
+                                    <div class="bulk-assignment-section">
+                                        <!-- Seleccionar todos los permisos -->
+                                        <div class="bulk-controls">
+                                            <div class="permission-type-selector">
+                                                <h5>Tipos de Permisos:</h5>
+                                                <div class="permission-checkboxes">
+                                                    <div class="form-check">
+                                                        <input type="checkbox" class="form-check-input" @bind="bulkCanView" />
+                                                        <label class="form-check-label">Ver</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input type="checkbox" class="form-check-input" @bind="bulkCanCreate" />
+                                                        <label class="form-check-label">Crear</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input type="checkbox" class="form-check-input" @bind="bulkCanEdit" />
+                                                        <label class="form-check-label">Editar</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input type="checkbox" class="form-check-input" @bind="bulkCanDelete" />
+                                                        <label class="form-check-label">Eliminar</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="bulk-actions">
+                                                <button type="button" class="btn btn-sm btn-outline-primary" @onclick="SelectAllNavigationItems">
+                                                    Seleccionar Todos
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ClearAllNavigationItems">
+                                                    Limpiar Selección
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Lista de elementos de navegación -->
+                                        <div class="navigation-items-list">
+                                            <h5>Elementos de Navegación:</h5>
+                                            @foreach (var item in availableNavigationItems)
+                                            {
+                                                <div class="navigation-item-checkbox">
+                                                    <div class="form-check">
+                                                        <input type="checkbox" class="form-check-input"
+                                                               @bind="item.IsSelected"
+                                                               id="nav-@item.Id" />
+                                                        <label class="form-check-label" for="nav-@item.Id">
+                                                            @if (!string.IsNullOrEmpty(item.Icon))
+                                                            {
+                                                                <i class="@item.Icon"></i>
+                                                            }
+                                                            @item.Title
+                                                            @if (!string.IsNullOrEmpty(item.RequiredRole))
+                                                            {
+                                                                <span class="badge badge-warning">@item.RequiredRole</span>
+                                                            }
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+
+                                        <!-- Botón de asignación -->
+                                        <div class="bulk-assignment-footer">
+                                            <button type="button"
+                                                    class="btn-modern btn-primary-modern"
+                                                    @onclick="ApplyBulkAssignment"
+                                                    disabled="@(isApplyingBulk || !HasSelectedItems() || !HasSelectedPermissions())">
+                                                @if (isApplyingBulk)
+                                                {
+                                                    <div class="spinner-border"></div>
+                                                    <text>Aplicando...</text>
+                                                }
+                                                else
+                                                {
+                                                    <i class="fas fa-check"></i>
+                                                    <text>Aplicar Permisos (@GetSelectedItemsCount() elementos)</text>
+                                                }
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="empty-state">
+                                        <i class="fas fa-sitemap"></i>
+                                        <p>No hay elementos de navegación disponibles</p>
+                                    </div>
+                                }
+                            </div>
+                        }
                     </div>
-                }
+                </div>
             </div>
 
             <div class="modal-footer-modern">
-                <button type="button" class="btn-modern btn-secondary-modern" @onclick="CloseModal" disabled="@isSaving">
-                    <i class="fas fa-times"></i> Cerrar
-                </button>
-                @if (activeTab == "individual")
+                @if (activeModalTab == "individual" && userPermissions != null && userPermissions.Any())
                 {
                     <button type="button" class="btn-modern btn-primary-modern" @onclick="SavePermissions" disabled="@isSaving">
                         @if (isSaving)
                         {
                             <div class="spinner-border"></div>
-                            <span>Guardando...</span>
+                            <text>Guardando...</text>
                         }
                         else
                         {
                             <i class="fas fa-save"></i>
-                            <span>Guardar Cambios</span>
+                            <text>Guardar Cambios</text>
                         }
                     </button>
                 }
+                <button type="button" class="btn-modern btn-secondary-modern" @onclick="CloseModal">
+                    Cerrar
+                </button>
             </div>
         </div>
     </div>
 }
 
-<style>
-    .permission-tabs .tab-headers {
-        display: flex;
-        border-bottom: 2px solid #e0e0e0;
-        margin-bottom: 1.5rem;
-    }
-
-    .permission-tabs .tab-header {
-        padding: 0.75rem 1rem;
-        background: transparent;
-        border: none;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        color: #7f8c8d;
-        border-bottom: 3px solid transparent;
-    }
-
-        .permission-tabs .tab-header.active {
-            color: #667eea;
-            border-bottom-color: #667eea;
-            background: rgba(102, 126, 234, 0.1);
-        }
-
-    .permission-grid {
-        display: grid;
-        grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
-        gap: 0.5rem;
-        align-items: center;
-    }
-
-    .grid-header {
-        display: contents;
-        font-weight: 600;
-        color: #2c3e50;
-    }
-
-        .grid-header > span {
-            padding: 1rem 0.5rem;
-            border-bottom: 2px solid #e0e0e0;
-            text-align: center;
-        }
-
-            .grid-header > span:first-child {
-                text-align: left;
-            }
-
-    .permission-row {
-        display: contents;
-    }
-
-        .permission-row.parent-row .item-info {
-            font-weight: 600;
-            color: #2c3e50;
-        }
-
-        .permission-row.child-row .item-info {
-            color: #7f8c8d;
-            padding-left: 1rem;
-        }
-
-        .permission-row > * {
-            padding: 0.75rem 0.5rem;
-            border-bottom: 1px solid #f0f0f0;
-        }
-
-    .item-info {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .child-arrow {
-        color: #bdc3c7;
-        font-size: 0.8rem;
-    }
-
-    .permission-checkbox {
-        display: flex;
-        justify-content: center;
-        cursor: pointer;
-    }
-
-        .permission-checkbox input {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-        }
-
-    .effective-permissions {
-        max-height: 400px;
-        overflow-y: auto;
-    }
-
-    .info-text {
-        background: #e8f4fd;
-        padding: 1rem;
-        border-radius: 8px;
-        border-left: 4px solid #2196f3;
-        margin-bottom: 1.5rem;
-        color: #1976d2;
-    }
-
-    .effective-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.75rem;
-        border-bottom: 1px solid #f0f0f0;
-    }
-
-        .effective-item.child {
-            padding-left: 2rem;
-            background: #fafafa;
-        }
-
-    .item-header {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        flex: 1;
-    }
-
-    .permission-badges {
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-    }
-
-    .permission-badge {
-        padding: 0.25rem 0.5rem;
-        border-radius: 12px;
-        font-size: 0.75rem;
-        font-weight: 600;
-    }
-
-        .permission-badge.view {
-            background: #e8f5e8;
-            color: #2e7d32;
-        }
-
-        .permission-badge.create {
-            background: #e3f2fd;
-            color: #1976d2;
-        }
-
-        .permission-badge.edit {
-            background: #fff3e0;
-            color: #f57c00;
-        }
-
-        .permission-badge.delete {
-            background: #ffebee;
-            color: #c62828;
-        }
-
-        .permission-badge.none {
-            background: #f5f5f5;
-            color: #9e9e9e;
-        }
-
-    .bulk-assignment {
-        max-height: 500px;
-        overflow-y: auto;
-    }
-
-    .permission-preset {
-        margin-bottom: 1.5rem;
-    }
-
-    .preset-buttons {
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-        margin-top: 0.5rem;
-    }
-
-    .btn-preset {
-        padding: 0.5rem 1rem;
-        border: 2px solid #e0e0e0;
-        background: white;
-        border-radius: 20px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        font-size: 0.85rem;
-    }
-
-        .btn-preset:hover {
-            border-color: #667eea;
-            background: rgba(102, 126, 234, 0.1);
-        }
-
-        .btn-preset.danger {
-            border-color: #e74c3c;
-            color: #e74c3c;
-        }
-
-            .btn-preset.danger:hover {
-                background: rgba(231, 76, 60, 0.1);
-            }
-
-    .bulk-permissions {
-        margin-bottom: 1.5rem;
-    }
-
-    .permission-checkboxes {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-    }
-
-        .permission-checkboxes label {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            cursor: pointer;
-        }
-
-    .page-selection h5 {
-        margin-bottom: 0.5rem;
-    }
-
-    .selection-controls {
-        display: flex;
-        gap: 0.5rem;
-        margin-bottom: 1rem;
-    }
-
-    .btn-small {
-        padding: 0.25rem 0.75rem;
-        font-size: 0.8rem;
-        border: 1px solid #e0e0e0;
-        background: white;
-        border-radius: 4px;
-        cursor: pointer;
-    }
-
-    .page-list {
-        max-height: 200px;
-        overflow-y: auto;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        padding: 0.5rem;
-    }
-
-    .page-item {
-        margin-bottom: 0.5rem;
-    }
-
-    .child-page-item {
-        margin-left: 1.5rem;
-        margin-top: 0.25rem;
-    }
-
-    .page-checkbox {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        cursor: pointer;
-        padding: 0.25rem;
-        border-radius: 4px;
-        transition: background 0.2s ease;
-    }
-
-        .page-checkbox:hover {
-            background: rgba(102, 126, 234, 0.1);
-        }
-
-    .loading-container {
-        text-align: center;
-        padding: 3rem;
-        color: #7f8c8d;
-    }
-
-    /* Estilos adicionales para el modal */
-    .modal-modern {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.5);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 1050;
-    }
-
-    .modal-content-modern {
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .modal-header-modern {
-        padding: 1.5rem;
-        border-bottom: 1px solid #e0e0e0;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: #f8f9fa;
-    }
-
-    .modal-title-modern {
-        margin: 0;
-        color: #2c3e50;
-        font-size: 1.5rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .btn-close-modern {
-        background: transparent;
-        border: none;
-        font-size: 1.5rem;
-        color: #6c757d;
-        cursor: pointer;
-        padding: 0.5rem;
-        transition: color 0.3s ease;
-    }
-
-        .btn-close-modern:hover {
-            color: #dc3545;
-        }
-
-    .modal-body-modern {
-        padding: 1.5rem;
-        overflow-y: auto;
-        flex: 1;
-    }
-
-    .modal-footer-modern {
-        padding: 1rem 1.5rem;
-        border-top: 1px solid #e0e0e0;
-        display: flex;
-        justify-content: flex-end;
-        gap: 0.5rem;
-        background: #f8f9fa;
-    }
-
-    .btn-modern {
-        padding: 0.625rem 1.25rem;
-        border: none;
-        border-radius: 8px;
-        font-weight: 600;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        font-size: 0.875rem;
-    }
-
-    .btn-primary-modern {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-    }
-
-        .btn-primary-modern:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-    .btn-secondary-modern {
-        background: #6c757d;
-        color: white;
-    }
-
-        .btn-secondary-modern:hover:not(:disabled) {
-            background: #5a6268;
-        }
-
-    .btn-modern:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
-
-    .spinner-border {
-        width: 1rem;
-        height: 1rem;
-        border: 2px solid #f3f3f3;
-        border-top: 2px solid #333;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-    }
-
-    @@keyframes spin {
-        0%
-
-    {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
-
-    }
-</style>
-
 @code {
-    [Parameter] public bool showModal { get; set; }
-    [Parameter] public EventCallback<bool> showModalChanged { get; set; }
+    [Parameter] public bool showModal { get; set; } = false;
     [Parameter] public UserDTO? selectedUser { get; set; }
+    [Parameter] public EventCallback OnModalClosed { get; set; }
 
-    private string activeTab = "individual";
-    private bool isLoading = true;
+    private string activeModalTab = "individual";
+    private bool isLoadingPermissions = false;
+    private bool isLoadingEffective = false;
+    private bool isLoadingBulk = false;
     private bool isSaving = false;
+    private bool isApplyingBulk = false;
 
-    private List<NavigationItemDto>? navigationItems;
-    private List<NavigationPermissionDto>? effectivePermissions;
-    private Dictionary<int, NavigationPermissionDto> userPermissions = new();
-    private Dictionary<int, bool> selectedPageIds = new();
+    private List<NavigationPermissionDto> userPermissions = new();
+    private List<NavigationPermissionDto> effectivePermissions = new();
+    private List<BulkNavigationItem> availableNavigationItems = new();
 
-    // Bulk assignment properties
+    // Propiedades para asignación masiva
     private bool bulkCanView = false;
     private bool bulkCanCreate = false;
     private bool bulkCanEdit = false;
     private bool bulkCanDelete = false;
 
+    // Clase auxiliar para elementos de navegación con selección
+    public class BulkNavigationItem
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = "";
+        public string? Icon { get; set; }
+        public string? RequiredRole { get; set; }
+        public bool IsSelected { get; set; } = false;
+    }
+
     protected override async Task OnParametersSetAsync()
     {
-        if (showModal && selectedUser != null)
+        if (showModal && selectedUser != null && activeModalTab == "individual")
         {
-            await LoadData();
+            await LoadUserPermissions();
         }
     }
 
-    private async Task LoadData()
+    private async Task LoadUserPermissions()
     {
+        if (selectedUser == null) return;
+
         try
         {
-            isLoading = true;
+            isLoadingPermissions = true;
             StateHasChanged();
 
-            // Cargar elementos de navegación
-            var navItems = await navigationRepository.GetAllAsync();
-            var lookup = navItems.ToLookup(i => i.ParentId);
+            var permissions = await permissionService.GetUserPermissionsAsync(selectedUser.UserId);
+            userPermissions = permissions?.Permissions?.ToList() ?? new List<NavigationPermissionDto>();
 
-            navigationItems = navItems.Where(i => i.ParentId == null)
-                .Select(item => new NavigationItemDto
-                {
-                    Id = item.Id,
-                    ParentId = item.ParentId,
-                    Title = item.Title ?? "",
-                    Url = item.Url,
-                    Icon = item.Icon,
-                    Order = item.Order,
-                    IsActive = item.IsActive,
-                    RequiredRole = item.RequiredRole,
-                    Children = lookup[item.Id].Select(child => new NavigationItemDto
-                    {
-                        Id = child.Id,
-                        ParentId = child.ParentId,
-                        Title = child.Title ?? "",
-                        Url = child.Url,
-                        Icon = child.Icon,
-                        Order = child.Order,
-                        IsActive = child.IsActive,
-                        RequiredRole = child.RequiredRole,
-                        Children = new List<NavigationItemDto>()
-                    }).ToList()
-                }).ToList();
-
-            // Inicializar diccionarios
-            userPermissions.Clear();
-            selectedPageIds.Clear();
-
-            // Inicializar permisos para todos los items
-            foreach (var item in navItems)
-            {
-                userPermissions[item.Id] = new NavigationPermissionDto
-                {
-                    NavigationItemId = item.Id,
-                    NavigationItemTitle = item.Title ?? "",
-                    NavigationItemUrl = item.Url,
-                    NavigationItemIcon = item.Icon,
-                    ParentId = item.ParentId
-                };
-                selectedPageIds[item.Id] = false;
-            }
-
-            // Cargar permisos específicos del usuario
-            try
-            {
-                var userPerms = await permissionService.GetUserPermissionsAsync(selectedUser.UserId);
-                foreach (var perm in userPerms.Permissions)
-                {
-                    if (userPermissions.ContainsKey(perm.NavigationItemId))
-                    {
-                        userPermissions[perm.NavigationItemId] = perm;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error loading user permissions: {ex.Message}");
-            }
-
-            // Cargar permisos efectivos
-            try
-            {
-                effectivePermissions = await permissionService.GetEffectivePermissionsAsync(selectedUser.UserId);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error loading effective permissions: {ex.Message}");
-                effectivePermissions = new List<NavigationPermissionDto>();
-            }
+            Console.WriteLine($"✅ Permisos cargados: {userPermissions.Count} items");
         }
         catch (Exception ex)
         {
-            await displayMessage.DisplayErrorMessage($"Error al cargar datos: {ex.Message}");
+            Console.WriteLine($"❌ Error cargando permisos: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al cargar permisos: {ex.Message}");
         }
         finally
         {
-            isLoading = false;
+            isLoadingPermissions = false;
             StateHasChanged();
         }
     }
 
-    private NavigationPermissionDto GetPermissionForItem(int itemId)
+    private async Task LoadEffectivePermissions()
     {
-        return userPermissions.GetValueOrDefault(itemId, new NavigationPermissionDto
+        if (selectedUser == null) return;
+
+        try
         {
-            NavigationItemId = itemId
-        });
+            isLoadingEffective = true;
+            StateHasChanged();
+
+            effectivePermissions = await permissionService.GetEffectivePermissionsAsync(selectedUser.UserId);
+            Console.WriteLine($"✅ Permisos efectivos cargados: {effectivePermissions.Count} items");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error cargando permisos efectivos: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al cargar permisos efectivos: {ex.Message}");
+        }
+        finally
+        {
+            isLoadingEffective = false;
+            StateHasChanged();
+        }
     }
 
-    private async Task UpdatePermission(int itemId, string permissionType, bool value)
+    private async Task SetActiveModalTab(string tab)
     {
-        if (!userPermissions.ContainsKey(itemId))
+        activeModalTab = tab;
+
+        if (tab == "effective" && effectivePermissions.Count == 0)
+        {
+            await LoadEffectivePermissions();
+        }
+        else if (tab == "bulk" && availableNavigationItems.Count == 0)
+        {
+            await LoadNavigationItemsForBulk();
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task LoadNavigationItemsForBulk()
+    {
+        if (selectedUser == null) return;
+
+        try
+        {
+            isLoadingBulk = true;
+            StateHasChanged();
+
+            // Simulamos la carga de elementos de navegación
+            // En una implementación real, cargarías desde tu API de navegación
+            availableNavigationItems = new List<BulkNavigationItem>
+            {
+                new BulkNavigationItem { Id = 1, Title = "Dashboard", Icon = "fas fa-tachometer-alt" },
+                new BulkNavigationItem { Id = 2, Title = "Administración", Icon = "fas fa-cogs" },
+                new BulkNavigationItem { Id = 3, Title = "Usuarios", Icon = "fas fa-users" },
+                new BulkNavigationItem { Id = 4, Title = "Roles", Icon = "fas fa-user-tag" },
+                new BulkNavigationItem { Id = 5, Title = "Permisos", Icon = "fas fa-key" },
+                new BulkNavigationItem { Id = 6, Title = "Navegación", Icon = "fas fa-sitemap" },
+                new BulkNavigationItem { Id = 7, Title = "Configuración", Icon = "fas fa-cog" }
+            };
+
+            Console.WriteLine($"✅ Elementos de navegación cargados: {availableNavigationItems.Count}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error cargando elementos de navegación: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al cargar elementos: {ex.Message}");
+        }
+        finally
+        {
+            isLoadingBulk = false;
+            StateHasChanged();
+        }
+    }
+
+    private void SelectAllNavigationItems()
+    {
+        foreach (var item in availableNavigationItems)
+        {
+            item.IsSelected = true;
+        }
+        StateHasChanged();
+    }
+
+    private void ClearAllNavigationItems()
+    {
+        foreach (var item in availableNavigationItems)
+        {
+            item.IsSelected = false;
+        }
+        StateHasChanged();
+    }
+
+    private bool HasSelectedItems()
+    {
+        return availableNavigationItems.Any(x => x.IsSelected);
+    }
+
+    private bool HasSelectedPermissions()
+    {
+        return bulkCanView || bulkCanCreate || bulkCanEdit || bulkCanDelete;
+    }
+
+    private int GetSelectedItemsCount()
+    {
+        return availableNavigationItems.Count(x => x.IsSelected);
+    }
+
+    private async Task ApplyBulkAssignment()
+    {
+        if (selectedUser == null || !HasSelectedItems() || !HasSelectedPermissions())
             return;
 
-        var permission = userPermissions[itemId];
-
-        switch (permissionType)
-        {
-            case nameof(NavigationPermissionDto.CanView):
-                permission.CanView = value;
-                break;
-            case nameof(NavigationPermissionDto.CanCreate):
-                permission.CanCreate = value;
-                break;
-            case nameof(NavigationPermissionDto.CanEdit):
-                permission.CanEdit = value;
-                break;
-            case nameof(NavigationPermissionDto.CanDelete):
-                permission.CanDelete = value;
-                break;
-        }
-
-        // Forzar actualización de la UI
-        StateHasChanged();
-    }
-
-    private void SetActiveTab(string tab)
-    {
-        activeTab = tab;
-        StateHasChanged();
-    }
-
-    private async Task SavePermissions()
-    {
-        if (selectedUser == null) return;
-
         try
         {
-            isSaving = true;
+            isApplyingBulk = true;
             StateHasChanged();
 
-            foreach (var permission in userPermissions.Values)
+            var selectedItems = availableNavigationItems.Where(x => x.IsSelected).ToList();
+            var selectedItemIds = selectedItems.Select(x => x.Id).ToList();
+
+            var bulkDto = new
             {
-                var dto = new UpdateUserPermissionDto
-                {
-                    UserId = selectedUser.UserId,
-                    NavigationItemId = permission.NavigationItemId,
-                    CanView = permission.CanView,
-                    CanCreate = permission.CanCreate,
-                    CanEdit = permission.CanEdit,
-                    CanDelete = permission.CanDelete
-                };
-
-                await permissionService.UpdateUserPermissionAsync(dto);
-            }
-
-            await displayMessage.DisplaySuccessMessage("Permisos actualizados correctamente");
-            await CloseModal();
-        }
-        catch (Exception ex)
-        {
-            await displayMessage.DisplayErrorMessage($"Error al guardar permisos: {ex.Message}");
-        }
-        finally
-        {
-            isSaving = false;
-            StateHasChanged();
-        }
-    }
-
-    private void SetBulkPermissions(bool canView, bool canCreate, bool canEdit, bool canDelete)
-    {
-        bulkCanView = canView;
-        bulkCanCreate = canCreate;
-        bulkCanEdit = canEdit;
-        bulkCanDelete = canDelete;
-        StateHasChanged();
-    }
-
-    private void SelectAllPages()
-    {
-        var keys = selectedPageIds.Keys.ToList();
-        foreach (var key in keys)
-        {
-            selectedPageIds[key] = true;
-        }
-        StateHasChanged();
-    }
-
-    private void ClearAllPages()
-    {
-        var keys = selectedPageIds.Keys.ToList();
-        foreach (var key in keys)
-        {
-            selectedPageIds[key] = false;
-        }
-        StateHasChanged();
-    }
-
-    private async Task ApplyBulkPermissions()
-    {
-        if (selectedUser == null) return;
-
-        try
-        {
-            isSaving = true;
-            StateHasChanged();
-
-            var selectedIds = selectedPageIds.Where(kvp => kvp.Value).Select(kvp => kvp.Key).ToList();
-
-            if (!selectedIds.Any())
-            {
-                await displayMessage.DisplayErrorMessage("Debe seleccionar al menos una página");
-                return;
-            }
-
-            var bulkDto = new BulkPermissionAssignmentDto
-            {
-                NavigationItemIds = selectedIds,
+                NavigationItemIds = selectedItemIds,
                 CanView = bulkCanView,
                 CanCreate = bulkCanCreate,
                 CanEdit = bulkCanEdit,
                 CanDelete = bulkCanDelete
             };
 
-            await permissionService.AssignBulkUserPermissionsAsync(selectedUser.UserId, bulkDto);
+            var json = JsonSerializer.Serialize(bulkDto);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            await displayMessage.DisplaySuccessMessage($"Permisos aplicados a {selectedIds.Count} páginas");
+            // Llamada a la API de asignación masiva usando HttpClient
+            var response = await httpClient.PostAsync($"/api/permissions/user/{selectedUser.UserId}/bulk-assign", content);
 
-            // Recargar datos
-            await LoadData();
+            if (response.IsSuccessStatusCode)
+            {
+                var message = $"✅ Permisos asignados exitosamente a {selectedItems.Count} elementos:\n\n";
+                message += string.Join("\n", selectedItems.Select(x => $"• {x.Title}"));
+
+                var permissionTypes = new List<string>();
+                if (bulkCanView) permissionTypes.Add("Ver");
+                if (bulkCanCreate) permissionTypes.Add("Crear");
+                if (bulkCanEdit) permissionTypes.Add("Editar");
+                if (bulkCanDelete) permissionTypes.Add("Eliminar");
+
+                message += $"\n\nPermisos: {string.Join(", ", permissionTypes)}";
+
+                await JSRuntime.InvokeVoidAsync("alert", message);
+
+                // Limpiar selecciones
+                ClearAllNavigationItems();
+                bulkCanView = bulkCanCreate = bulkCanEdit = bulkCanDelete = false;
+
+                // Recargar permisos individuales si está en esa pestaña
+                if (activeModalTab == "individual")
+                {
+                    await LoadUserPermissions();
+                }
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Error del servidor: {response.StatusCode} - {errorContent}");
+            }
         }
         catch (Exception ex)
         {
-            await displayMessage.DisplayErrorMessage($"Error al aplicar permisos masivos: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al aplicar asignación masiva: {ex.Message}");
+        }
+        finally
+        {
+            isApplyingBulk = false;
+            StateHasChanged();
+        }
+    }
+
+    private string GetTabActiveClass(string tab)
+    {
+        return activeModalTab == tab ? "active" : "";
+    }
+
+
+
+    private async Task SavePermissions()
+    {
+        if (selectedUser == null || !userPermissions.Any()) return;
+
+        try
+        {
+            isSaving = true;
+            StateHasChanged();
+
+            var saveCount = 0;
+            var errorCount = 0;
+
+            // Guardar cada permiso modificado usando HttpClient
+            foreach (var permission in userPermissions)
+            {
+                try
+                {
+                    var updateDto = new
+                    {
+                        UserId = selectedUser.UserId,
+                        NavigationItemId = permission.NavigationItemId,
+                        CanView = permission.CanView,
+                        CanCreate = permission.CanCreate,
+                        CanEdit = permission.CanEdit,
+                        CanDelete = permission.CanDelete
+                    };
+
+                    var json = JsonSerializer.Serialize(updateDto);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                    var response = await httpClient.PostAsync("/api/permissions/user/update", content);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        saveCount++;
+                        Console.WriteLine($"✅ Permiso guardado: {permission.NavigationItemTitle}");
+                    }
+                    else
+                    {
+                        var errorContent = await response.Content.ReadAsStringAsync();
+                        Console.WriteLine($"❌ Error guardando {permission.NavigationItemTitle}: {response.StatusCode} - {errorContent}");
+                        errorCount++;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"❌ Excepción guardando permiso {permission.NavigationItemTitle}: {ex.Message}");
+                    errorCount++;
+                }
+            }
+
+            var message = saveCount > 0
+                ? $"✅ {saveCount} permisos guardados exitosamente"
+                : "❌ No se pudieron guardar los permisos";
+
+            if (errorCount > 0)
+            {
+                message += $"\n⚠️ {errorCount} permisos tuvieron errores";
+            }
+
+            await JSRuntime.InvokeVoidAsync("alert", message);
+
+            if (saveCount > 0)
+            {
+                // Recargar permisos para mostrar los cambios guardados
+                await LoadUserPermissions();
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al guardar permisos: {ex.Message}");
         }
         finally
         {
@@ -1028,17 +623,231 @@
         }
     }
 
+
+
     private async Task CloseModal()
     {
-        showModal = false;
-        await showModalChanged.InvokeAsync(false);
-
-        // Limpiar datos
-        selectedUser = null;
-        activeTab = "individual";
+        // Reset state
+        activeModalTab = "individual";
         userPermissions.Clear();
-        selectedPageIds.Clear();
-        effectivePermissions = null;
-        navigationItems = null;
+        effectivePermissions.Clear();
+
+        // Notificar al padre que el modal se cerró
+        await OnModalClosed.InvokeAsync();
+    }
+
+    private async Task CloseModalBackground(MouseEventArgs e)
+    {
+        // Solo cerrar si el click fue en el background, no en el contenido
+        await CloseModal();
     }
 }
+
+<style>
+    .permission-item {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background: white;
+    }
+
+        .permission-item.effective {
+            border-left: 4px solid #17a2b8;
+            background: #f8fbff;
+            border: 1px solid #bee5eb;
+        }
+
+    .tab-description {
+        background: #e7f3ff;
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+        border-left: 4px solid #17a2b8;
+    }
+
+        .tab-description p {
+            margin: 0;
+            color: #0c5460;
+            font-size: 0.9rem;
+        }
+
+    .permission-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+
+        .permission-header h5 {
+            margin: 0;
+            color: #2c3e50;
+        }
+
+    .permission-checkboxes {
+        display: flex;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .permission-display {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .form-check {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .alert {
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border: 1px solid transparent;
+        border-radius: 0.375rem;
+    }
+
+    .alert-info {
+        color: #0c5460;
+        background-color: #d1ecf1;
+        border-color: #bee5eb;
+    }
+
+    /* Estilos para asignación masiva */
+    .bulk-assignment-section {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+
+    .bulk-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        gap: 2rem;
+    }
+
+    .permission-type-selector h5 {
+        margin: 0 0 0.75rem 0;
+        color: #2c3e50;
+    }
+
+    .bulk-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn {
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.375rem;
+        border: 1px solid;
+        cursor: pointer;
+        font-size: 0.875rem;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8125rem;
+    }
+
+    .btn-outline-primary {
+        color: #667eea;
+        border-color: #667eea;
+        background: transparent;
+    }
+
+        .btn-outline-primary:hover {
+            background: #667eea;
+            color: white;
+        }
+
+    .btn-outline-secondary {
+        color: #6c757d;
+        border-color: #6c757d;
+        background: transparent;
+    }
+
+        .btn-outline-secondary:hover {
+            background: #6c757d;
+            color: white;
+        }
+
+    .navigation-items-list {
+        margin-bottom: 1.5rem;
+    }
+
+        .navigation-items-list h5 {
+            margin: 0 0 1rem 0;
+            color: #2c3e50;
+        }
+
+    .navigation-item-checkbox {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        transition: all 0.2s ease;
+    }
+
+        .navigation-item-checkbox:hover {
+            background: #f8f9fa;
+            border-color: #667eea;
+        }
+
+        .navigation-item-checkbox .form-check-label {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            margin: 0;
+            font-weight: 500;
+        }
+
+    .badge {
+        display: inline-block;
+        padding: 0.35em 0.65em;
+        font-size: 0.75em;
+        font-weight: 600;
+        line-height: 1;
+        color: #fff;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: baseline;
+        border-radius: 0.375rem;
+        margin-right: 0.25rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .badge-success {
+        background-color: #28a745;
+        color: #fff;
+    }
+
+    .badge-secondary {
+        background-color: #6c757d;
+        color: #fff;
+    }
+
+    .badge-info {
+        background-color: #17a2b8;
+        color: #fff;
+    }
+
+    .badge-warning {
+        background-color: #ffc107;
+        color: #000;
+    }
+
+    .bulk-assignment-footer {
+        text-align: center;
+        padding-top: 1rem;
+        border-top: 1px solid #e0e0e0;
+    }
+</style>

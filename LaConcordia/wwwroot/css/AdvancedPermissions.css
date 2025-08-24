@@ -569,3 +569,134 @@
         font-size: 0.875rem;
     }
 }
+
+/* AGREGADR AL FINAL DE AdvancedPermissions.css - FIX PARA CONTENIDO VISIBLE */
+
+/* Forzar visibilidad del contenido de pestañas */
+.tab-content {
+    min-height: 400px !important;
+    display: block !important;
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-top: 1rem;
+}
+
+.tab-pane {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    min-height: 300px;
+    animation: fadeIn 0.3s ease;
+}
+
+/* Grid visible para usuarios */
+.user-permissions-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)) !important;
+    gap: 1.5rem !important;
+    margin-top: 1rem;
+}
+
+.user-permission-card {
+    display: block !important;
+    background: white !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 12px !important;
+    padding: 1.5rem !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Grid visible para roles */
+.roles-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+    gap: 1.5rem !important;
+    margin-top: 1rem;
+}
+
+.role-card {
+    display: block !important;
+    background: white !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 12px !important;
+    padding: 1.5rem !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Grid visible para herramientas */
+.tools-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)) !important;
+    gap: 1.5rem !important;
+    margin-top: 1rem;
+}
+
+.tool-card {
+    display: block !important;
+    background: white !important;
+    border: 1px solid #e0e0e0 !important;
+    border-radius: 12px !important;
+    padding: 2rem !important;
+    text-align: center !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Estado vacío visible */
+.empty-state {
+    display: block !important;
+    text-align: center !important;
+    padding: 3rem !important;
+    color: #7f8c8d !important;
+    background: white !important;
+    border-radius: 8px !important;
+    margin-top: 1rem !important;
+}
+
+    .empty-state i {
+        display: block !important;
+        font-size: 3rem !important;
+        color: #e0e0e0 !important;
+        margin-bottom: 1rem !important;
+    }
+
+/* Loading visible */
+.loading-container {
+    display: block !important;
+    text-align: center !important;
+    padding: 3rem !important;
+    color: #7f8c8d !important;
+    background: white !important;
+    border-radius: 8px !important;
+    margin-top: 1rem !important;
+}
+
+/* Debug: hacer visible todo */
+* {
+    box-sizing: border-box;
+}
+
+/* Asegurar que las pestañas funcionen */
+.tab-headers .tab-header.active {
+    background: rgba(102, 126, 234, 0.1) !important;
+    border-bottom: 3px solid #667eea !important;
+    color: #667eea !important;
+}
+
+/* Responsive para móvil */
+@media (max-width: 768px) {
+    .user-permissions-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .roles-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .tools-grid {
+        grid-template-columns: 1fr !important;
+    }
+}

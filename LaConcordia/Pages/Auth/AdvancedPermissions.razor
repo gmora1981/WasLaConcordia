@@ -31,14 +31,7 @@
             </div>
         </div>
 
-        @* AGREGADO: Indicador de debug para verificar inicialización *@
-        @if (isInitialized)
-        {
-            <div class="alert-modern alert-success">
-                <i class="fas fa-check-circle"></i>
-                Componente inicializado correctamente
-            </div>
-        }
+
 
         @if (!string.IsNullOrEmpty(errorMessage))
         {
@@ -66,13 +59,13 @@
         <div class="tab-container">
             <div class="tab-headers">
                 <button class="tab-header @(activeTab == "users" ? "active" : "")" @onclick="@(() => SetActiveTab("users"))">
-                    <i class="fas fa-users"></i> Permisos por Usuario
+                    <i class="fas fa-users"></i> Permisos por Usuario (@users.Count)
                 </button>
                 <button class="tab-header @(activeTab == "roles" ? "active" : "")" @onclick="@(() => SetActiveTab("roles"))">
-                    <i class="fas fa-user-tag"></i> Permisos por Rol
+                    <i class="fas fa-user-tag"></i> Permisos por Rol (@roles.Count)
                 </button>
                 <button class="tab-header @(activeTab == "navigation" ? "active" : "")" @onclick="@(() => SetActiveTab("navigation"))">
-                    <i class="fas fa-sitemap"></i> Items de Navegación
+                    <i class="fas fa-sitemap"></i> Items de Navegación (@navigationItems.Count)
                 </button>
                 <button class="tab-header @(activeTab == "tools" ? "active" : "")" @onclick="@(() => SetActiveTab("tools"))">
                     <i class="fas fa-tools"></i> Herramientas
@@ -80,10 +73,11 @@
             </div>
 
             <!-- Contenido de Pestañas -->
-            <div class="tab-content">
+            <div class="tab-content" style="min-height: 400px; background: #f8f9fa; padding: 1rem; border-radius: 8px;">
+                @* PESTAÑA USUARIOS - Mostrar siempre algo *@
                 @if (activeTab == "users")
                 {
-                    <div class="tab-pane">
+                    <div class="tab-pane" style="background: white; padding: 1.5rem; border-radius: 8px; min-height: 300px;">
                         <h3>Gestión de Permisos por Usuario</h3>
 
                         <div class="filter-section">
@@ -96,6 +90,8 @@
                             </button>
                         </div>
 
+
+
                         @if (isLoadingUsers)
                         {
                             <div class="loading-container">
@@ -103,58 +99,65 @@
                                 <p>Cargando usuarios...</p>
                             </div>
                         }
-                        else if (filteredUsers.Any())
-                        {
-                            <div class="user-permissions-grid">
-                                @foreach (var user in filteredUsers.Take(20))
-                                {
-                                    <div class="user-permission-card">
-                                        <div class="user-info">
-                                            <div class="user-avatar">
-                                                @user.FirstName.Substring(0, 1).ToUpper()
-                                            </div>
-                                            <div class="user-details">
-                                                <h4>@user.FirstName @user.LastName</h4>
-                                                <p>@user.Email</p>
-                                                @if (userRoles.ContainsKey(user.UserId))
-                                                {
-                                                    <div class="user-roles">
-                                                        @foreach (var role in userRoles[user.UserId])
-                                                        {
-                                                            <span class="role-badge">@role</span>
-                                                        }
-                                                    </div>
-                                                }
-                                            </div>
-                                        </div>
-                                        <div class="permission-actions">
-                                            <button class="btn-icon btn-edit" @onclick="() => ManageUserPermissions(user)" title="Gestionar Permisos">
-                                                <i class="fas fa-key"></i>
-                                            </button>
-                                            <button class="btn-icon btn-roles" @onclick="() => ViewUserPermissions(user)" title="Ver Permisos">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
-                                            <button class="btn-icon btn-secondary" @onclick="() => CopyUserPermissions(user)" title="Copiar Permisos">
-                                                <i class="fas fa-copy"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        }
                         else
                         {
-                            <div class="empty-state">
-                                <i class="fas fa-users-slash"></i>
-                                <p>No se encontraron usuarios</p>
-                            </div>
+                            @* MOSTRAR CONTENIDO AUNQUE NO HAYA DATOS *@
+                            @if (filteredUsers != null && filteredUsers.Any())
+                            {
+                                <div class="user-permissions-grid">
+                                    @foreach (var user in filteredUsers.Take(20))
+                                    {
+                                        <div class="user-permission-card">
+                                            <div class="user-info">
+                                                <div class="user-avatar">
+                                                    @((!string.IsNullOrEmpty(user.FirstName) ? user.FirstName.Substring(0, 1).ToUpper() : "?"))
+                                                </div>
+                                                <div class="user-details">
+                                                    <h4>@user.FirstName @user.LastName</h4>
+                                                    <p>@user.Email</p>
+                                                    @if (userRoles.ContainsKey(user.UserId))
+                                                    {
+                                                        <div class="user-roles">
+                                                            @foreach (var role in userRoles[user.UserId])
+                                                            {
+                                                                <span class="role-badge">@role</span>
+                                                            }
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </div>
+                                            <div class="permission-actions">
+                                                <button class="btn-icon btn-edit" @onclick="() => ManageUserPermissions(user)" title="Gestionar Permisos">
+                                                    <i class="fas fa-key"></i>
+                                                </button>
+                                                <button class="btn-icon btn-roles" @onclick="() => ViewUserPermissions(user)" title="Ver Permisos">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <button class="btn-icon btn-secondary" @onclick="() => CopyUserPermissions(user)" title="Copiar Permisos - FUNCIONAL">
+                                                    <i class="fas fa-copy"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="empty-state">
+                                    <i class="fas fa-users-slash"></i>
+                                    <p>No se encontraron usuarios</p>
+                                </div>
+                            }
                         }
                     </div>
                 }
+                @* PESTAÑA ROLES *@
                 else if (activeTab == "roles")
                 {
-                    <div class="tab-pane">
+                    <div class="tab-pane" style="background: white; padding: 1.5rem; border-radius: 8px; min-height: 300px;">
                         <h3>Gestión de Permisos por Rol</h3>
+
+
 
                         @if (isLoadingRoles)
                         {
@@ -163,49 +166,55 @@
                                 <p>Cargando roles...</p>
                             </div>
                         }
-                        else if (roles.Any())
-                        {
-                            <div class="roles-grid">
-                                @foreach (var role in roles)
-                                {
-                                    <div class="role-card">
-                                        <div class="role-header">
-                                            <h4>
-                                                <i class="fas @(role.RoleName == "Admin" ? "fa-crown" : "fa-user")"></i>
-                                                @role.RoleName
-                                            </h4>
-                                            <div class="role-actions">
-                                                <button class="btn-icon btn-edit" @onclick="() => ManageRolePermissions(role)" title="Gestionar Permisos">
-                                                    <i class="fas fa-cog"></i>
-                                                </button>
-                                                <button class="btn-icon btn-roles" @onclick="() => ViewRolePermissions(role)" title="Ver Permisos">
-                                                    <i class="fas fa-list"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div class="role-stats">
-                                            <p>Usuarios en este rol: <strong>@GetUsersInRoleCount(role.RoleName)</strong></p>
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        }
                         else
                         {
-                            <div class="empty-state">
-                                <i class="fas fa-user-tag"></i>
-                                <p>No se encontraron roles</p>
-                            </div>
+                            @if (roles != null && roles.Any())
+                            {
+                                <div class="roles-grid">
+                                    @foreach (var role in roles)
+                                    {
+                                        <div class="role-card">
+                                            <div class="role-header">
+                                                <h4>
+                                                    <i class="fas @(role.RoleName == "Admin" ? "fa-crown" : "fa-user")"></i>
+                                                    @role.RoleName
+                                                </h4>
+                                                <div class="role-actions">
+                                                    <button class="btn-icon btn-edit" @onclick="() => ManageRolePermissions(role)" title="Gestionar Permisos">
+                                                        <i class="fas fa-cog"></i>
+                                                    </button>
+                                                    <button class="btn-icon btn-roles" @onclick="() => ViewRolePermissions(role)" title="Ver Permisos">
+                                                        <i class="fas fa-list"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="role-stats">
+                                                <p>Usuarios en este rol: <strong>@GetUsersInRoleCount(role.RoleName)</strong></p>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="empty-state">
+                                    <i class="fas fa-user-tag"></i>
+                                    <p>No se encontraron roles</p>
+                                </div>
+                            }
                         }
                     </div>
                 }
+                @* PESTAÑA NAVEGACIÓN *@
                 else if (activeTab == "navigation")
                 {
-                    <div class="tab-pane">
+                    <div class="tab-pane" style="background: white; padding: 1.5rem; border-radius: 8px; min-height: 300px;">
                         <h3>Items de Navegación</h3>
                         <p style="margin-bottom: 1.5rem; color: #7f8c8d;">
                             Gestiona los elementos del menú de navegación y sus permisos asociados.
                         </p>
+
+
 
                         @if (isLoadingNavigation)
                         {
@@ -214,68 +223,72 @@
                                 <p>Cargando navegación...</p>
                             </div>
                         }
-                        else if (navigationItems.Any())
-                        {
-                            <div class="navigation-tree">
-                                @foreach (var item in navigationItems.Where(i => i.ParentId == null).OrderBy(i => i.Order))
-                                {
-                                    <div class="nav-tree-item">
-                                        <div class="nav-item-header">
-                                            @if (!string.IsNullOrEmpty(item.Icon))
-                                            {
-                                                <i class="@item.Icon"></i>
-                                            }
-                                            <span class="nav-title">@item.Title</span>
-                                            @if (!string.IsNullOrEmpty(item.RequiredRole))
-                                            {
-                                                <span class="permission-badge">@item.RequiredRole</span>
-                                            }
-                                            <button class="btn-icon btn-edit" @onclick="() => ManageNavigationPermissions(item)" title="Gestionar Permisos">
-                                                <i class="fas fa-key"></i>
-                                            </button>
-                                        </div>
-
-                                        @if (item.Children.Any())
-                                        {
-                                            <div class="nav-children">
-                                                @foreach (var child in item.Children.OrderBy(c => c.Order))
-                                                {
-                                                    <div class="nav-child-item">
-                                                        @if (!string.IsNullOrEmpty(child.Icon))
-                                                        {
-                                                            <i class="@child.Icon"></i>
-                                                        }
-                                                        <span>@child.Title</span>
-                                                        @if (!string.IsNullOrEmpty(child.RequiredRole))
-                                                        {
-                                                            <span class="permission-badge">@child.RequiredRole</span>
-                                                        }
-                                                        <button class="btn-icon btn-edit" @onclick="() => ManageNavigationPermissions(child)" title="Gestionar Permisos">
-                                                            <i class="fas fa-key"></i>
-                                                        </button>
-                                                    </div>
-                                                }
-                                            </div>
-                                        }
-                                    </div>
-                                }
-                            </div>
-                        }
                         else
                         {
-                            <div class="empty-state">
-                                <i class="fas fa-sitemap"></i>
-                                <p>No hay elementos de navegación configurados</p>
-                                <a href="/admin/navigation" class="btn-modern btn-primary-modern">
-                                    <i class="fas fa-plus"></i> Crear Elementos
-                                </a>
-                            </div>
+                            @if (navigationItems != null && navigationItems.Any())
+                            {
+                                <div class="navigation-tree">
+                                    @foreach (var item in navigationItems.Where(i => i.ParentId == null).OrderBy(i => i.Order))
+                                    {
+                                        <div class="nav-tree-item">
+                                            <div class="nav-item-header">
+                                                @if (!string.IsNullOrEmpty(item.Icon))
+                                                {
+                                                    <i class="@item.Icon"></i>
+                                                }
+                                                <span class="nav-title">@item.Title</span>
+                                                @if (!string.IsNullOrEmpty(item.RequiredRole))
+                                                {
+                                                    <span class="permission-badge">@item.RequiredRole</span>
+                                                }
+                                                <button class="btn-icon btn-edit" @onclick="() => ManageNavigationPermissions(item)" title="Gestionar Permisos">
+                                                    <i class="fas fa-key"></i>
+                                                </button>
+                                            </div>
+
+                                            @if (item.Children != null && item.Children.Any())
+                                            {
+                                                <div class="nav-children">
+                                                    @foreach (var child in item.Children.OrderBy(c => c.Order))
+                                                    {
+                                                        <div class="nav-child-item">
+                                                            @if (!string.IsNullOrEmpty(child.Icon))
+                                                            {
+                                                                <i class="@child.Icon"></i>
+                                                            }
+                                                            <span>@child.Title</span>
+                                                            @if (!string.IsNullOrEmpty(child.RequiredRole))
+                                                            {
+                                                                <span class="permission-badge">@child.RequiredRole</span>
+                                                            }
+                                                            <button class="btn-icon btn-edit" @onclick="() => ManageNavigationPermissions(child)" title="Gestionar Permisos">
+                                                                <i class="fas fa-key"></i>
+                                                            </button>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="empty-state">
+                                    <i class="fas fa-sitemap"></i>
+                                    <p>No hay elementos de navegación configurados</p>
+                                    <a href="/admin/navigation" class="btn-modern btn-primary-modern">
+                                        <i class="fas fa-plus"></i> Crear Elementos
+                                    </a>
+                                </div>
+                            }
                         }
                     </div>
                 }
+                @* PESTAÑA HERRAMIENTAS *@
                 else if (activeTab == "tools")
                 {
-                    <div class="tab-pane">
+                    <div class="tab-pane" style="background: white; padding: 1.5rem; border-radius: 8px; min-height: 300px;">
                         <h3>Herramientas de Gestión</h3>
 
                         <div class="tools-grid">
@@ -331,7 +344,12 @@
 </div>
 
 <!-- Modal de gestión de permisos de usuario -->
-<UserPermissionModal @bind-showModal="showPermissionModal" selectedUser="selectedUserForPermissions" />
+@if (showPermissionModal && selectedUserForPermissions != null)
+{
+    <UserPermissionModal showModal="showPermissionModal" 
+                        selectedUser="selectedUserForPermissions" 
+                        OnModalClosed="OnPermissionModalClosed" />
+}
 
 <!-- Modal de matriz de permisos -->
 <PermissionMatrixModal @bind-showModal="showMatrixModal" />
@@ -343,20 +361,20 @@
     private string activeTab = "users";
     private string? errorMessage;
     private string? successMessage;
-    private bool isInitialized = false; // AGREGADO: Flag para debug
+    private bool isInitialized = false;
 
-    // Loading states
-    private bool isLoadingUsers = true;
-    private bool isLoadingRoles = true;
-    private bool isLoadingNavigation = true;
+    // Loading states - CAMBIO: Inicializar en false
+    private bool isLoadingUsers = false;
+    private bool isLoadingRoles = false;
+    private bool isLoadingNavigation = false;
 
-    // Data collections
-    private List<UserDTO> users = new();
-    private List<UserDTO> filteredUsers = new();
-    private List<RoleDTO> roles = new();
-    private List<NavigationItemDto> navigationItems = new();
-    private Dictionary<string, List<string>> userRoles = new();
-    private Dictionary<string, int> roleUserCounts = new();
+    // Data collections - IMPORTANTE: Inicializar las listas
+    private List<UserDTO> users = new List<UserDTO>();
+    private List<UserDTO> filteredUsers = new List<UserDTO>();
+    private List<RoleDTO> roles = new List<RoleDTO>();
+    private List<NavigationItemDto> navigationItems = new List<NavigationItemDto>();
+    private Dictionary<string, List<string>> userRoles = new Dictionary<string, List<string>>();
+    private Dictionary<string, int> roleUserCounts = new Dictionary<string, int>();
 
     // Search and filters
     private string userSearchTerm = "";
@@ -367,53 +385,42 @@
     private bool showBulkModal = false;
     private UserDTO? selectedUserForPermissions;
 
-    // CORREGIDO: Usar OnInitializedAsync con manejo de errores mejorado
     protected override async Task OnInitializedAsync()
     {
         Console.WriteLine("🔥 OnInitializedAsync - INICIANDO");
 
         try
         {
+            // FORZAR actualización inmediata de UI
+            StateHasChanged();
+            
             await LoadAllData();
-            isInitialized = true; // AGREGADO: Marcar como inicializado
+            isInitialized = true;
             Console.WriteLine("✅ OnInitializedAsync - COMPLETADO");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"❌ OnInitializedAsync - ERROR: {ex.Message}");
-            errorMessage = $"Error al inicializar la página: {ex.Message}";
+            errorMessage = $"Error al inicializar: {ex.Message}";
         }
         finally
         {
-            StateHasChanged(); // AGREGADO: Forzar actualización de UI
+            StateHasChanged();
         }
     }
 
-    // CORREGIDO: Mejor manejo de errores y logging
     private async Task LoadAllData()
     {
         Console.WriteLine("🔄 LoadAllData - INICIANDO");
-
-        try
-        {
-            var tasks = new List<Task>
-            {
-                LoadUsers(),
-                LoadRoles(),
-                LoadNavigationItems()
-            };
-
-            await Task.WhenAll(tasks);
-            Console.WriteLine("✅ LoadAllData - TODAS LAS TAREAS COMPLETADAS");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"❌ LoadAllData - ERROR: {ex.Message}");
-            errorMessage = $"Error al cargar datos: {ex.Message}";
-        }
+        
+        // Ejecutar cargas en paralelo pero con mejor manejo de errores
+        await LoadUsers();
+        await LoadRoles();
+        await LoadNavigationItems();
+        
+        Console.WriteLine("✅ LoadAllData - COMPLETADO");
     }
 
-    // CORREGIDO: Mejor logging y manejo de errores
     private async Task LoadUsers()
     {
         Console.WriteLine("👤 LoadUsers - INICIANDO");
@@ -421,13 +428,22 @@
         try
         {
             isLoadingUsers = true;
-            StateHasChanged(); // AGREGADO: Actualizar UI inmediatamente
+            StateHasChanged();
 
             var paginationDTO = new PaginationDTO { Page = 1, RecordsPerPage = 100 };
             var response = await usersRepository.GetUsers(paginationDTO);
-            users = response.Response ?? new List<UserDTO>();
-
-            Console.WriteLine($"👤 LoadUsers - Usuarios obtenidos: {users.Count}");
+            
+            // VALIDACIÓN IMPORTANTE
+            if (response?.Response != null)
+            {
+                users = response.Response.ToList();
+                Console.WriteLine($"👤 LoadUsers - Usuarios obtenidos: {users.Count}");
+            }
+            else
+            {
+                users = new List<UserDTO>();
+                Console.WriteLine("⚠️ LoadUsers - Response nulo o vacío");
+            }
 
             // Cargar roles de usuarios
             userRoles.Clear();
@@ -451,9 +467,9 @@
         catch (Exception ex)
         {
             Console.WriteLine($"❌ LoadUsers - ERROR: {ex.Message}");
-            errorMessage = $"Error al cargar usuarios: {ex.Message}";
             users = new List<UserDTO>();
             filteredUsers = new List<UserDTO>();
+            // NO establecer errorMessage aquí para no sobrescribir otros errores
         }
         finally
         {
@@ -462,7 +478,6 @@
         }
     }
 
-    // CORREGIDO: Mejor logging y manejo de errores
     private async Task LoadRoles()
     {
         Console.WriteLine("🏷️ LoadRoles - INICIANDO");
@@ -472,24 +487,17 @@
             isLoadingRoles = true;
             StateHasChanged();
 
-            roles = await usersRepository.GetRoles() ?? new List<RoleDTO>();
+            var rolesResponse = await usersRepository.GetRoles();
+            roles = rolesResponse?.ToList() ?? new List<RoleDTO>();
             Console.WriteLine($"🏷️ LoadRoles - Roles obtenidos: {roles.Count}");
 
             // Cargar conteo de usuarios por rol
             roleUserCounts.Clear();
             foreach (var role in roles)
             {
-                try
-                {
-                    roleUserCounts[role.RoleName] = users.Count(u =>
-                        userRoles.ContainsKey(u.UserId) &&
-                        userRoles[u.UserId].Contains(role.RoleName));
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"⚠️ Error contando usuarios para rol {role.RoleName}: {ex.Message}");
-                    roleUserCounts[role.RoleName] = 0;
-                }
+                roleUserCounts[role.RoleName] = users.Count(u =>
+                    userRoles.ContainsKey(u.UserId) &&
+                    userRoles[u.UserId].Contains(role.RoleName));
             }
 
             Console.WriteLine("✅ LoadRoles - COMPLETADO");
@@ -497,7 +505,6 @@
         catch (Exception ex)
         {
             Console.WriteLine($"❌ LoadRoles - ERROR: {ex.Message}");
-            errorMessage = $"Error al cargar roles: {ex.Message}";
             roles = new List<RoleDTO>();
         }
         finally
@@ -507,7 +514,6 @@
         }
     }
 
-    // CORREGIDO: Mejor logging y manejo de errores
     private async Task LoadNavigationItems()
     {
         Console.WriteLine("🧭 LoadNavigationItems - INICIANDO");
@@ -522,39 +528,45 @@
 
             Console.WriteLine($"🧭 LoadNavigationItems - Items obtenidos: {itemsList.Count}");
 
-            // Construir estructura jerárquica
-            var lookup = itemsList.ToLookup(i => i.ParentId);
-            navigationItems = itemsList.Where(i => i.ParentId == null)
-                .Select(item => new NavigationItemDto
-                {
-                    Id = item.Id,
-                    ParentId = item.ParentId,
-                    Title = item.Title ?? "",
-                    Url = item.Url,
-                    Icon = item.Icon,
-                    Order = item.Order,
-                    IsActive = item.IsActive,
-                    RequiredRole = item.RequiredRole,
-                    Children = lookup[item.Id].Select(child => new NavigationItemDto
+            // Construir estructura jerárquica con validación
+            if (itemsList.Any())
+            {
+                var lookup = itemsList.ToLookup(i => i.ParentId);
+                navigationItems = itemsList.Where(i => i.ParentId == null)
+                    .Select(item => new NavigationItemDto
                     {
-                        Id = child.Id,
-                        ParentId = child.ParentId,
-                        Title = child.Title ?? "",
-                        Url = child.Url,
-                        Icon = child.Icon,
-                        Order = child.Order,
-                        IsActive = child.IsActive,
-                        RequiredRole = child.RequiredRole,
-                        Children = new List<NavigationItemDto>()
-                    }).ToList()
-                }).ToList();
+                        Id = item.Id,
+                        ParentId = item.ParentId,
+                        Title = item.Title ?? "",
+                        Url = item.Url,
+                        Icon = item.Icon,
+                        Order = item.Order,
+                        IsActive = item.IsActive,
+                        RequiredRole = item.RequiredRole,
+                        Children = lookup[item.Id].Select(child => new NavigationItemDto
+                        {
+                            Id = child.Id,
+                            ParentId = child.ParentId,
+                            Title = child.Title ?? "",
+                            Url = child.Url,
+                            Icon = child.Icon,
+                            Order = child.Order,
+                            IsActive = child.IsActive,
+                            RequiredRole = child.RequiredRole,
+                            Children = new List<NavigationItemDto>()
+                        }).ToList()
+                    }).ToList();
+            }
+            else
+            {
+                navigationItems = new List<NavigationItemDto>();
+            }
 
             Console.WriteLine($"✅ LoadNavigationItems - COMPLETADO. Items jerárquicos: {navigationItems.Count}");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"❌ LoadNavigationItems - ERROR: {ex.Message}");
-            errorMessage = $"Error al cargar elementos de navegación: {ex.Message}";
             navigationItems = new List<NavigationItemDto>();
         }
         finally
@@ -574,9 +586,9 @@
         {
             var searchLower = userSearchTerm.ToLower();
             filteredUsers = users.Where(u =>
-                u.Email.ToLower().Contains(searchLower) ||
-                u.FirstName.ToLower().Contains(searchLower) ||
-                u.LastName.ToLower().Contains(searchLower)
+                (u.Email?.ToLower().Contains(searchLower) == true) ||
+                (u.FirstName?.ToLower().Contains(searchLower) == true) ||
+                (u.LastName?.ToLower().Contains(searchLower) == true)
             ).ToList();
         }
         StateHasChanged();
@@ -584,7 +596,44 @@
 
     private void SetActiveTab(string tab)
     {
+        Console.WriteLine($"🔄 Cambiando a tab: {tab}");
         activeTab = tab;
+        
+        // IMPORTANTE: Cerrar modales al cambiar de pestaña para evitar problemas de estado
+        if (showPermissionModal)
+        {
+            Console.WriteLine("🔒 Cerrando modal de permisos al cambiar de pestaña");
+            showPermissionModal = false;
+            selectedUserForPermissions = null;
+        }
+        
+        if (showMatrixModal)
+        {
+            showMatrixModal = false;
+        }
+        
+        if (showBulkModal)
+        {
+            showBulkModal = false;
+        }
+        
+        StateHasChanged();
+    }
+
+    // AGREGADO: Método para manejar el cierre del modal
+    private void OnPermissionModalClosed()
+    {
+        Console.WriteLine("🔒 Modal de permisos cerrado");
+        showPermissionModal = false;
+        selectedUserForPermissions = null;
+        StateHasChanged();
+    }
+
+    // AGREGADO: Método alternativo para cerrar modal desde código
+    private void ClosePermissionModal()
+    {
+        showPermissionModal = false;
+        selectedUserForPermissions = null;
         StateHasChanged();
     }
 
@@ -600,7 +649,7 @@
         return roleUserCounts.GetValueOrDefault(roleName, 0);
     }
 
-    // Métodos de gestión de permisos
+    // Resto de métodos sin cambios...
     private async Task ManageUserPermissions(UserDTO user)
     {
         selectedUserForPermissions = user;
@@ -648,12 +697,57 @@
 
     private async Task ManageRolePermissions(RoleDTO role)
     {
-        await JSRuntime.InvokeVoidAsync("alert", $"Gestionar permisos del rol {role.RoleName} estará disponible próximamente");
+        await JSRuntime.InvokeVoidAsync("alert", 
+            $"Gestión de permisos del rol {role.RoleName} estará disponible próximamente.\n\nEsta función permitirá:\n• Asignar permisos específicos al rol\n• Modificar permisos existentes\n• Ver usuarios afectados");
     }
 
     private async Task ViewRolePermissions(RoleDTO role)
     {
-        await JSRuntime.InvokeVoidAsync("alert", $"Ver permisos del rol {role.RoleName} estará disponible próximamente");
+        try
+        {
+            isLoadingRoles = true;
+            StateHasChanged();
+
+            var permissions = await permissionService.GetRolePermissionsAsync(role.RoleId);
+            
+            if (permissions?.Permissions != null && permissions.Permissions.Any())
+            {
+                var permissionSummary = permissions.Permissions
+                    .Where(p => p.CanView || p.CanCreate || p.CanEdit || p.CanDelete)
+                    .Select(p => $"• {p.NavigationItemTitle}: {GetPermissionSummary(p)}")
+                    .Take(10)
+                    .ToList();
+
+                var usersCount = GetUsersInRoleCount(role.RoleName);
+                var message = $"Permisos del rol {role.RoleName} ({usersCount} usuarios):\n\n";
+                
+                if (permissionSummary.Any())
+                {
+                    message += string.Join("\n", permissionSummary);
+                }
+                else
+                {
+                    message += "No tiene permisos específicos asignados.";
+                }
+
+                await JSRuntime.InvokeVoidAsync("alert", message);
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", 
+                    $"El rol {role.RoleName} no tiene permisos específicos asignados.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error al obtener permisos del rol: {ex.Message}");
+            await displayMessage.DisplayErrorMessage($"Error al obtener permisos del rol: {ex.Message}");
+        }
+        finally
+        {
+            isLoadingRoles = false;
+            StateHasChanged();
+        }
     }
 
     private async Task ManageNavigationPermissions(NavigationItemDto item)
@@ -661,7 +755,6 @@
         await JSRuntime.InvokeVoidAsync("alert", $"Gestionar permisos para {item.Title} estará disponible próximamente");
     }
 
-    // Métodos de herramientas
     private async Task ShowPermissionMatrix()
     {
         showMatrixModal = true;
@@ -676,17 +769,247 @@
 
     private async Task ShowCopyPermissions()
     {
-        await JSRuntime.InvokeVoidAsync("alert", "Herramienta de copia de permisos estará disponible próximamente");
+        try
+        {
+            var sourceType = await JSRuntime.InvokeAsync<string>("prompt", 
+                "¿Qué tipo de permisos desea copiar?\n\n1. Usuario a Usuario\n2. Rol a Rol\n\nIngrese 1 o 2:");
+
+            if (sourceType != "1" && sourceType != "2") return;
+
+            if (sourceType == "1")
+            {
+                await CopyUserToUserPermissions();
+            }
+            else
+            {
+                await CopyRoleToRolePermissions();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error en herramienta de copia: {ex.Message}");
+            await displayMessage.DisplayErrorMessage($"Error en herramienta de copia: {ex.Message}");
+        }
+    }
+
+    private async Task CopyUserToUserPermissions()
+    {
+        if (!users.Any())
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "No hay usuarios disponibles");
+            return;
+        }
+
+        var userOptions = string.Join("\n", users.Select((u, index) => 
+            $"{index + 1}. {u.FirstName} {u.LastName} ({u.Email})"));
+
+        var sourceSelection = await JSRuntime.InvokeAsync<string>("prompt", 
+            $"Seleccione el usuario ORIGEN (copiar DE):\n\n{userOptions}\n\nIngrese el número:");
+
+        if (!int.TryParse(sourceSelection, out int sourceIndex) || 
+            sourceIndex < 1 || sourceIndex > users.Count) return;
+
+        var sourceUser = users[sourceIndex - 1];
+        var targetUsers = users.Where(u => u.UserId != sourceUser.UserId).ToList();
+
+        if (!targetUsers.Any())
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "No hay usuarios destino disponibles");
+            return;
+        }
+
+        var targetOptions = string.Join("\n", targetUsers.Select((u, index) => 
+            $"{index + 1}. {u.FirstName} {u.LastName} ({u.Email})"));
+
+        var targetSelection = await JSRuntime.InvokeAsync<string>("prompt", 
+            $"Seleccione el usuario DESTINO (copiar A):\n\n{targetOptions}\n\nIngrese el número:");
+
+        if (!int.TryParse(targetSelection, out int targetIndex) || 
+            targetIndex < 1 || targetIndex > targetUsers.Count) return;
+
+        var targetUser = targetUsers[targetIndex - 1];
+        
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", 
+            $"¿Copiar permisos de {sourceUser.FirstName} {sourceUser.LastName} a {targetUser.FirstName} {targetUser.LastName}?");
+
+        if (!confirmed) return;
+
+        var copyDto = new 
+        {
+            EntityType = "User",
+            SourceId = sourceUser.UserId,
+            TargetId = targetUser.UserId
+        };
+
+        var response = await httpClient.PostAsJsonAsync("/api/permissions/copy/user", copyDto);
+        
+        if (response.IsSuccessStatusCode)
+        {
+            successMessage = "Permisos copiados exitosamente";
+            await JSRuntime.InvokeVoidAsync("alert", successMessage);
+        }
+        else
+        {
+            throw new Exception("Error al copiar permisos");
+        }
+    }
+
+    private async Task CopyRoleToRolePermissions()
+    {
+        if (!roles.Any())
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "No hay roles disponibles");
+            return;
+        }
+
+        var roleOptions = string.Join("\n", roles.Select((r, index) => 
+            $"{index + 1}. {r.RoleName}"));
+
+        var sourceSelection = await JSRuntime.InvokeAsync<string>("prompt", 
+            $"Seleccione el rol ORIGEN (copiar DE):\n\n{roleOptions}\n\nIngrese el número:");
+
+        if (!int.TryParse(sourceSelection, out int sourceIndex) || 
+            sourceIndex < 1 || sourceIndex > roles.Count) return;
+
+        var sourceRole = roles[sourceIndex - 1];
+        var targetRoles = roles.Where(r => r.RoleId != sourceRole.RoleId).ToList();
+
+        if (!targetRoles.Any())
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "No hay roles destino disponibles");
+            return;
+        }
+
+        var targetOptions = string.Join("\n", targetRoles.Select((r, index) => 
+            $"{index + 1}. {r.RoleName}"));
+
+        var targetSelection = await JSRuntime.InvokeAsync<string>("prompt", 
+            $"Seleccione el rol DESTINO (copiar A):\n\n{targetOptions}\n\nIngrese el número:");
+
+        if (!int.TryParse(targetSelection, out int targetIndex) || 
+            targetIndex < 1 || targetIndex > targetRoles.Count) return;
+
+        var targetRole = targetRoles[targetIndex - 1];
+        
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", 
+            $"¿Copiar permisos del rol {sourceRole.RoleName} al rol {targetRole.RoleName}?");
+
+        if (!confirmed) return;
+
+        var copyDto = new 
+        {
+            EntityType = "Role",
+            SourceId = sourceRole.RoleId,
+            TargetId = targetRole.RoleId
+        };
+
+        var response = await httpClient.PostAsJsonAsync("/api/permissions/copy/role", copyDto);
+        
+        if (response.IsSuccessStatusCode)
+        {
+            successMessage = "Permisos de rol copiados exitosamente";
+            await JSRuntime.InvokeVoidAsync("alert", successMessage);
+        }
+        else
+        {
+            throw new Exception("Error al copiar permisos del rol");
+        }
     }
 
     private async Task ShowResetPermissions()
     {
-        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm",
-            "¿Está seguro de que desea acceder a la herramienta de reseteo de permisos?");
-
-        if (confirmed)
+        try
         {
-            await JSRuntime.InvokeVoidAsync("alert", "Herramienta de reseteo de permisos estará disponible próximamente");
+            var resetType = await JSRuntime.InvokeAsync<string>("prompt", 
+                "¿Qué tipo de permisos desea resetear?\n\n1. Usuario específico\n2. Rol específico\n\nIngrese 1 o 2:");
+
+            if (resetType == "1")
+            {
+                await ResetUserPermissions();
+            }
+            else if (resetType == "2")
+            {
+                await ResetRolePermissions();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error al resetear permisos: {ex.Message}");
+            await displayMessage.DisplayErrorMessage($"Error al resetear permisos: {ex.Message}");
+        }
+    }
+
+    private async Task ResetUserPermissions()
+    {
+        if (!users.Any())
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "No hay usuarios disponibles");
+            return;
+        }
+
+        var userOptions = string.Join("\n", users.Select((u, index) => 
+            $"{index + 1}. {u.FirstName} {u.LastName} ({u.Email})"));
+
+        var selection = await JSRuntime.InvokeAsync<string>("prompt", 
+            $"Seleccione el usuario para resetear TODOS sus permisos:\n\n{userOptions}\n\nIngrese el número:");
+
+        if (!int.TryParse(selection, out int selectedIndex) || 
+            selectedIndex < 1 || selectedIndex > users.Count) return;
+
+        var selectedUser = users[selectedIndex - 1];
+        
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", 
+            $"⚠️ ADVERTENCIA ⚠️\n\n¿Está COMPLETAMENTE SEGURO de eliminar TODOS los permisos de {selectedUser.FirstName} {selectedUser.LastName}?\n\nEsta acción NO se puede deshacer.");
+
+        if (!confirmed) return;
+
+        var response = await httpClient.DeleteAsync($"/api/permissions/reset/user/{selectedUser.UserId}");
+        
+        if (response.IsSuccessStatusCode)
+        {
+            successMessage = $"Permisos reseteados para {selectedUser.FirstName} {selectedUser.LastName}";
+            await JSRuntime.InvokeVoidAsync("alert", successMessage);
+        }
+        else
+        {
+            throw new Exception("Error al resetear permisos del usuario");
+        }
+    }
+
+    private async Task ResetRolePermissions()
+    {
+        if (!roles.Any())
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "No hay roles disponibles");
+            return;
+        }
+
+        var roleOptions = string.Join("\n", roles.Select((r, index) => 
+            $"{index + 1}. {r.RoleName}"));
+
+        var selection = await JSRuntime.InvokeAsync<string>("prompt", 
+            $"Seleccione el rol para resetear TODOS sus permisos:\n\n{roleOptions}\n\nIngrese el número:");
+
+        if (!int.TryParse(selection, out int selectedIndex) || 
+            selectedIndex < 1 || selectedIndex > roles.Count) return;
+
+        var selectedRole = roles[selectedIndex - 1];
+        
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", 
+            $"⚠️ ADVERTENCIA ⚠️\n\n¿Está COMPLETAMENTE SEGURO de eliminar TODOS los permisos del rol {selectedRole.RoleName}?\n\nEsto afectará a {GetUsersInRoleCount(selectedRole.RoleName)} usuarios.\n\nEsta acción NO se puede deshacer.");
+
+        if (!confirmed) return;
+
+        var response = await httpClient.DeleteAsync($"/api/permissions/reset/role/{selectedRole.RoleId}");
+        
+        if (response.IsSuccessStatusCode)
+        {
+            successMessage = $"Permisos reseteados para el rol {selectedRole.RoleName}";
+            await JSRuntime.InvokeVoidAsync("alert", successMessage);
+        }
+        else
+        {
+            throw new Exception("Error al resetear permisos del rol");
         }
     }
 
