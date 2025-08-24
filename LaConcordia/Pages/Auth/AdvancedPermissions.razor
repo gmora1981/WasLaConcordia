@@ -31,6 +31,15 @@
             </div>
         </div>
 
+        @* AGREGADO: Indicador de debug para verificar inicialización *@
+        @if (isInitialized)
+        {
+            <div class="alert-modern alert-success">
+                <i class="fas fa-check-circle"></i>
+                Componente inicializado correctamente
+            </div>
+        }
+
         @if (!string.IsNullOrEmpty(errorMessage))
         {
             <div class="alert-modern alert-danger">
@@ -334,6 +343,7 @@
     private string activeTab = "users";
     private string? errorMessage;
     private string? successMessage;
+    private bool isInitialized = false; // AGREGADO: Flag para debug
 
     // Loading states
     private bool isLoadingUsers = true;
@@ -357,105 +367,164 @@
     private bool showBulkModal = false;
     private UserDTO? selectedUserForPermissions;
 
+    // CORREGIDO: Usar OnInitializedAsync con manejo de errores mejorado
     protected override async Task OnInitializedAsync()
     {
-        await LoadAllData();
-    }
+        Console.WriteLine("🔥 OnInitializedAsync - INICIANDO");
 
-    private async Task LoadAllData()
-    {
         try
         {
-            await Task.WhenAll(
-                LoadUsers(),
-                LoadRoles(),
-                LoadNavigationItems()
-            );
+            await LoadAllData();
+            isInitialized = true; // AGREGADO: Marcar como inicializado
+            Console.WriteLine("✅ OnInitializedAsync - COMPLETADO");
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"❌ OnInitializedAsync - ERROR: {ex.Message}");
+            errorMessage = $"Error al inicializar la página: {ex.Message}";
+        }
+        finally
+        {
+            StateHasChanged(); // AGREGADO: Forzar actualización de UI
+        }
+    }
+
+    // CORREGIDO: Mejor manejo de errores y logging
+    private async Task LoadAllData()
+    {
+        Console.WriteLine("🔄 LoadAllData - INICIANDO");
+
+        try
+        {
+            var tasks = new List<Task>
+            {
+                LoadUsers(),
+                LoadRoles(),
+                LoadNavigationItems()
+            };
+
+            await Task.WhenAll(tasks);
+            Console.WriteLine("✅ LoadAllData - TODAS LAS TAREAS COMPLETADAS");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ LoadAllData - ERROR: {ex.Message}");
             errorMessage = $"Error al cargar datos: {ex.Message}";
         }
     }
 
+    // CORREGIDO: Mejor logging y manejo de errores
     private async Task LoadUsers()
     {
+        Console.WriteLine("👤 LoadUsers - INICIANDO");
+
         try
         {
             isLoadingUsers = true;
+            StateHasChanged(); // AGREGADO: Actualizar UI inmediatamente
+
             var paginationDTO = new PaginationDTO { Page = 1, RecordsPerPage = 100 };
             var response = await usersRepository.GetUsers(paginationDTO);
-            users = response.Response;
+            users = response.Response ?? new List<UserDTO>();
+
+            Console.WriteLine($"👤 LoadUsers - Usuarios obtenidos: {users.Count}");
 
             // Cargar roles de usuarios
+            userRoles.Clear();
             foreach (var user in users)
             {
                 try
                 {
                     var userRolesList = await usersRepository.GetUserRoles(user.UserId);
-                    userRoles[user.UserId] = userRolesList;
+                    userRoles[user.UserId] = userRolesList ?? new List<string>();
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Console.WriteLine($"⚠️ Error cargando roles para usuario {user.UserId}: {ex.Message}");
                     userRoles[user.UserId] = new List<string>();
                 }
             }
 
             FilterUsers();
+            Console.WriteLine($"✅ LoadUsers - COMPLETADO. Usuarios filtrados: {filteredUsers.Count}");
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"❌ LoadUsers - ERROR: {ex.Message}");
             errorMessage = $"Error al cargar usuarios: {ex.Message}";
+            users = new List<UserDTO>();
+            filteredUsers = new List<UserDTO>();
         }
         finally
         {
             isLoadingUsers = false;
+            StateHasChanged();
         }
     }
 
+    // CORREGIDO: Mejor logging y manejo de errores
     private async Task LoadRoles()
     {
+        Console.WriteLine("🏷️ LoadRoles - INICIANDO");
+
         try
         {
             isLoadingRoles = true;
-            roles = await usersRepository.GetRoles(); // Ahora cada role tendrá RoleId
+            StateHasChanged();
 
-            // Cargar conteo de usuarios por rol usando RoleId en lugar de RoleName
+            roles = await usersRepository.GetRoles() ?? new List<RoleDTO>();
+            Console.WriteLine($"🏷️ LoadRoles - Roles obtenidos: {roles.Count}");
+
+            // Cargar conteo de usuarios por rol
+            roleUserCounts.Clear();
             foreach (var role in roles)
             {
                 try
                 {
-                    // Cambiar para usar RoleId si es necesario en el futuro
                     roleUserCounts[role.RoleName] = users.Count(u =>
                         userRoles.ContainsKey(u.UserId) &&
                         userRoles[u.UserId].Contains(role.RoleName));
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Console.WriteLine($"⚠️ Error contando usuarios para rol {role.RoleName}: {ex.Message}");
                     roleUserCounts[role.RoleName] = 0;
                 }
             }
+
+            Console.WriteLine("✅ LoadRoles - COMPLETADO");
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"❌ LoadRoles - ERROR: {ex.Message}");
             errorMessage = $"Error al cargar roles: {ex.Message}";
+            roles = new List<RoleDTO>();
         }
         finally
         {
             isLoadingRoles = false;
+            StateHasChanged();
         }
     }
 
+    // CORREGIDO: Mejor logging y manejo de errores
     private async Task LoadNavigationItems()
     {
+        Console.WriteLine("🧭 LoadNavigationItems - INICIANDO");
+
         try
         {
             isLoadingNavigation = true;
+            StateHasChanged();
+
             var items = await navigationRepository.GetAllAsync();
+            var itemsList = items?.ToList() ?? new List<NavigationItemDto>();
+
+            Console.WriteLine($"🧭 LoadNavigationItems - Items obtenidos: {itemsList.Count}");
 
             // Construir estructura jerárquica
-            var lookup = items.ToLookup(i => i.ParentId);
-            navigationItems = items.Where(i => i.ParentId == null)
+            var lookup = itemsList.ToLookup(i => i.ParentId);
+            navigationItems = itemsList.Where(i => i.ParentId == null)
                 .Select(item => new NavigationItemDto
                 {
                     Id = item.Id,
@@ -479,14 +548,19 @@
                         Children = new List<NavigationItemDto>()
                     }).ToList()
                 }).ToList();
+
+            Console.WriteLine($"✅ LoadNavigationItems - COMPLETADO. Items jerárquicos: {navigationItems.Count}");
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"❌ LoadNavigationItems - ERROR: {ex.Message}");
             errorMessage = $"Error al cargar elementos de navegación: {ex.Message}";
+            navigationItems = new List<NavigationItemDto>();
         }
         finally
         {
             isLoadingNavigation = false;
+            StateHasChanged();
         }
     }
 
