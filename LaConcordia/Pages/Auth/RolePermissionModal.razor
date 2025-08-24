@@ -1,0 +1,955 @@
+﻿@using LaConcordia.Model
+@using Identity.Api.Interfaces
+@using System.Text
+@using System.Text.Json
+@inject IPermissionService permissionService
+@inject IJSRuntime JSRuntime
+@inject HttpClient httpClient
+
+@if (showModal && selectedRole != null)
+{
+    <div class="modal-modern" @onclick="CloseModalBackground" @onclick:stopPropagation="false">
+        <div class="modal-content-modern" style="max-width: 800px;" @onclick:stopPropagation="true">
+            <div class="modal-header-modern">
+                <h3 class="modal-title-modern">
+                    <i class="fas fa-cog"></i> Gestionar Permisos - Rol @selectedRole.RoleName
+                </h3>
+                <button type="button" class="btn-close-modern" @onclick="CloseModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="modal-body-modern">
+                <!-- Información del rol -->
+                <div class="role-info">
+                    <div class="role-card-header">
+                        <div class="role-avatar">
+                            <i class="fas @(selectedRole.RoleName == "Admin" ? "fa-crown" : "fa-user")"></i>
+                        </div>
+                        <div class="role-details">
+                            <h4>@selectedRole.RoleName</h4>
+                            <p>@usersInRole usuarios asignados a este rol</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pestañas del modal -->
+                <div class="tab-container">
+                    <div class="tab-headers">
+                        <button class="tab-header @GetTabActiveClass("permissions")"
+                                @onclick="@(() => SetActiveModalTab("permissions"))">
+                            <i class="fas fa-key"></i> Permisos del Rol
+                        </button>
+                        <button class="tab-header @GetTabActiveClass("users")"
+                                @onclick="@(() => SetActiveModalTab("users"))">
+                            <i class="fas fa-users"></i> Usuarios en Rol
+                        </button>
+                        <button class="tab-header @GetTabActiveClass("bulk")"
+                                @onclick="@(() => SetActiveModalTab("bulk"))">
+                            <i class="fas fa-list"></i> Asignación Masiva
+                        </button>
+                    </div>
+
+                    <div class="tab-content" style="min-height: 400px; margin-top: 1rem;">
+                        @if (activeModalTab == "permissions")
+                        {
+                            <div class="tab-pane">
+                                <div class="tab-description">
+                                    <p><strong>Permisos del Rol</strong> - Gestiona los permisos específicos de este rol</p>
+                                </div>
+
+                                @if (isLoadingPermissions)
+                                {
+                                    <div class="loading-container">
+                                        <div class="simple-spinner"></div>
+                                        <p>Cargando permisos del rol...</p>
+                                    </div>
+                                }
+                                else if (rolePermissions != null && rolePermissions.Any())
+                                {
+                                    <div class="permissions-list">
+                                        @foreach (var permission in rolePermissions)
+                                        {
+                                            <div class="permission-item">
+                                                <div class="permission-header">
+                                                    <h5>@permission.NavigationItemTitle</h5>
+                                                    <small class="text-muted">ID: @permission.NavigationItemId</small>
+                                                </div>
+                                                <div class="permission-checkboxes">
+                                                    <div class="form-check">
+                                                        <input type="checkbox" class="form-check-input" @bind="permission.CanView" />
+                                                        <label class="form-check-label">Ver</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input type="checkbox" class="form-check-input" @bind="permission.CanCreate" />
+                                                        <label class="form-check-label">Crear</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input type="checkbox" class="form-check-input" @bind="permission.CanEdit" />
+                                                        <label class="form-check-label">Editar</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input type="checkbox" class="form-check-input" @bind="permission.CanDelete" />
+                                                        <label class="form-check-label">Eliminar</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="empty-state">
+                                        <i class="fas fa-lock"></i>
+                                        <p>Este rol no tiene permisos específicos asignados</p>
+                                        <small class="text-muted">Los usuarios de este rol heredarán permisos básicos del sistema</small>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else if (activeModalTab == "users")
+                        {
+                            <div class="tab-pane">
+                                <div class="tab-description">
+                                    <p><strong>Usuarios en Rol</strong> - @usersInRole usuarios asignados a este rol</p>
+                                </div>
+
+                                @if (isLoadingUsers)
+                                {
+                                    <div class="loading-container">
+                                        <div class="simple-spinner"></div>
+                                        <p>Cargando usuarios del rol...</p>
+                                    </div>
+                                }
+                                else if (usersInRoleList != null && usersInRoleList.Any())
+                                {
+                                    <div class="users-in-role-list">
+                                        @foreach (var user in usersInRoleList)
+                                        {
+                                            <div class="user-in-role-item">
+                                                <div class="user-avatar">
+                                                    @user.FirstName.Substring(0, 1).ToUpper()
+                                                </div>
+                                                <div class="user-details">
+                                                    <strong>@user.FirstName @user.LastName</strong>
+                                                    <p>@user.Email</p>
+                                                </div>
+                                                <div class="user-actions">
+                                                    <button class="btn-icon btn-info" title="Ver permisos del usuario">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="empty-state">
+                                        <i class="fas fa-users-slash"></i>
+                                        <p>No hay usuarios asignados a este rol</p>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else if (activeModalTab == "bulk")
+                        {
+                            <div class="tab-pane">
+                                <h4>Asignación Masiva de Permisos al Rol</h4>
+                                <p class="text-muted">Selecciona los elementos de navegación y tipos de permisos para este rol:</p>
+
+                                @if (isLoadingBulk)
+                                {
+                                    <div class="loading-container">
+                                        <div class="simple-spinner"></div>
+                                        <p>Cargando elementos de navegación...</p>
+                                    </div>
+                                }
+                                else if (availableNavigationItems != null && availableNavigationItems.Any())
+                                {
+                                    <div class="bulk-assignment-section">
+                                        <!-- Seleccionar tipos de permisos -->
+                                        <div class="bulk-controls">
+                                            <div class="permission-type-selector">
+                                                <h5>Tipos de Permisos:</h5>
+                                                <div class="permission-checkboxes">
+                                                    <div class="form-check">
+                                                        <input type="checkbox" class="form-check-input" @bind="bulkCanView" />
+                                                        <label class="form-check-label">Ver</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input type="checkbox" class="form-check-input" @bind="bulkCanCreate" />
+                                                        <label class="form-check-label">Crear</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input type="checkbox" class="form-check-input" @bind="bulkCanEdit" />
+                                                        <label class="form-check-label">Editar</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input type="checkbox" class="form-check-input" @bind="bulkCanDelete" />
+                                                        <label class="form-check-label">Eliminar</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="bulk-actions">
+                                                <button type="button" class="btn btn-sm btn-outline-primary" @onclick="SelectAllNavigationItems">
+                                                    Seleccionar Todos
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ClearAllNavigationItems">
+                                                    Limpiar Selección
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Lista de elementos de navegación -->
+                                        <div class="navigation-items-list">
+                                            <h5>Elementos de Navegación:</h5>
+                                            @foreach (var item in availableNavigationItems)
+                                            {
+                                                <div class="navigation-item-checkbox">
+                                                    <div class="form-check">
+                                                        <input type="checkbox" class="form-check-input"
+                                                               @bind="item.IsSelected"
+                                                               id="nav-role-@item.Id" />
+                                                        <label class="form-check-label" for="nav-role-@item.Id">
+                                                            @if (!string.IsNullOrEmpty(item.Icon))
+                                                            {
+                                                                <i class="@item.Icon"></i>
+                                                            }
+                                                            @item.Title
+                                                            @if (!string.IsNullOrEmpty(item.RequiredRole))
+                                                            {
+                                                                <span class="badge badge-warning">@item.RequiredRole</span>
+                                                            }
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+
+                                        <!-- Botón de asignación -->
+                                        <div class="bulk-assignment-footer">
+                                            <button type="button"
+                                                    class="btn-modern btn-primary-modern"
+                                                    @onclick="ApplyBulkAssignment"
+                                                    disabled="@(isApplyingBulk || !HasSelectedItems() || !HasSelectedPermissions())">
+                                                @if (isApplyingBulk)
+                                                {
+                                                    <span class="simple-spinner small"></span>
+                                                    <text>Aplicando...</text>
+                                                }
+                                                else
+                                                {
+                                                    <i class="fas fa-check"></i>
+                                                    <text>Aplicar Permisos (@GetSelectedItemsCount() elementos)</text>
+                                                }
+                                            </button>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="empty-state">
+                                        <i class="fas fa-sitemap"></i>
+                                        <p>No hay elementos de navegación disponibles</p>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer-modern">
+                @if (activeModalTab == "permissions" && rolePermissions != null && rolePermissions.Any())
+                {
+                    <button type="button" class="btn-modern btn-primary-modern" @onclick="SavePermissions" disabled="@isSaving">
+                        @if (isSaving)
+                        {
+                            <span class="simple-spinner small"></span>
+                            <text>Guardando...</text>
+                        }
+                        else
+                        {
+                            <i class="fas fa-save"></i>
+                            <text>Guardar Cambios</text>
+                        }
+                    </button>
+                }
+                <button type="button" class="btn-modern btn-secondary-modern" @onclick="CloseModal">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool showModal { get; set; } = false;
+    [Parameter] public RoleDTO? selectedRole { get; set; }
+    [Parameter] public int usersInRole { get; set; } = 0;
+    [Parameter] public EventCallback OnModalClosed { get; set; }
+
+    private string activeModalTab = "permissions";
+    private bool isLoadingPermissions = false;
+    private bool isLoadingUsers = false;
+    private bool isLoadingBulk = false;
+    private bool isSaving = false;
+    private bool isApplyingBulk = false;
+
+    private List<NavigationPermissionDto> rolePermissions = new();
+    private List<UserDTO> usersInRoleList = new();
+    private List<BulkNavigationItem> availableNavigationItems = new();
+
+    // Propiedades para asignación masiva
+    private bool bulkCanView = false;
+    private bool bulkCanCreate = false;
+    private bool bulkCanEdit = false;
+    private bool bulkCanDelete = false;
+
+    // Clase auxiliar para elementos de navegación con selección
+    public class BulkNavigationItem
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = "";
+        public string? Icon { get; set; }
+        public string? RequiredRole { get; set; }
+        public bool IsSelected { get; set; } = false;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (showModal && selectedRole != null && activeModalTab == "permissions")
+        {
+            await LoadRolePermissions();
+        }
+    }
+
+    private async Task LoadRolePermissions()
+    {
+        if (selectedRole == null) return;
+
+        try
+        {
+            isLoadingPermissions = true;
+            StateHasChanged();
+
+            var roleId = GetRoleId(selectedRole);
+            var permissions = await permissionService.GetRolePermissionsAsync(roleId);
+            rolePermissions = permissions?.Permissions?.ToList() ?? new List<NavigationPermissionDto>();
+
+            Console.WriteLine($"✅ Permisos del rol cargados: {rolePermissions.Count} items");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error cargando permisos del rol: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al cargar permisos: {ex.Message}");
+        }
+        finally
+        {
+            isLoadingPermissions = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadUsersInRole()
+    {
+        if (selectedRole == null) return;
+
+        try
+        {
+            isLoadingUsers = true;
+            StateHasChanged();
+
+            var roleId = GetRoleId(selectedRole);
+            var response = await httpClient.GetFromJsonAsync<List<UserDTO>>($"/api/permissions/role/{roleId}/users");
+            usersInRoleList = response ?? new List<UserDTO>();
+
+            Console.WriteLine($"✅ Usuarios del rol cargados: {usersInRoleList.Count} usuarios");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error cargando usuarios del rol: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al cargar usuarios: {ex.Message}");
+        }
+        finally
+        {
+            isLoadingUsers = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadNavigationItemsForBulk()
+    {
+        try
+        {
+            isLoadingBulk = true;
+            StateHasChanged();
+
+            // Simulamos la carga de elementos de navegación
+            availableNavigationItems = new List<BulkNavigationItem>
+            {
+                new BulkNavigationItem { Id = 1, Title = "Dashboard", Icon = "fas fa-tachometer-alt" },
+                new BulkNavigationItem { Id = 2, Title = "Administración", Icon = "fas fa-cogs" },
+                new BulkNavigationItem { Id = 3, Title = "Usuarios", Icon = "fas fa-users" },
+                new BulkNavigationItem { Id = 4, Title = "Roles", Icon = "fas fa-user-tag" },
+                new BulkNavigationItem { Id = 5, Title = "Permisos", Icon = "fas fa-key" },
+                new BulkNavigationItem { Id = 6, Title = "Navegación", Icon = "fas fa-sitemap" },
+                new BulkNavigationItem { Id = 7, Title = "Configuración", Icon = "fas fa-cog" }
+            };
+
+            Console.WriteLine($"✅ Elementos de navegación cargados: {availableNavigationItems.Count}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error cargando elementos de navegación: {ex.Message}");
+        }
+        finally
+        {
+            isLoadingBulk = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task SetActiveModalTab(string tab)
+    {
+        activeModalTab = tab;
+
+        if (tab == "users" && usersInRoleList.Count == 0)
+        {
+            await LoadUsersInRole();
+        }
+        else if (tab == "bulk" && availableNavigationItems.Count == 0)
+        {
+            await LoadNavigationItemsForBulk();
+        }
+
+        StateHasChanged();
+    }
+
+    private string GetTabActiveClass(string tab)
+    {
+        return activeModalTab == tab ? "active" : "";
+    }
+
+    private string GetRoleId(RoleDTO role)
+    {
+        return !string.IsNullOrEmpty(role.RoleId) ? role.RoleId : role.RoleId ?? role.RoleName ?? "";
+    }
+
+    private async Task SavePermissions()
+    {
+        if (selectedRole == null || !rolePermissions.Any()) return;
+
+        try
+        {
+            isSaving = true;
+            StateHasChanged();
+
+            var saveCount = 0;
+            var errorCount = 0;
+
+            var roleId = GetRoleId(selectedRole);
+
+            foreach (var permission in rolePermissions)
+            {
+                try
+                {
+                    var updateDto = new
+                    {
+                        RoleId = roleId,
+                        NavigationItemId = permission.NavigationItemId,
+                        CanView = permission.CanView,
+                        CanCreate = permission.CanCreate,
+                        CanEdit = permission.CanEdit,
+                        CanDelete = permission.CanDelete
+                    };
+
+                    var json = JsonSerializer.Serialize(updateDto);
+                    var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                    var response = await httpClient.PostAsync("/api/permissions/role/update", content);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        saveCount++;
+                        Console.WriteLine($"✅ Permiso guardado: {permission.NavigationItemTitle}");
+                    }
+                    else
+                    {
+                        var errorContent = await response.Content.ReadAsStringAsync();
+                        Console.WriteLine($"❌ Error guardando {permission.NavigationItemTitle}: {response.StatusCode} - {errorContent}");
+                        errorCount++;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"❌ Excepción guardando permiso {permission.NavigationItemTitle}: {ex.Message}");
+                    errorCount++;
+                }
+            }
+
+            var message = saveCount > 0
+                ? $"✅ {saveCount} permisos guardados exitosamente para el rol {selectedRole.RoleName}"
+                : "❌ No se pudieron guardar los permisos";
+
+            if (errorCount > 0)
+            {
+                message += $"\n⚠️ {errorCount} permisos tuvieron errores";
+            }
+
+            await JSRuntime.InvokeVoidAsync("alert", message);
+
+            if (saveCount > 0)
+            {
+                await LoadRolePermissions();
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al guardar permisos: {ex.Message}");
+        }
+        finally
+        {
+            isSaving = false;
+            StateHasChanged();
+        }
+    }
+
+    private void SelectAllNavigationItems()
+    {
+        foreach (var item in availableNavigationItems)
+        {
+            item.IsSelected = true;
+        }
+        StateHasChanged();
+    }
+
+    private void ClearAllNavigationItems()
+    {
+        foreach (var item in availableNavigationItems)
+        {
+            item.IsSelected = false;
+        }
+        StateHasChanged();
+    }
+
+    private bool HasSelectedItems()
+    {
+        return availableNavigationItems.Any(x => x.IsSelected);
+    }
+
+    private bool HasSelectedPermissions()
+    {
+        return bulkCanView || bulkCanCreate || bulkCanEdit || bulkCanDelete;
+    }
+
+    private int GetSelectedItemsCount()
+    {
+        return availableNavigationItems.Count(x => x.IsSelected);
+    }
+
+    private async Task ApplyBulkAssignment()
+    {
+        if (selectedRole == null || !HasSelectedItems() || !HasSelectedPermissions())
+            return;
+
+        try
+        {
+            isApplyingBulk = true;
+            StateHasChanged();
+
+            var selectedItems = availableNavigationItems.Where(x => x.IsSelected).ToList();
+            var selectedItemIds = selectedItems.Select(x => x.Id).ToList();
+
+            var bulkDto = new
+            {
+                NavigationItemIds = selectedItemIds,
+                CanView = bulkCanView,
+                CanCreate = bulkCanCreate,
+                CanEdit = bulkCanEdit,
+                CanDelete = bulkCanDelete
+            };
+
+            var json = JsonSerializer.Serialize(bulkDto);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var roleId = GetRoleId(selectedRole);
+            var response = await httpClient.PostAsync($"/api/permissions/role/{roleId}/bulk-assign", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var message = $"✅ Permisos asignados exitosamente al rol {selectedRole.RoleName} para {selectedItems.Count} elementos:\n\n";
+                message += string.Join("\n", selectedItems.Select(x => $"• {x.Title}"));
+
+                var permissionTypes = new List<string>();
+                if (bulkCanView) permissionTypes.Add("Ver");
+                if (bulkCanCreate) permissionTypes.Add("Crear");
+                if (bulkCanEdit) permissionTypes.Add("Editar");
+                if (bulkCanDelete) permissionTypes.Add("Eliminar");
+
+                message += $"\n\nPermisos: {string.Join(", ", permissionTypes)}";
+
+                await JSRuntime.InvokeVoidAsync("alert", message);
+
+                ClearAllNavigationItems();
+                bulkCanView = bulkCanCreate = bulkCanEdit = bulkCanDelete = false;
+
+                if (activeModalTab == "permissions")
+                {
+                    await LoadRolePermissions();
+                }
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Error del servidor: {response.StatusCode} - {errorContent}");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al aplicar asignación masiva: {ex.Message}");
+        }
+        finally
+        {
+            isApplyingBulk = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CloseModal()
+    {
+        activeModalTab = "permissions";
+        rolePermissions.Clear();
+        usersInRoleList.Clear();
+        availableNavigationItems.Clear();
+
+        await OnModalClosed.InvokeAsync();
+    }
+
+    private async Task CloseModalBackground(MouseEventArgs e)
+    {
+        await CloseModal();
+    }
+}
+
+<style>
+    .role-info {
+        margin-bottom: 2rem;
+        padding: 1rem;
+        background: #e7f3ff;
+        border-radius: 8px;
+        border-left: 4px solid #17a2b8;
+    }
+
+    .role-card-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .role-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.5rem;
+    }
+
+    .role-details h4 {
+        margin: 0;
+        color: #2c3e50;
+    }
+
+    .role-details p {
+        margin: 0.25rem 0 0 0;
+        color: #7f8c8d;
+        font-size: 0.9rem;
+    }
+
+    .tab-description {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+        border-left: 4px solid #667eea;
+    }
+
+        .tab-description p {
+            margin: 0;
+            color: #495057;
+            font-size: 0.9rem;
+        }
+
+    .permission-item {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background: white;
+    }
+
+    .permission-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+
+        .permission-header h5 {
+            margin: 0;
+            color: #2c3e50;
+        }
+
+    .permission-checkboxes {
+        display: flex;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .form-check {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .users-in-role-list {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .user-in-role-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        background: white;
+    }
+
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+
+    .user-details {
+        flex: 1;
+    }
+
+        .user-details strong {
+            display: block;
+            color: #2c3e50;
+            margin-bottom: 0.25rem;
+        }
+
+        .user-details p {
+            margin: 0;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+    .user-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn-icon {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .btn-info {
+        background: #e3f2fd;
+        color: #1976d2;
+    }
+
+        .btn-info:hover {
+            background: #1976d2;
+            color: white;
+            transform: scale(1.1);
+        }
+
+    .loading-container {
+        text-align: center;
+        padding: 2rem;
+        color: #7f8c8d;
+    }
+
+    .simple-spinner {
+        width: 30px;
+        height: 30px;
+        border: 3px solid #f3f4f6;
+        border-top: 3px solid #667eea;
+        border-radius: 50%;
+        margin: 0 auto 1rem;
+        animation: spin-loading 1s linear infinite;
+    }
+
+        .simple-spinner.small {
+            width: 16px;
+            height: 16px;
+            border-width: 2px;
+            margin: 0 0.5rem 0 0;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #7f8c8d;
+    }
+
+        .empty-state i {
+            font-size: 2rem;
+            color: #e0e0e0;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+    .bulk-assignment-section {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+
+    .bulk-controls {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+        gap: 2rem;
+    }
+
+    .permission-type-selector h5 {
+        margin: 0 0 0.75rem 0;
+        color: #2c3e50;
+    }
+
+    .bulk-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn {
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.375rem;
+        border: 1px solid;
+        cursor: pointer;
+        font-size: 0.875rem;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8125rem;
+    }
+
+    .btn-outline-primary {
+        color: #667eea;
+        border-color: #667eea;
+        background: transparent;
+    }
+
+        .btn-outline-primary:hover {
+            background: #667eea;
+            color: white;
+        }
+
+    .btn-outline-secondary {
+        color: #6c757d;
+        border-color: #6c757d;
+        background: transparent;
+    }
+
+        .btn-outline-secondary:hover {
+            background: #6c757d;
+            color: white;
+        }
+
+    .navigation-items-list {
+        margin-bottom: 1.5rem;
+    }
+
+        .navigation-items-list h5 {
+            margin: 0 0 1rem 0;
+            color: #2c3e50;
+        }
+
+    .navigation-item-checkbox {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        transition: all 0.2s ease;
+    }
+
+        .navigation-item-checkbox:hover {
+            background: #f8f9fa;
+            border-color: #667eea;
+        }
+
+        .navigation-item-checkbox .form-check-label {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            margin: 0;
+            font-weight: 500;
+        }
+
+    .badge {
+        display: inline-block;
+        padding: 0.35em 0.65em;
+        font-size: 0.75em;
+        font-weight: 600;
+        line-height: 1;
+        color: #fff;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: baseline;
+        border-radius: 0.375rem;
+    }
+
+    .badge-warning {
+        background-color: #ffc107;
+        color: #000;
+    }
+
+    .bulk-assignment-footer {
+        text-align: center;
+        padding-top: 1rem;
+        border-top: 1px solid #e0e0e0;
+    }
+
+    .text-muted {
+        color: #6c757d !important;
+        font-size: 0.875rem;
+    }
+</style>
