@@ -1,0 +1,446 @@
+﻿@using LaConcordia.Model
+@using System.Text.Json
+@inject IJSRuntime JSRuntime
+@inject HttpClient httpClient
+
+@if (showModal)
+{
+    <div class="modal-modern" @onclick="CloseModalBackground" @onclick:stopPropagation="false">
+        <div class="modal-content-modern" style="max-width: 600px;" @onclick:stopPropagation="true">
+            <div class="modal-header-modern">
+                <h3 class="modal-title-modern">
+                    <i class="fas fa-copy"></i> Copiar Permisos
+                </h3>
+                <button type="button" class="btn-close-modern" @onclick="CloseModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="modal-body-modern">
+                @if (sourceUser != null)
+                {
+                    <!-- Información del usuario origen -->
+                    <div class="source-info">
+                        <h4>Copiar permisos desde:</h4>
+                        <div class="user-card-source">
+                            <div class="user-avatar">
+                                @sourceUser.FirstName.Substring(0, 1).ToUpper()
+                            </div>
+                            <div class="user-details">
+                                <strong>@sourceUser.FirstName @sourceUser.LastName</strong>
+                                <p>@sourceUser.Email</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Selección de usuario destino -->
+                    <div class="destination-section">
+                        <h4>Seleccionar usuario destino:</h4>
+
+                        @if (isLoadingUsers)
+                        {
+                            <div class="loading-container">
+                                <div class="simple-spinner"></div>
+                                <p>Cargando usuarios...</p>
+                            </div>
+                        }
+                        else if (availableUsers.Any())
+                        {
+                            <div class="users-selection">
+                                @foreach (var user in availableUsers)
+                                {
+                                    <div class="user-selection-card @(selectedTargetUser?.UserId == user.UserId ? "selected" : "")"
+                                         @onclick="() => SelectTargetUser(user)">
+                                        <div class="user-avatar">
+                                            @user.FirstName.Substring(0, 1).ToUpper()
+                                        </div>
+                                        <div class="user-details">
+                                            <strong>@user.FirstName @user.LastName</strong>
+                                            <p>@user.Email</p>
+                                        </div>
+                                        @if (selectedTargetUser?.UserId == user.UserId)
+                                        {
+                                            <div class="selection-indicator">
+                                                <i class="fas fa-check-circle"></i>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="empty-state">
+                                <i class="fas fa-users-slash"></i>
+                                <p>No hay otros usuarios disponibles</p>
+                            </div>
+                        }
+                    </div>
+
+                    @if (selectedTargetUser != null)
+                    {
+                        <!-- Confirmación y advertencia -->
+                        <div class="confirmation-section">
+                            <div class="alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <div>
+                                    <strong>¡Atención!</strong>
+                                    <p>Esta acción copiará TODOS los permisos de <strong>@sourceUser.FirstName</strong> a <strong>@selectedTargetUser.FirstName</strong>.</p>
+                                    <p>Los permisos actuales de <strong>@selectedTargetUser.FirstName</strong> serán sobrescritos.</p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <i class="fas fa-user-slash"></i>
+                        <p>No se ha especificado un usuario origen</p>
+                    </div>
+                }
+            </div>
+
+            <div class="modal-footer-modern">
+                @if (selectedTargetUser != null && sourceUser != null)
+                {
+                    <button type="button"
+                            class="btn-modern btn-primary-modern"
+                            @onclick="ConfirmCopyPermissions"
+                            disabled="@isCopying">
+                        @if (isCopying)
+                        {
+                            <span class="simple-spinner small"></span>
+                            <text>Copiando...</text>
+                        }
+                        else
+                        {
+                            <i class="fas fa-copy"></i>
+                            <text>Copiar Permisos</text>
+                        }
+                    </button>
+                }
+                <button type="button" class="btn-modern btn-secondary-modern" @onclick="CloseModal">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool showModal { get; set; } = false;
+    [Parameter] public UserDTO? sourceUser { get; set; }
+    [Parameter] public List<UserDTO> allUsers { get; set; } = new();
+    [Parameter] public EventCallback OnModalClosed { get; set; }
+    [Parameter] public EventCallback<string> OnSuccess { get; set; }
+    [Parameter] public EventCallback<string> OnError { get; set; }
+
+    private List<UserDTO> availableUsers = new();
+    private UserDTO? selectedTargetUser = null;
+    private bool isLoadingUsers = false;
+    private bool isCopying = false;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (showModal && sourceUser != null)
+        {
+            await LoadAvailableUsers();
+        }
+    }
+
+    private async Task LoadAvailableUsers()
+    {
+        isLoadingUsers = true;
+        StateHasChanged();
+
+        try
+        {
+            // Filtrar usuarios disponibles (excluir el usuario origen)
+            availableUsers = allUsers.Where(u => u.UserId != sourceUser.UserId).ToList();
+            Console.WriteLine($"✅ Usuarios disponibles para copia: {availableUsers.Count}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error cargando usuarios: {ex.Message}");
+            await OnError.InvokeAsync($"Error cargando usuarios: {ex.Message}");
+        }
+        finally
+        {
+            isLoadingUsers = false;
+            StateHasChanged();
+        }
+    }
+
+    private void SelectTargetUser(UserDTO user)
+    {
+        selectedTargetUser = user;
+        Console.WriteLine($"🎯 Usuario destino seleccionado: {user.FirstName} {user.LastName}");
+        StateHasChanged();
+    }
+
+    private async Task ConfirmCopyPermissions()
+    {
+        if (sourceUser == null || selectedTargetUser == null) return;
+
+        try
+        {
+            // Mostrar confirmación final
+            var confirmed = await JSRuntime.InvokeAsync<bool>("confirm",
+                $"¿Está COMPLETAMENTE SEGURO de copiar los permisos?\\n\\n" +
+                $"DE: {sourceUser.FirstName} {sourceUser.LastName}\\n" +
+                $"A: {selectedTargetUser.FirstName} {selectedTargetUser.LastName}\\n\\n" +
+                $"Esta acción sobrescribirá los permisos actuales del usuario destino.");
+
+            if (!confirmed)
+            {
+                Console.WriteLine("❌ Usuario canceló la confirmación final");
+                return;
+            }
+
+            isCopying = true;
+            StateHasChanged();
+
+            Console.WriteLine($"🔄 Iniciando copia de permisos: {sourceUser.UserId} → {selectedTargetUser.UserId}");
+
+            // Preparar datos para la API
+            var requestData = new
+            {
+                EntityType = "User",
+                SourceId = sourceUser.UserId,
+                TargetId = selectedTargetUser.UserId
+            };
+
+            // Llamar a la API
+            var response = await httpClient.PostAsJsonAsync("/api/permissions/copy/user", requestData);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"✅ Permisos copiados exitosamente: {content}");
+
+                var successMessage = $"✅ Permisos copiados exitosamente de {sourceUser.FirstName} a {selectedTargetUser.FirstName}";
+
+                await OnSuccess.InvokeAsync(successMessage);
+                await JSRuntime.InvokeVoidAsync("alert", successMessage);
+
+                // Cerrar modal
+                await CloseModal();
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"❌ Error en API: {response.StatusCode} - {errorContent}");
+
+                string errorMessage = $"Error al copiar permisos: {response.StatusCode}";
+
+                try
+                {
+                    var errorDoc = JsonDocument.Parse(errorContent);
+                    if (errorDoc.RootElement.TryGetProperty("error", out var errorProp))
+                    {
+                        errorMessage = errorProp.GetString() ?? errorMessage;
+                    }
+                    else if (errorDoc.RootElement.TryGetProperty("message", out var messageProp))
+                    {
+                        errorMessage = messageProp.GetString() ?? errorMessage;
+                    }
+                }
+                catch
+                {
+                    errorMessage += $": {errorContent}";
+                }
+
+                await OnError.InvokeAsync(errorMessage);
+                await JSRuntime.InvokeVoidAsync("alert", $"❌ {errorMessage}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"💥 Error inesperado: {ex.Message}");
+            var errorMsg = $"Error inesperado: {ex.Message}";
+            await OnError.InvokeAsync(errorMsg);
+            await JSRuntime.InvokeVoidAsync("alert", $"💥 {errorMsg}");
+        }
+        finally
+        {
+            isCopying = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CloseModal()
+    {
+        selectedTargetUser = null;
+        availableUsers.Clear();
+        await OnModalClosed.InvokeAsync();
+    }
+
+    private async Task CloseModalBackground(MouseEventArgs e)
+    {
+        await CloseModal();
+    }
+}
+
+<style>
+    .source-info {
+        margin-bottom: 2rem;
+        padding: 1rem;
+        background: #e7f3ff;
+        border-radius: 8px;
+        border-left: 4px solid #17a2b8;
+    }
+
+    .user-card-source {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .destination-section {
+        margin-bottom: 2rem;
+    }
+
+        .destination-section h4 {
+            margin-bottom: 1rem;
+            color: #2c3e50;
+        }
+
+    .users-selection {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 0.5rem;
+    }
+
+    .user-selection-card {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+        position: relative;
+    }
+
+        .user-selection-card:hover {
+            background: #f8f9fa;
+            border-color: #667eea;
+        }
+
+        .user-selection-card.selected {
+            background: #e7f3ff;
+            border-color: #17a2b8;
+        }
+
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+
+    .user-details {
+        flex: 1;
+    }
+
+        .user-details strong {
+            display: block;
+            color: #2c3e50;
+            margin-bottom: 0.25rem;
+        }
+
+        .user-details p {
+            margin: 0;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+    .selection-indicator {
+        color: #17a2b8;
+        font-size: 1.2rem;
+    }
+
+    .confirmation-section {
+        margin-bottom: 1rem;
+    }
+
+    .alert-warning {
+        display: flex;
+        gap: 1rem;
+        padding: 1rem;
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-left: 4px solid #f39c12;
+        border-radius: 6px;
+    }
+
+        .alert-warning i {
+            color: #f39c12;
+            font-size: 1.2rem;
+            margin-top: 0.2rem;
+            flex-shrink: 0;
+        }
+
+        .alert-warning strong {
+            color: #856404;
+        }
+
+        .alert-warning p {
+            margin: 0.5rem 0 0 0;
+            color: #856404;
+            font-size: 0.9rem;
+        }
+
+    .loading-container {
+        text-align: center;
+        padding: 2rem;
+        color: #7f8c8d;
+    }
+
+    .simple-spinner {
+        width: 30px;
+        height: 30px;
+        border: 3px solid #f3f4f6;
+        border-top: 3px solid #667eea;
+        border-radius: 50%;
+        margin: 0 auto 1rem;
+        /* Usar animación CSS nativa */
+        animation: 1s linear infinite;
+        animation-name: spin;
+    }
+
+        .simple-spinner.small {
+            width: 16px;
+            height: 16px;
+            border-width: 2px;
+            margin: 0 0.5rem 0 0;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #7f8c8d;
+    }
+
+        .empty-state i {
+            font-size: 2rem;
+            color: #e0e0e0;
+            margin-bottom: 1rem;
+            display: block;
+        }
+</style>
