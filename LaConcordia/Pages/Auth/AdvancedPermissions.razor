@@ -351,6 +351,15 @@
                          OnModalClosed="OnRolePermissionModalClosed" />
 }
 
+<!-- Modal de permisos de navegación -->
+@if (showNavigationPermissionModal && selectedNavigationItem != null)
+{
+    <NavigationPermissionModal showModal="showNavigationPermissionModal"
+                               selectedNavigationItem="selectedNavigationItem"
+                               OnModalClosed="OnNavigationPermissionModalClosed"
+                               OnSettingsUpdated="OnNavigationSettingsUpdated" />
+}
+
 <!-- Modal de copia de permisos -->
 @if (showCopyModal && selectedUserForCopy != null)
 {
@@ -390,15 +399,19 @@
     // Search and filters
     private string userSearchTerm = "";
 
-    // Modal state
+    // Modal states
     private bool showPermissionModal = false;
     private bool showMatrixModal = false;
     private bool showBulkModal = false;
     private bool showCopyModal = false;
-    private bool showRolePermissionModal = false; // NUEVO
+    private bool showRolePermissionModal = false;
+    private bool showNavigationPermissionModal = false;
+
+    // Selected items for modals
     private UserDTO? selectedUserForPermissions;
     private UserDTO? selectedUserForCopy;
-    private RoleDTO? selectedRoleForPermissions; // NUEVO
+    private RoleDTO? selectedRoleForPermissions;
+    private NavigationItemDto? selectedNavigationItem;
 
     protected override async Task OnInitializedAsync()
     {
@@ -619,6 +632,13 @@
             selectedRoleForPermissions = null;
         }
 
+        if (showNavigationPermissionModal)
+        {
+            Console.WriteLine("🔒 Cerrando modal de permisos de navegación al cambiar de pestaña");
+            showNavigationPermissionModal = false;
+            selectedNavigationItem = null;
+        }
+
         if (showMatrixModal)
         {
             showMatrixModal = false;
@@ -638,6 +658,7 @@
         StateHasChanged();
     }
 
+    // Modal handlers
     private void OnCopyModalClosed()
     {
         Console.WriteLine("🔒 Modal de copia cerrado");
@@ -682,7 +703,6 @@
         StateHasChanged();
     }
 
-    // NUEVO: Método para cerrar el modal de permisos de rol
     private void OnRolePermissionModalClosed()
     {
         Console.WriteLine("🔒 Modal de permisos de rol cerrado");
@@ -691,10 +711,19 @@
         StateHasChanged();
     }
 
-    private void ClosePermissionModal()
+    private void OnNavigationPermissionModalClosed()
     {
-        showPermissionModal = false;
-        selectedUserForPermissions = null;
+        Console.WriteLine("🔒 Modal de permisos de navegación cerrado");
+        showNavigationPermissionModal = false;
+        selectedNavigationItem = null;
+        StateHasChanged();
+    }
+
+    private async Task OnNavigationSettingsUpdated()
+    {
+        Console.WriteLine("🔄 Configuración de navegación actualizada");
+        await LoadNavigationItems();
+        successMessage = "Configuración del elemento de navegación actualizada exitosamente";
         StateHasChanged();
     }
 
@@ -710,27 +739,11 @@
         return roleUserCounts.GetValueOrDefault(roleName, 0);
     }
 
+    // User permissions management
     private async Task ManageUserPermissions(UserDTO user)
     {
         selectedUserForPermissions = user;
         showPermissionModal = true;
-        StateHasChanged();
-    }
-
-    // MODIFICADO: Ahora abre el modal de permisos de rol
-    private async Task ManageRolePermissions(RoleDTO role)
-    {
-        Console.WriteLine($"🔧 Abriendo modal de permisos para rol: {role.RoleName}");
-        selectedRoleForPermissions = role;
-        showRolePermissionModal = true;
-        StateHasChanged();
-    }
-
-    private void OpenCopyModal(UserDTO user)
-    {
-        Console.WriteLine($"🆕 Abriendo modal de copia para {user.FirstName} {user.LastName}");
-        selectedUserForCopy = user;
-        showCopyModal = true;
         StateHasChanged();
     }
 
@@ -757,14 +770,21 @@
         }
     }
 
-    private string GetPermissionSummary(NavigationPermissionDto permission)
+    private void OpenCopyModal(UserDTO user)
     {
-        var perms = new List<string>();
-        if (permission.CanView) perms.Add("Ver");
-        if (permission.CanCreate) perms.Add("Crear");
-        if (permission.CanEdit) perms.Add("Editar");
-        if (permission.CanDelete) perms.Add("Eliminar");
-        return perms.Any() ? string.Join(", ", perms) : "Sin permisos";
+        Console.WriteLine($"🆕 Abriendo modal de copia para {user.FirstName} {user.LastName}");
+        selectedUserForCopy = user;
+        showCopyModal = true;
+        StateHasChanged();
+    }
+
+    // Role permissions management
+    private async Task ManageRolePermissions(RoleDTO role)
+    {
+        Console.WriteLine($"🔧 Abriendo modal de permisos para rol: {role.RoleName}");
+        selectedRoleForPermissions = role;
+        showRolePermissionModal = true;
+        StateHasChanged();
     }
 
     private async Task ViewRolePermissions(RoleDTO role)
@@ -774,7 +794,10 @@
             isLoadingRoles = true;
             StateHasChanged();
 
-            var roleId = !string.IsNullOrEmpty(role.RoleId) ? role.RoleId : role.RoleId;
+            var roleId = !string.IsNullOrEmpty(role.RoleId) ? role.RoleId : role.RoleName;
+
+            Console.WriteLine($"📋 Obteniendo permisos para rol: {role.RoleName} (ID: {roleId})");
+
             var permissions = await permissionService.GetRolePermissionsAsync(roleId);
 
             if (permissions?.Permissions != null && permissions.Permissions.Any())
@@ -791,6 +814,11 @@
                 if (permissionSummary.Any())
                 {
                     message += string.Join("\n", permissionSummary);
+
+                    if (permissions.Permissions.Count > 10)
+                    {
+                        message += $"\n\n... y {permissions.Permissions.Count - 10} permisos más.";
+                    }
                 }
                 else
                 {
@@ -802,13 +830,17 @@
             else
             {
                 await JSRuntime.InvokeVoidAsync("alert",
-                    $"El rol {role.RoleName} no tiene permisos específicos asignados.");
+                    $"El rol {role.RoleName} no tiene permisos específicos asignados.\n\n" +
+                    "Los usuarios con este rol tendrán acceso básico según las configuraciones predeterminadas del sistema.");
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"❌ Error al obtener permisos del rol: {ex.Message}");
-            await displayMessage.DisplayErrorMessage($"Error al obtener permisos del rol: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+
+            await displayMessage.DisplayErrorMessage(
+                $"Error al obtener permisos del rol {role.RoleName}: {ex.Message}");
         }
         finally
         {
@@ -817,11 +849,16 @@
         }
     }
 
+    // Navigation permissions management
     private async Task ManageNavigationPermissions(NavigationItemDto item)
     {
-        await JSRuntime.InvokeVoidAsync("alert", $"Gestionar permisos para {item.Title} estará disponible próximamente");
+        Console.WriteLine($"🗺️ Abriendo modal de permisos para navegación: {item.Title}");
+        selectedNavigationItem = item;
+        showNavigationPermissionModal = true;
+        StateHasChanged();
     }
 
+    // Tools
     private async Task ShowPermissionMatrix()
     {
         showMatrixModal = true;
@@ -895,16 +932,24 @@
 
         if (!confirmed) return;
 
-        var response = await httpClient.DeleteAsync($"/api/permissions/reset/user/{selectedUser.UserId}");
+        try
+        {
+            var response = await httpClient.DeleteAsync($"/api/permissions/reset/user/{selectedUser.UserId}");
 
-        if (response.IsSuccessStatusCode)
-        {
-            successMessage = $"Permisos reseteados para {selectedUser.FirstName} {selectedUser.LastName}";
-            await JSRuntime.InvokeVoidAsync("alert", successMessage);
+            if (response.IsSuccessStatusCode)
+            {
+                successMessage = $"Permisos reseteados para {selectedUser.FirstName} {selectedUser.LastName}";
+                await JSRuntime.InvokeVoidAsync("alert", successMessage);
+            }
+            else
+            {
+                throw new Exception("Error al resetear permisos del usuario");
+            }
         }
-        else
+        catch (Exception ex)
         {
-            throw new Exception("Error al resetear permisos del usuario");
+            errorMessage = $"Error al resetear permisos: {ex.Message}";
+            await displayMessage.DisplayErrorMessage(errorMessage);
         }
     }
 
@@ -932,17 +977,25 @@
 
         if (!confirmed) return;
 
-        var roleId = !string.IsNullOrEmpty(selectedRole.RoleId) ? selectedRole.RoleId : selectedRole.RoleId;
-        var response = await httpClient.DeleteAsync($"/api/permissions/reset/role/{roleId}");
+        try
+        {
+            var roleId = !string.IsNullOrEmpty(selectedRole.RoleId) ? selectedRole.RoleId : selectedRole.RoleName;
+            var response = await httpClient.DeleteAsync($"/api/permissions/reset/role/{roleId}");
 
-        if (response.IsSuccessStatusCode)
-        {
-            successMessage = $"Permisos reseteados para el rol {selectedRole.RoleName}";
-            await JSRuntime.InvokeVoidAsync("alert", successMessage);
+            if (response.IsSuccessStatusCode)
+            {
+                successMessage = $"Permisos reseteados para el rol {selectedRole.RoleName}";
+                await JSRuntime.InvokeVoidAsync("alert", successMessage);
+            }
+            else
+            {
+                throw new Exception("Error al resetear permisos del rol");
+            }
         }
-        else
+        catch (Exception ex)
         {
-            throw new Exception("Error al resetear permisos del rol");
+            errorMessage = $"Error al resetear permisos: {ex.Message}";
+            await displayMessage.DisplayErrorMessage(errorMessage);
         }
     }
 
@@ -951,7 +1004,37 @@
         try
         {
             var report = await permissionService.GetAllUsersWithPermissionsAsync();
-            await JSRuntime.InvokeVoidAsync("alert", $"Reporte generado: {report.Count} usuarios con permisos");
+
+            if (report != null && report.Any())
+            {
+                var reportSummary = $"📊 REPORTE DE PERMISOS\n";
+                reportSummary += $"═══════════════════════\n\n";
+                reportSummary += $"Total de usuarios con permisos: {report.Count}\n\n";
+
+                var usersWithPermissions = report.Where(r => r.Permissions.Any()).ToList();
+                reportSummary += $"✅ Usuarios con permisos asignados: {usersWithPermissions.Count}\n";
+                reportSummary += $"❌ Usuarios sin permisos específicos: {report.Count - usersWithPermissions.Count}\n\n";
+
+                // Mostrar algunos usuarios con más permisos
+                var topUsers = usersWithPermissions
+                    .OrderByDescending(u => u.Permissions.Count)
+                    .Take(5);
+
+                if (topUsers.Any())
+                {
+                    reportSummary += "Top 5 usuarios con más permisos:\n";
+                    foreach (var user in topUsers)
+                    {
+                        reportSummary += $"• {user.Username}: {user.Permissions.Count} permisos\n";
+                    }
+                }
+
+                await JSRuntime.InvokeVoidAsync("alert", reportSummary);
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "No hay datos para generar el reporte");
+            }
         }
         catch (Exception ex)
         {
@@ -967,12 +1050,39 @@
             var startDate = endDate.AddDays(-30);
             var audit = await permissionService.GetPermissionAuditAsync(startDate, endDate);
 
-            var totalChanges = audit.UserPermissionChanges.Count + audit.RolePermissionChanges.Count;
-            await JSRuntime.InvokeVoidAsync("alert", $"Auditoría (últimos 30 días): {totalChanges} cambios de permisos");
+            if (audit != null)
+            {
+                var totalChanges = audit.UserPermissionChanges.Count + audit.RolePermissionChanges.Count;
+
+                var auditSummary = $"📋 AUDITORÍA DE PERMISOS\n";
+                auditSummary += $"═══════════════════════\n\n";
+                auditSummary += $"Período: Últimos 30 días\n";
+                auditSummary += $"Desde: {startDate:dd/MM/yyyy}\n";
+                auditSummary += $"Hasta: {endDate:dd/MM/yyyy}\n\n";
+                auditSummary += $"Total de cambios: {totalChanges}\n";
+                auditSummary += $"• Cambios en usuarios: {audit.UserPermissionChanges.Count}\n";
+                auditSummary += $"• Cambios en roles: {audit.RolePermissionChanges.Count}\n";
+
+                await JSRuntime.InvokeVoidAsync("alert", auditSummary);
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "No hay datos de auditoría disponibles");
+            }
         }
         catch (Exception ex)
         {
             await displayMessage.DisplayErrorMessage($"Error al obtener auditoría: {ex.Message}");
         }
+    }
+
+    private string GetPermissionSummary(NavigationPermissionDto permission)
+    {
+        var perms = new List<string>();
+        if (permission.CanView) perms.Add("Ver");
+        if (permission.CanCreate) perms.Add("Crear");
+        if (permission.CanEdit) perms.Add("Editar");
+        if (permission.CanDelete) perms.Add("Eliminar");
+        return perms.Any() ? string.Join(", ", perms) : "Sin permisos";
     }
 }
