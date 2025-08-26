@@ -53,7 +53,7 @@ namespace LaConcordia.Repository
 
         public async Task DeleteFichaPersonalById(string cedula)
         {
-            var response = await _httpClient.DeleteAsync($"api/Fichapersona/DeleteFichaPersonalById/ {cedula}");
+            var response = await _httpClient.DeleteAsync($"api/Fichapersona/DeleteFichaPersonalById/{cedula}");
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
