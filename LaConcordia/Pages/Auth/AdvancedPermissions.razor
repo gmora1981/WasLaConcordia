@@ -31,8 +31,6 @@
             </div>
         </div>
 
-
-
         @if (!string.IsNullOrEmpty(errorMessage))
         {
             <div class="alert-modern alert-danger">
@@ -74,7 +72,7 @@
 
             <!-- Contenido de Pestañas -->
             <div class="tab-content" style="min-height: 400px; background: #f8f9fa; padding: 1rem; border-radius: 8px;">
-                @* PESTAÑA USUARIOS - Mostrar siempre algo *@
+                @* PESTAÑA USUARIOS *@
                 @if (activeTab == "users")
                 {
                     <div class="tab-pane" style="background: white; padding: 1.5rem; border-radius: 8px; min-height: 300px;">
@@ -90,8 +88,6 @@
                             </button>
                         </div>
 
-
-
                         @if (isLoadingUsers)
                         {
                             <div class="loading-container">
@@ -101,7 +97,6 @@
                         }
                         else
                         {
-                            @* MOSTRAR CONTENIDO AUNQUE NO HAYA DATOS *@
                             @if (filteredUsers != null && filteredUsers.Any())
                             {
                                 <div class="user-permissions-grid">
@@ -133,7 +128,7 @@
                                                 <button class="btn-icon btn-roles" @onclick="() => ViewUserPermissions(user)" title="Ver Permisos">
                                                     <i class="fas fa-eye"></i>
                                                 </button>
-                                                <button class="btn-icon btn-secondary" @onclick="() => OpenCopyModal(user)" title="Copiar Permisos - FUNCIONAL">
+                                                <button class="btn-icon btn-secondary" @onclick="() => OpenCopyModal(user)" title="Copiar Permisos">
                                                     <i class="fas fa-copy"></i>
                                                 </button>
                                             </div>
@@ -156,8 +151,6 @@
                 {
                     <div class="tab-pane" style="background: white; padding: 1.5rem; border-radius: 8px; min-height: 300px;">
                         <h3>Gestión de Permisos por Rol</h3>
-
-
 
                         @if (isLoadingRoles)
                         {
@@ -213,8 +206,6 @@
                         <p style="margin-bottom: 1.5rem; color: #7f8c8d;">
                             Gestiona los elementos del menú de navegación y sus permisos asociados.
                         </p>
-
-
 
                         @if (isLoadingNavigation)
                         {
@@ -351,6 +342,15 @@
                          OnModalClosed="OnPermissionModalClosed" />
 }
 
+<!-- Modal de gestión de permisos de rol -->
+@if (showRolePermissionModal && selectedRoleForPermissions != null)
+{
+    <RolePermissionModal showModal="showRolePermissionModal"
+                         selectedRole="selectedRoleForPermissions"
+                         usersInRole="GetUsersInRoleCount(selectedRoleForPermissions.RoleName)"
+                         OnModalClosed="OnRolePermissionModalClosed" />
+}
+
 <!-- Modal de copia de permisos -->
 @if (showCopyModal && selectedUserForCopy != null)
 {
@@ -374,12 +374,12 @@
     private string? successMessage;
     private bool isInitialized = false;
 
-    // Loading states - CAMBIO: Inicializar en false
+    // Loading states
     private bool isLoadingUsers = false;
     private bool isLoadingRoles = false;
     private bool isLoadingNavigation = false;
 
-    // Data collections - IMPORTANTE: Inicializar las listas
+    // Data collections
     private List<UserDTO> users = new List<UserDTO>();
     private List<UserDTO> filteredUsers = new List<UserDTO>();
     private List<RoleDTO> roles = new List<RoleDTO>();
@@ -395,8 +395,10 @@
     private bool showMatrixModal = false;
     private bool showBulkModal = false;
     private bool showCopyModal = false;
+    private bool showRolePermissionModal = false; // NUEVO
     private UserDTO? selectedUserForPermissions;
     private UserDTO? selectedUserForCopy;
+    private RoleDTO? selectedRoleForPermissions; // NUEVO
 
     protected override async Task OnInitializedAsync()
     {
@@ -404,9 +406,7 @@
 
         try
         {
-            // FORZAR actualización inmediata de UI
             StateHasChanged();
-
             await LoadAllData();
             isInitialized = true;
             Console.WriteLine("✅ OnInitializedAsync - COMPLETADO");
@@ -425,12 +425,9 @@
     private async Task LoadAllData()
     {
         Console.WriteLine("🔄 LoadAllData - INICIANDO");
-
-        // Ejecutar cargas en paralelo pero con mejor manejo de errores
         await LoadUsers();
         await LoadRoles();
         await LoadNavigationItems();
-
         Console.WriteLine("✅ LoadAllData - COMPLETADO");
     }
 
@@ -446,7 +443,6 @@
             var paginationDTO = new PaginationDTO { Page = 1, RecordsPerPage = 100 };
             var response = await usersRepository.GetUsers(paginationDTO);
 
-            // VALIDACIÓN IMPORTANTE
             if (response?.Response != null)
             {
                 users = response.Response.ToList();
@@ -458,7 +454,6 @@
                 Console.WriteLine("⚠️ LoadUsers - Response nulo o vacío");
             }
 
-            // Cargar roles de usuarios
             userRoles.Clear();
             foreach (var user in users)
             {
@@ -482,7 +477,6 @@
             Console.WriteLine($"❌ LoadUsers - ERROR: {ex.Message}");
             users = new List<UserDTO>();
             filteredUsers = new List<UserDTO>();
-            // NO establecer errorMessage aquí para no sobrescribir otros errores
         }
         finally
         {
@@ -504,7 +498,6 @@
             roles = rolesResponse?.ToList() ?? new List<RoleDTO>();
             Console.WriteLine($"🏷️ LoadRoles - Roles obtenidos: {roles.Count}");
 
-            // Cargar conteo de usuarios por rol
             roleUserCounts.Clear();
             foreach (var role in roles)
             {
@@ -541,7 +534,6 @@
 
             Console.WriteLine($"🧭 LoadNavigationItems - Items obtenidos: {itemsList.Count}");
 
-            // Construir estructura jerárquica con validación
             if (itemsList.Any())
             {
                 var lookup = itemsList.ToLookup(i => i.ParentId);
@@ -612,12 +604,19 @@
         Console.WriteLine($"🔄 Cambiando a tab: {tab}");
         activeTab = tab;
 
-        // IMPORTANTE: Cerrar modales al cambiar de pestaña para evitar problemas de estado
+        // Cerrar todos los modales al cambiar de pestaña
         if (showPermissionModal)
         {
             Console.WriteLine("🔒 Cerrando modal de permisos al cambiar de pestaña");
             showPermissionModal = false;
             selectedUserForPermissions = null;
+        }
+
+        if (showRolePermissionModal)
+        {
+            Console.WriteLine("🔒 Cerrando modal de permisos de rol al cambiar de pestaña");
+            showRolePermissionModal = false;
+            selectedRoleForPermissions = null;
         }
 
         if (showMatrixModal)
@@ -639,7 +638,6 @@
         StateHasChanged();
     }
 
-    // Métodos para manejar el modal de copia
     private void OnCopyModalClosed()
     {
         Console.WriteLine("🔒 Modal de copia cerrado");
@@ -653,7 +651,6 @@
         Console.WriteLine($"✅ Copia exitosa: {message}");
         successMessage = message;
 
-        // Limpiar mensaje después de 5 segundos
         _ = Task.Delay(5000).ContinueWith(_ =>
         {
             successMessage = null;
@@ -668,7 +665,6 @@
         Console.WriteLine($"❌ Error en copia: {message}");
         errorMessage = message;
 
-        // Limpiar mensaje después de 10 segundos
         _ = Task.Delay(10000).ContinueWith(_ =>
         {
             errorMessage = null;
@@ -678,7 +674,6 @@
         StateHasChanged();
     }
 
-    // AGREGADO: Método para manejar el cierre del modal
     private void OnPermissionModalClosed()
     {
         Console.WriteLine("🔒 Modal de permisos cerrado");
@@ -687,7 +682,15 @@
         StateHasChanged();
     }
 
-    // AGREGADO: Método alternativo para cerrar modal desde código
+    // NUEVO: Método para cerrar el modal de permisos de rol
+    private void OnRolePermissionModalClosed()
+    {
+        Console.WriteLine("🔒 Modal de permisos de rol cerrado");
+        showRolePermissionModal = false;
+        selectedRoleForPermissions = null;
+        StateHasChanged();
+    }
+
     private void ClosePermissionModal()
     {
         showPermissionModal = false;
@@ -707,7 +710,6 @@
         return roleUserCounts.GetValueOrDefault(roleName, 0);
     }
 
-    // Resto de métodos sin cambios...
     private async Task ManageUserPermissions(UserDTO user)
     {
         selectedUserForPermissions = user;
@@ -715,16 +717,21 @@
         StateHasChanged();
     }
 
-    // MÉTODO NUEVO CON NOMBRE DIFERENTE PARA EVITAR CONFLICTOS
+    // MODIFICADO: Ahora abre el modal de permisos de rol
+    private async Task ManageRolePermissions(RoleDTO role)
+    {
+        Console.WriteLine($"🔧 Abriendo modal de permisos para rol: {role.RoleName}");
+        selectedRoleForPermissions = role;
+        showRolePermissionModal = true;
+        StateHasChanged();
+    }
+
     private void OpenCopyModal(UserDTO user)
     {
-        Console.WriteLine($"🆕 MÉTODO NUEVO EJECUTADO - Abriendo modal para {user.FirstName} {user.LastName}");
-
+        Console.WriteLine($"🆕 Abriendo modal de copia para {user.FirstName} {user.LastName}");
         selectedUserForCopy = user;
         showCopyModal = true;
         StateHasChanged();
-
-        Console.WriteLine($"✅ Modal configurado correctamente");
     }
 
     private async Task ViewUserPermissions(UserDTO user)
@@ -760,17 +767,6 @@
         return perms.Any() ? string.Join(", ", perms) : "Sin permisos";
     }
 
-    private async Task CopyUserPermissions(UserDTO user)
-    {
-        await JSRuntime.InvokeVoidAsync("alert", $"Función de copia de permisos para {user.Email} estará disponible próximamente");
-    }
-
-    private async Task ManageRolePermissions(RoleDTO role)
-    {
-        await JSRuntime.InvokeVoidAsync("alert",
-            $"Gestión de permisos del rol {role.RoleName} estará disponible próximamente.\n\nEsta función permitirá:\n• Asignar permisos específicos al rol\n• Modificar permisos existentes\n• Ver usuarios afectados");
-    }
-
     private async Task ViewRolePermissions(RoleDTO role)
     {
         try
@@ -778,7 +774,6 @@
             isLoadingRoles = true;
             StateHasChanged();
 
-            // ARREGLAR: Usar RoleId en lugar de Id
             var roleId = !string.IsNullOrEmpty(role.RoleId) ? role.RoleId : role.RoleId;
             var permissions = await permissionService.GetRolePermissionsAsync(roleId);
 
@@ -841,144 +836,15 @@
 
     private async Task ShowCopyPermissions()
     {
-        // Si hay usuarios disponibles, mostrar el modal con el primer usuario como ejemplo
         if (users.Any())
         {
-            selectedUserForCopy = null; // Sin usuario origen específico para selección manual
+            selectedUserForCopy = null;
             showCopyModal = true;
             StateHasChanged();
         }
         else
         {
             await JSRuntime.InvokeVoidAsync("alert", "No hay usuarios disponibles para copiar permisos");
-        }
-    }
-
-    private async Task CopyUserToUserPermissions()
-    {
-        if (!users.Any())
-        {
-            await JSRuntime.InvokeVoidAsync("alert", "No hay usuarios disponibles");
-            return;
-        }
-
-        var userOptions = string.Join("\n", users.Select((u, index) =>
-            $"{index + 1}. {u.FirstName} {u.LastName} ({u.Email})"));
-
-        var sourceSelection = await JSRuntime.InvokeAsync<string>("prompt",
-            $"Seleccione el usuario ORIGEN (copiar DE):\n\n{userOptions}\n\nIngrese el número:");
-
-        if (!int.TryParse(sourceSelection, out int sourceIndex) ||
-            sourceIndex < 1 || sourceIndex > users.Count) return;
-
-        var sourceUser = users[sourceIndex - 1];
-        var targetUsers = users.Where(u => u.UserId != sourceUser.UserId).ToList();
-
-        if (!targetUsers.Any())
-        {
-            await JSRuntime.InvokeVoidAsync("alert", "No hay usuarios destino disponibles");
-            return;
-        }
-
-        var targetOptions = string.Join("\n", targetUsers.Select((u, index) =>
-            $"{index + 1}. {u.FirstName} {u.LastName} ({u.Email})"));
-
-        var targetSelection = await JSRuntime.InvokeAsync<string>("prompt",
-            $"Seleccione el usuario DESTINO (copiar A):\n\n{targetOptions}\n\nIngrese el número:");
-
-        if (!int.TryParse(targetSelection, out int targetIndex) ||
-            targetIndex < 1 || targetIndex > targetUsers.Count) return;
-
-        var targetUser = targetUsers[targetIndex - 1];
-
-        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm",
-            $"¿Copiar permisos de {sourceUser.FirstName} {sourceUser.LastName} a {targetUser.FirstName} {targetUser.LastName}?");
-
-        if (!confirmed) return;
-
-        var copyDto = new
-        {
-            EntityType = "User",
-            SourceId = sourceUser.UserId,
-            TargetId = targetUser.UserId
-        };
-
-        var response = await httpClient.PostAsJsonAsync("/api/permissions/copy/user", copyDto);
-
-        if (response.IsSuccessStatusCode)
-        {
-            successMessage = "Permisos copiados exitosamente";
-            await JSRuntime.InvokeVoidAsync("alert", successMessage);
-        }
-        else
-        {
-            throw new Exception("Error al copiar permisos");
-        }
-    }
-
-    private async Task CopyRoleToRolePermissions()
-    {
-        if (!roles.Any())
-        {
-            await JSRuntime.InvokeVoidAsync("alert", "No hay roles disponibles");
-            return;
-        }
-
-        var roleOptions = string.Join("\n", roles.Select((r, index) =>
-            $"{index + 1}. {r.RoleName}"));
-
-        var sourceSelection = await JSRuntime.InvokeAsync<string>("prompt",
-            $"Seleccione el rol ORIGEN (copiar DE):\n\n{roleOptions}\n\nIngrese el número:");
-
-        if (!int.TryParse(sourceSelection, out int sourceIndex) ||
-            sourceIndex < 1 || sourceIndex > roles.Count) return;
-
-        var sourceRole = roles[sourceIndex - 1];
-        var targetRoles = roles.Where(r => r.RoleName != sourceRole.RoleName).ToList();
-
-        if (!targetRoles.Any())
-        {
-            await JSRuntime.InvokeVoidAsync("alert", "No hay roles destino disponibles");
-            return;
-        }
-
-        var targetOptions = string.Join("\n", targetRoles.Select((r, index) =>
-            $"{index + 1}. {r.RoleName}"));
-
-        var targetSelection = await JSRuntime.InvokeAsync<string>("prompt",
-            $"Seleccione el rol DESTINO (copiar A):\n\n{targetOptions}\n\nIngrese el número:");
-
-        if (!int.TryParse(targetSelection, out int targetIndex) ||
-            targetIndex < 1 || targetIndex > targetRoles.Count) return;
-
-        var targetRole = targetRoles[targetIndex - 1];
-
-        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm",
-            $"¿Copiar permisos del rol {sourceRole.RoleName} al rol {targetRole.RoleName}?");
-
-        if (!confirmed) return;
-
-        // ARREGLAR: Usar RoleId en lugar de Id
-        var sourceRoleId = !string.IsNullOrEmpty(sourceRole.RoleId) ? sourceRole.RoleId : sourceRole.RoleId;
-        var targetRoleId = !string.IsNullOrEmpty(targetRole.RoleId) ? targetRole.RoleId : targetRole.RoleId;
-
-        var copyDto = new
-        {
-            EntityType = "Role",
-            SourceId = sourceRoleId,
-            TargetId = targetRoleId
-        };
-
-        var response = await httpClient.PostAsJsonAsync("/api/permissions/copy/role", copyDto);
-
-        if (response.IsSuccessStatusCode)
-        {
-            successMessage = "Permisos de rol copiados exitosamente";
-            await JSRuntime.InvokeVoidAsync("alert", successMessage);
-        }
-        else
-        {
-            throw new Exception("Error al copiar permisos del rol");
         }
     }
 
@@ -1066,7 +932,6 @@
 
         if (!confirmed) return;
 
-        // ARREGLAR: Usar RoleId en lugar de Id
         var roleId = !string.IsNullOrEmpty(selectedRole.RoleId) ? selectedRole.RoleId : selectedRole.RoleId;
         var response = await httpClient.DeleteAsync($"/api/permissions/reset/role/{roleId}");
 
