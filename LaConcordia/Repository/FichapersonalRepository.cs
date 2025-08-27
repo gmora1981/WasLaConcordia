@@ -131,9 +131,14 @@ namespace LaConcordia.Repository
             if (!response.IsSuccessStatusCode)
                 return null;
 
+            // El backend devuelve la URL como texto
             var url = await response.Content.ReadAsStringAsync();
-            return string.IsNullOrWhiteSpace(url) ? null : url;
+
+            // Si viene con comillas (ej: "\"https://...\"") las quitamos
+            return string.IsNullOrWhiteSpace(url) ? null : url.Trim('"');
         }
+
+
 
         // 🚀 Repository - Eliminar imagen del chofer
         public async Task EliminarImagenChoferAsync(string cedulaChofer)
