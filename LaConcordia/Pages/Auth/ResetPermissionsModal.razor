@@ -1,0 +1,658 @@
+﻿@using LaConcordia.Model
+@using Identity.Api.Interfaces
+@inject IUsersRepository usersRepository
+@inject IJSRuntime JSRuntime
+@inject HttpClient httpClient
+
+@if (showModal)
+{
+    <div class="modal-modern" @onclick="CloseModalBackground" @onclick:stopPropagation="false">
+        <div class="modal-content-modern" style="max-width: 700px;" @onclick:stopPropagation="true">
+            <div class="modal-header-modern modal-header-danger">
+                <h3 class="modal-title-modern">
+                    <i class="fas fa-broom"></i> Limpiar Permisos
+                </h3>
+                <button type="button" class="btn-close-modern" @onclick="CloseModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="modal-body-modern">
+                <!-- Advertencia -->
+                <div class="warning-banner">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div class="warning-content">
+                        <h4>⚠️ Advertencia</h4>
+                        <p>Esta acción eliminará TODOS los permisos de la entidad seleccionada. Esta operación no se puede deshacer.</p>
+                    </div>
+                </div>
+
+                <!-- Selector de tipo -->
+                <div class="entity-type-selector">
+                    <button class="type-btn @(entityType == "user" ? "active" : "")"
+                            @onclick="@(() => SetEntityType(" user"))">
+                        <i class="fas fa-user"></i>
+                        <span>Limpiar Usuario</span>
+                    </button>
+                    <button class="type-btn @(entityType == "role" ? "active" : "")"
+                            @onclick="@(() => SetEntityType(" role"))">
+                        <i class="fas fa-user-tag"></i>
+                        <span>Limpiar Rol</span>
+                    </button>
+                    <button class="type-btn @(entityType == "multiple" ? "active" : "")"
+                            @onclick="@(() => SetEntityType(" multiple"))">
+                        <i class="fas fa-users"></i>
+                        <span>Limpiar Múltiples</span>
+                    </button>
+                </div>
+
+                <!-- Selector de entidad -->
+                <div class="selection-section">
+                    <h4>
+                        <i class="fas fa-crosshairs"></i>
+                        Seleccionar @(entityType == "user" ? "Usuario" : entityType == "role" ? "Rol" : "Entidades") para limpiar
+                    </h4>
+
+                    @if (isLoading)
+                    {
+                        <div class="loading-container">
+                            <div class="simple-spinner"></div>
+                            <p>Cargando...</p>
+                        </div>
+                    }
+                    else
+                    {
+                        @if (entityType == "user")
+                        {
+                            <EntitySelector EntityType="user"
+                                            Users="users"
+                                            SelectedUser="selectedUser"
+                                            OnUserSelected="OnUserSelected"
+                                            AllowClear="true" />
+                        }
+                        else if (entityType == "role")
+                        {
+                            <EntitySelector EntityType="role"
+                                            Roles="roles"
+                                            SelectedRole="selectedRole"
+                                            OnRoleSelected="OnRoleSelected"
+                                            GetRoleUsersCount="GetUsersInRoleCount"
+                                            AllowClear="true" />
+                        }
+                        else if (entityType == "multiple")
+                        {
+                            <div class="multiple-selection">
+                                <div class="selection-tabs">
+                                    <button class="selection-tab @(multipleType == "users" ? "active" : "")"
+                                            @onclick="@(() => multipleType =" users")">
+                                        <i class="fas fa-users"></i> Usuarios
+                                    </button>
+                                    <button class="selection-tab @(multipleType == "roles" ? "active" : "")"
+                                            @onclick="@(() => multipleType =" roles")">
+                                        <i class="fas fa-user-tag"></i> Roles
+                                    </button>
+                                </div>
+
+                                @if (multipleType == "users")
+                                {
+                                    <div class="checkbox-list">
+                                        @foreach (var user in users)
+                                        {
+                                            <div class="checkbox-item">
+                                                <input type="checkbox" class="form-check-input"
+                                                       id="user-@user.UserId"
+                                                       checked="@selectedUserIds.Contains(user.UserId)"
+                                                       @onchange="() => ToggleUserSelection(user.UserId)" />
+                                                <label for="user-@user.UserId">
+                                                    @user.FirstName @user.LastName (@user.Email)
+                                                </label>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="checkbox-list">
+                                        @foreach (var role in roles)
+                                        {
+                                            <div class="checkbox-item">
+                                                <input type="checkbox" class="form-check-input"
+                                                       id="role-@role.RoleId"
+                                                       checked="@selectedRoleIds.Contains(role.RoleId)"
+                                                       @onchange="() => ToggleRoleSelection(role.RoleId)" />
+                                                <label for="role-@role.RoleId">
+                                                    @role.RoleName (@GetUsersInRoleCount(role) usuarios)
+                                                </label>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+
+                                <div class="selection-actions">
+                                    <button class="btn btn-sm btn-outline-primary" @onclick="SelectAll">
+                                        Seleccionar Todos
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary" @onclick="ClearSelection">
+                                        Limpiar Selección
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+
+                <!-- Resumen de la acción -->
+                @if (HasSelection())
+                {
+                    <div class="action-summary">
+                        <h4><i class="fas fa-info-circle"></i> Resumen de la Acción</h4>
+                        <div class="summary-content">
+                            @if (entityType == "user" && selectedUser != null)
+                            {
+                                <p>Se eliminarán TODOS los permisos del usuario:</p>
+                                <div class="entity-info">
+                                    <i class="fas fa-user"></i>
+                                    <strong>@selectedUser.FirstName @selectedUser.LastName</strong>
+                                    <small>@selectedUser.Email</small>
+                                </div>
+                            }
+                            else if (entityType == "role" && selectedRole != null)
+                            {
+                                <p>Se eliminarán TODOS los permisos del rol:</p>
+                                <div class="entity-info">
+                                    <i class="fas fa-user-tag"></i>
+                                    <strong>@selectedRole.RoleName</strong>
+                                    <small>Afectará a @GetUsersInRoleCount(selectedRole) usuarios</small>
+                                </div>
+                            }
+                            else if (entityType == "multiple")
+                            {
+                                @if (multipleType == "users" && selectedUserIds.Any())
+                                {
+                                    <p>Se eliminarán los permisos de <strong>@selectedUserIds.Count usuarios</strong></p>
+                                }
+                                else if (multipleType == "roles" && selectedRoleIds.Any())
+                                {
+                                    <p>Se eliminarán los permisos de <strong>@selectedRoleIds.Count roles</strong></p>
+                                }
+                            }
+
+                            <div class="confirm-input">
+                                <p>Para confirmar, escriba <strong>"ELIMINAR"</strong> en el campo siguiente:</p>
+                                <input type="text" class="form-control" @bind="confirmText"
+                                       placeholder="Escriba ELIMINAR para confirmar" />
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="modal-footer-modern">
+                <button type="button" class="btn-modern btn-danger-modern"
+                        @onclick="ExecuteReset"
+                        disabled="@(!CanExecuteReset() || isResetting)">
+                    @if (isResetting)
+                    {
+                        <span class="simple-spinner small"></span>
+                        <text>Limpiando...</text>
+                    }
+                    else
+                    {
+                        <i class="fas fa-trash"></i>
+                        <text>Limpiar Permisos</text>
+                    }
+                </button>
+                <button type="button" class="btn-modern btn-secondary-modern" @onclick="CloseModal">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool showModal { get; set; } = false;
+    [Parameter] public EventCallback OnModalClosed { get; set; }
+    [Parameter] public EventCallback<string> OnSuccess { get; set; }
+    [Parameter] public EventCallback<string> OnError { get; set; }
+
+    private string entityType = "user";
+    private string multipleType = "users";
+    private string confirmText = "";
+
+    private List<UserDTO> users = new();
+    private List<RoleDTO> roles = new();
+    private Dictionary<string, int> roleUserCounts = new();
+
+    private UserDTO? selectedUser;
+    private RoleDTO? selectedRole;
+    private List<string> selectedUserIds = new();
+    private List<string> selectedRoleIds = new();
+
+    private bool isLoading = false;
+    private bool isResetting = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var paginationDTO = new PaginationDTO { Page = 1, RecordsPerPage = 100 };
+            var response = await usersRepository.GetUsers(paginationDTO);
+            users = response?.Response?.ToList() ?? new List<UserDTO>();
+
+            var rolesResponse = await usersRepository.GetRoles();
+            roles = rolesResponse?.ToList() ?? new List<RoleDTO>();
+
+            foreach (var role in roles)
+            {
+                roleUserCounts[role.RoleName] = 0;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error cargando datos: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void SetEntityType(string type)
+    {
+        entityType = type;
+        selectedUser = null;
+        selectedRole = null;
+        selectedUserIds.Clear();
+        selectedRoleIds.Clear();
+        confirmText = "";
+        StateHasChanged();
+    }
+
+    private int GetUsersInRoleCount(RoleDTO role)
+    {
+        return roleUserCounts.GetValueOrDefault(role.RoleName, 0);
+    }
+
+    private void OnUserSelected(UserDTO user)
+    {
+        selectedUser = user;
+        confirmText = "";
+        StateHasChanged();
+    }
+
+    private void OnRoleSelected(RoleDTO role)
+    {
+        selectedRole = role;
+        confirmText = "";
+        StateHasChanged();
+    }
+
+    private void ToggleUserSelection(string userId)
+    {
+        if (selectedUserIds.Contains(userId))
+            selectedUserIds.Remove(userId);
+        else
+            selectedUserIds.Add(userId);
+
+        confirmText = "";
+        StateHasChanged();
+    }
+
+    private void ToggleRoleSelection(string roleId)
+    {
+        if (selectedRoleIds.Contains(roleId))
+            selectedRoleIds.Remove(roleId);
+        else
+            selectedRoleIds.Add(roleId);
+
+        confirmText = "";
+        StateHasChanged();
+    }
+
+    private void SelectAll()
+    {
+        if (multipleType == "users")
+        {
+            selectedUserIds = users.Select(u => u.UserId).ToList();
+        }
+        else
+        {
+            selectedRoleIds = roles.Select(r => r.RoleId).ToList();
+        }
+        StateHasChanged();
+    }
+
+    private void ClearSelection()
+    {
+        selectedUserIds.Clear();
+        selectedRoleIds.Clear();
+        StateHasChanged();
+    }
+
+    private bool HasSelection()
+    {
+        if (entityType == "user") return selectedUser != null;
+        if (entityType == "role") return selectedRole != null;
+        if (entityType == "multiple") return selectedUserIds.Any() || selectedRoleIds.Any();
+        return false;
+    }
+
+    private bool CanExecuteReset()
+    {
+        return HasSelection() && confirmText == "ELIMINAR";
+    }
+
+    private async Task ExecuteReset()
+    {
+        if (!CanExecuteReset()) return;
+
+        try
+        {
+            isResetting = true;
+            StateHasChanged();
+
+            var successCount = 0;
+            var errorCount = 0;
+            var errors = new List<string>();
+
+            if (entityType == "user" && selectedUser != null)
+            {
+                var response = await httpClient.DeleteAsync($"/api/permissions/reset/user/{selectedUser.UserId}");
+                if (response.IsSuccessStatusCode)
+                {
+                    await OnSuccess.InvokeAsync($"Permisos eliminados para {selectedUser.FirstName} {selectedUser.LastName}");
+                    await CloseModal();
+                }
+                else
+                {
+                    throw new Exception($"Error al limpiar permisos del usuario");
+                }
+            }
+            else if (entityType == "role" && selectedRole != null)
+            {
+                var response = await httpClient.DeleteAsync($"/api/permissions/reset/role/{selectedRole.RoleId}");
+                if (response.IsSuccessStatusCode)
+                {
+                    await OnSuccess.InvokeAsync($"Permisos eliminados para el rol {selectedRole.RoleName}");
+                    await CloseModal();
+                }
+                else
+                {
+                    throw new Exception($"Error al limpiar permisos del rol");
+                }
+            }
+            else if (entityType == "multiple")
+            {
+                if (multipleType == "users")
+                {
+                    foreach (var userId in selectedUserIds)
+                    {
+                        try
+                        {
+                            var response = await httpClient.DeleteAsync($"/api/permissions/reset/user/{userId}");
+                            if (response.IsSuccessStatusCode)
+                                successCount++;
+                            else
+                                errorCount++;
+                        }
+                        catch
+                        {
+                            errorCount++;
+                        }
+                    }
+
+                    var message = $"Proceso completado: {successCount} usuarios limpiados exitosamente";
+                    if (errorCount > 0) message += $", {errorCount} errores";
+
+                    await OnSuccess.InvokeAsync(message);
+                    await CloseModal();
+                }
+                else
+                {
+                    foreach (var roleId in selectedRoleIds)
+                    {
+                        try
+                        {
+                            var response = await httpClient.DeleteAsync($"/api/permissions/reset/role/{roleId}");
+                            if (response.IsSuccessStatusCode)
+                                successCount++;
+                            else
+                                errorCount++;
+                        }
+                        catch
+                        {
+                            errorCount++;
+                        }
+                    }
+
+                    var message = $"Proceso completado: {successCount} roles limpiados exitosamente";
+                    if (errorCount > 0) message += $", {errorCount} errores";
+
+                    await OnSuccess.InvokeAsync(message);
+                    await CloseModal();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            await OnError.InvokeAsync($"Error al limpiar permisos: {ex.Message}");
+        }
+        finally
+        {
+            isResetting = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CloseModal()
+    {
+        entityType = "user";
+        multipleType = "users";
+        selectedUser = null;
+        selectedRole = null;
+        selectedUserIds.Clear();
+        selectedRoleIds.Clear();
+        confirmText = "";
+
+        await OnModalClosed.InvokeAsync();
+    }
+
+    private async Task CloseModalBackground(MouseEventArgs e)
+    {
+        await CloseModal();
+    }
+}
+
+<style>
+    .modal-header-danger {
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%) !important;
+    }
+
+    .warning-banner {
+        background: #fff3cd;
+        border: 2px solid #ffc107;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        display: flex;
+        gap: 1rem;
+    }
+
+        .warning-banner i {
+            color: #ff9800;
+            font-size: 2rem;
+        }
+
+    .warning-content h4 {
+        margin: 0 0 0.5rem 0;
+        color: #856404;
+    }
+
+    .warning-content p {
+        margin: 0;
+        color: #856404;
+    }
+
+    .selection-section {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+        .selection-section h4 {
+            margin: 0 0 1rem 0;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+    .multiple-selection {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+    }
+
+    .selection-tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .selection-tab {
+        flex: 1;
+        padding: 0.75rem;
+        border: 2px solid #e0e0e0;
+        background: white;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+        .selection-tab:hover {
+            border-color: #667eea;
+        }
+
+        .selection-tab.active {
+            border-color: #667eea;
+            background: #e3f2fd;
+        }
+
+    .checkbox-list {
+        max-height: 200px;
+        overflow-y: auto;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem;
+        border-radius: 4px;
+        transition: background 0.2s ease;
+    }
+
+        .checkbox-item:hover {
+            background: #f8f9fa;
+        }
+
+        .checkbox-item label {
+            cursor: pointer;
+            flex: 1;
+            margin: 0;
+        }
+
+    .selection-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .action-summary {
+        background: #fee;
+        border: 2px solid #e74c3c;
+        border-radius: 8px;
+        padding: 1rem;
+    }
+
+        .action-summary h4 {
+            margin: 0 0 0.75rem 0;
+            color: #c0392b;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+    .summary-content {
+        background: white;
+        padding: 1rem;
+        border-radius: 6px;
+    }
+
+    .entity-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        background: #f8f9fa;
+        border-radius: 6px;
+        border-left: 3px solid #e74c3c;
+    }
+
+        .entity-info strong {
+            flex: 1;
+        }
+
+        .entity-info small {
+            color: #6c757d;
+        }
+
+    .confirm-input {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #dee2e6;
+    }
+
+        .confirm-input p {
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e74c3c;
+        border-radius: 6px;
+        font-size: 0.95rem;
+    }
+
+    .btn-danger-modern {
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        color: white;
+    }
+
+        .btn-danger-modern:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+        }
+
+    /* Estilos comunes ya definidos en CopyPermissionsToolModal */
+</style>

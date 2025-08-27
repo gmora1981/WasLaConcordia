@@ -1,0 +1,747 @@
+﻿@using LaConcordia.Model
+@using Identity.Api.Interfaces
+@inject IUsersRepository usersRepository
+@inject IJSRuntime JSRuntime
+@inject HttpClient httpClient
+
+@if (showModal)
+{
+    <div class="modal-modern" @onclick="CloseModalBackground" @onclick:stopPropagation="false">
+        <div class="modal-content-modern" style="max-width: 800px;" @onclick:stopPropagation="true">
+            <div class="modal-header-modern">
+                <h3 class="modal-title-modern">
+                    <i class="fas fa-copy"></i> Copiar Permisos
+                </h3>
+                <button type="button" class="btn-close-modern" @onclick="CloseModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="modal-body-modern">
+                <!-- Selector de tipo de entidad -->
+                <div class="entity-type-selector">
+                    <button class="type-btn @(entityType == "user" ? "active" : "")"
+                            @onclick="@(() => SetEntityType(" user"))">
+                        <i class="fas fa-user"></i>
+                        <span>Usuario a Usuario</span>
+                    </button>
+                    <button class="type-btn @(entityType == "role" ? "active" : "")"
+                            @onclick="@(() => SetEntityType(" role"))">
+                        <i class="fas fa-user-tag"></i>
+                        <span>Rol a Rol</span>
+                    </button>
+                    <button class="type-btn @(entityType == "roleToUser" ? "active" : "")"
+                            @onclick="@(() => SetEntityType(" roleToUser"))">
+                        <i class="fas fa-exchange-alt"></i>
+                        <span>Rol a Usuario</span>
+                    </button>
+                </div>
+
+                <div class="copy-sections">
+                    <!-- Sección Origen -->
+                    <div class="copy-section">
+                        <h4><i class="fas fa-file-export"></i> Origen (Copiar DE)</h4>
+                        <div class="section-content">
+                            @if (isLoading)
+                            {
+                                <div class="loading-container">
+                                    <div class="simple-spinner"></div>
+                                    <p>Cargando...</p>
+                                </div>
+                            }
+                            else
+                            {
+                                @if (entityType == "user")
+                                {
+                                    <EntitySelector EntityType="user"
+                                                    Users="users"
+                                                    SelectedUser="sourceUser"
+                                                    OnUserSelected="OnSourceUserSelected"
+                                                    AllowClear="false" />
+                                }
+                                else if (entityType == "role" || entityType == "roleToUser")
+                                {
+                                    <EntitySelector EntityType="role"
+                                                    Roles="roles"
+                                                    SelectedRole="sourceRole"
+                                                    OnRoleSelected="OnSourceRoleSelected"
+                                                    GetRoleUsersCount="GetUsersInRoleCount"
+                                                    AllowClear="false" />
+                                }
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Flecha indicadora -->
+                    <div class="arrow-indicator">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+
+                    <!-- Sección Destino -->
+                    <div class="copy-section">
+                        <h4><i class="fas fa-file-import"></i> Destino (Copiar A)</h4>
+                        <div class="section-content">
+                            @if (isLoading)
+                            {
+                                <div class="loading-container">
+                                    <div class="simple-spinner"></div>
+                                    <p>Cargando...</p>
+                                </div>
+                            }
+                            else
+                            {
+                                @if (entityType == "user" || entityType == "roleToUser")
+                                {
+                                    <EntitySelector EntityType="user"
+                                                    Users="GetAvailableTargetUsers()"
+                                                    SelectedUser="targetUser"
+                                                    OnUserSelected="OnTargetUserSelected"
+                                                    AllowClear="false" />
+                                }
+                                else if (entityType == "role")
+                                {
+                                    <EntitySelector EntityType="role"
+                                                    Roles="GetAvailableTargetRoles()"
+                                                    SelectedRole="targetRole"
+                                                    OnRoleSelected="OnTargetRoleSelected"
+                                                    GetRoleUsersCount="GetUsersInRoleCount"
+                                                    AllowClear="false" />
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Opciones de copia -->
+                @if ((sourceUser != null || sourceRole != null) && (targetUser != null || targetRole != null))
+                {
+                    <div class="copy-options">
+                        <h4><i class="fas fa-cog"></i> Opciones de Copia</h4>
+                        <div class="options-grid">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="replaceExisting"
+                                       @bind="replaceExisting" />
+                                <label class="form-check-label" for="replaceExisting">
+                                    <i class="fas fa-sync-alt"></i> Reemplazar permisos existentes
+                                    <small>Los permisos actuales del destino serán eliminados</small>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="mergePermissions"
+                                       @bind="mergePermissions" disabled="@replaceExisting" />
+                                <label class="form-check-label" for="mergePermissions">
+                                    <i class="fas fa-plus-circle"></i> Combinar con permisos existentes
+                                    <small>Solo se agregarán los permisos que no tiene</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="preview-section">
+                        <h4><i class="fas fa-eye"></i> Vista Previa</h4>
+                        <div class="preview-content">
+                            <p><strong>Se copiarán los permisos de:</strong></p>
+                            <p class="source-info">
+                                @if (entityType == "roleToUser" || entityType == "role")
+                                {
+                                    <i class="fas fa-user-tag"></i>
+                                    <strong>Rol:</strong>
+ 
+                                    @sourceRole?.RoleName
+                                }
+                                else
+                                {
+                                    <i class="fas fa-user"></i>
+                                    <strong>Usuario:</strong>
+ 
+                                    @sourceUser?.FirstName@sourceUser?.LastName
+                                    @sourceUser?.Email
+                                }
+                            </p>
+                            <p><strong>Al destino:</strong></p>
+                            <p class="target-info">
+                                @if (entityType == "user" || entityType == "roleToUser")
+                                {
+                                    <i class="fas fa-user"></i>
+                                    <strong>Usuario:</strong>
+ 
+                                    @targetUser?.FirstName@targetUser?.LastName
+                                    @targetUser?.Email
+                                                        }
+                                else
+                                {
+                                    <i class="fas fa-user-tag"></i>
+                                    <strong>Rol:</strong>
+ 
+                                    @targetRole?.RoleName
+                                }
+                            </p>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="modal-footer-modern">
+                <button type="button" class="btn-modern btn-primary-modern"
+                        @onclick="ExecuteCopy"
+                        disabled="@(!CanExecuteCopy() || isCopying)">
+                    @if (isCopying)
+                    {
+                        <span class="simple-spinner small"></span>
+                        <text>Copiando...</text>
+                    }
+                    else
+                    {
+                        <i class="fas fa-copy"></i>
+                        <text>Copiar Permisos</text>
+                    }
+                </button>
+                <button type="button" class="btn-modern btn-secondary-modern" @onclick="CloseModal">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool showModal { get; set; } = false;
+    [Parameter] public EventCallback OnModalClosed { get; set; }
+    [Parameter] public EventCallback<string> OnSuccess { get; set; }
+    [Parameter] public EventCallback<string> OnError { get; set; }
+
+    private string entityType = "user";
+
+    private List<UserDTO> users = new();
+    private List<RoleDTO> roles = new();
+    private Dictionary<string, int> roleUserCounts = new();
+
+    private UserDTO? sourceUser;
+    private UserDTO? targetUser;
+    private RoleDTO? sourceRole;
+    private RoleDTO? targetRole;
+
+    private bool replaceExisting = false;
+    private bool mergePermissions = true;
+    private bool isLoading = false;
+    private bool isCopying = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            // Cargar usuarios
+            var paginationDTO = new PaginationDTO { Page = 1, RecordsPerPage = 100 };
+            var response = await usersRepository.GetUsers(paginationDTO);
+            users = response?.Response?.ToList() ?? new List<UserDTO>();
+
+            // Cargar roles
+            var rolesResponse = await usersRepository.GetRoles();
+            roles = rolesResponse?.ToList() ?? new List<RoleDTO>();
+
+            // Contar usuarios por rol
+            foreach (var role in roles)
+            {
+                // Aquí deberías obtener el conteo real desde tu servicio
+                roleUserCounts[role.RoleName] = 0;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error cargando datos: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void SetEntityType(string type)
+    {
+        entityType = type;
+        // Limpiar selecciones al cambiar tipo
+        sourceUser = null;
+        targetUser = null;
+        sourceRole = null;
+        targetRole = null;
+        StateHasChanged();
+    }
+
+    private List<UserDTO> GetAvailableTargetUsers()
+    {
+        if (sourceUser != null)
+        {
+            return users.Where(u => u.UserId != sourceUser.UserId).ToList();
+        }
+        return users;
+    }
+
+    private List<RoleDTO> GetAvailableTargetRoles()
+    {
+        if (sourceRole != null)
+        {
+            return roles.Where(r => r.RoleId != sourceRole.RoleId).ToList();
+        }
+        return roles;
+    }
+
+    private int GetUsersInRoleCount(RoleDTO role)
+    {
+        return roleUserCounts.GetValueOrDefault(role.RoleName, 0);
+    }
+
+    private void OnSourceUserSelected(UserDTO user)
+    {
+        sourceUser = user;
+        StateHasChanged();
+    }
+
+    private void OnTargetUserSelected(UserDTO user)
+    {
+        targetUser = user;
+        StateHasChanged();
+    }
+
+    private void OnSourceRoleSelected(RoleDTO role)
+    {
+        sourceRole = role;
+        StateHasChanged();
+    }
+
+    private void OnTargetRoleSelected(RoleDTO role)
+    {
+        targetRole = role;
+        StateHasChanged();
+    }
+
+    private bool CanExecuteCopy()
+    {
+        if (entityType == "user")
+        {
+            return sourceUser != null && targetUser != null;
+        }
+        else if (entityType == "role")
+        {
+            return sourceRole != null && targetRole != null;
+        }
+        else if (entityType == "roleToUser")
+        {
+            return sourceRole != null && targetUser != null;
+        }
+        return false;
+    }
+
+    private async Task ExecuteCopy()
+    {
+        if (!CanExecuteCopy()) return;
+
+        try
+        {
+            isCopying = true;
+            StateHasChanged();
+
+            HttpResponseMessage response;
+            string successMessage = "";
+
+            if (entityType == "user")
+            {
+                var copyDto = new
+                {
+                    EntityType = "User",
+                    SourceId = sourceUser!.UserId,
+                    TargetId = targetUser!.UserId,
+                    ReplaceExisting = replaceExisting,
+                    MergePermissions = mergePermissions
+                };
+
+                response = await httpClient.PostAsJsonAsync("/api/permissions/copy/user", copyDto);
+                successMessage = $"Permisos copiados exitosamente de {sourceUser.FirstName} {sourceUser.LastName} a {targetUser!.FirstName} {targetUser.LastName}";
+            }
+            else if (entityType == "role")
+            {
+                var copyDto = new
+                {
+                    EntityType = "Role",
+                    SourceId = sourceRole!.RoleId,
+                    TargetId = targetRole!.RoleId,
+                    ReplaceExisting = replaceExisting,
+                    MergePermissions = mergePermissions
+                };
+
+                response = await httpClient.PostAsJsonAsync("/api/permissions/copy/role", copyDto);
+                successMessage = $"Permisos copiados exitosamente del rol {sourceRole.RoleName} al rol {targetRole!.RoleName}";
+            }
+            else // roleToUser
+            {
+                var copyDto = new
+                {
+                    EntityType = "RoleToUser",
+                    SourceId = sourceRole!.RoleId,
+                    TargetId = targetUser!.UserId,
+                    ReplaceExisting = replaceExisting,
+                    MergePermissions = mergePermissions
+                };
+
+                response = await httpClient.PostAsJsonAsync("/api/permissions/copy/role-to-user", copyDto);
+                successMessage = $"Permisos copiados exitosamente del rol {sourceRole.RoleName} al usuario {targetUser!.FirstName} {targetUser.LastName}";
+            }
+
+            if (response!.IsSuccessStatusCode)
+            {
+                await OnSuccess.InvokeAsync(successMessage);
+                await CloseModal();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                throw new Exception(error);
+            }
+        }
+        catch (Exception ex)
+        {
+            await OnError.InvokeAsync($"Error al copiar permisos: {ex.Message}");
+        }
+        finally
+        {
+            isCopying = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CloseModal()
+    {
+        entityType = "user";
+        sourceUser = null;
+        targetUser = null;
+        sourceRole = null;
+        targetRole = null;
+        replaceExisting = false;
+        mergePermissions = true;
+
+        await OnModalClosed.InvokeAsync();
+    }
+
+    private async Task CloseModalBackground(MouseEventArgs e)
+    {
+        await CloseModal();
+    }
+}
+
+<style>
+    .entity-type-selector {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .type-btn {
+        flex: 1;
+        padding: 1rem;
+        border: 2px solid #e0e0e0;
+        background: white;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+        .type-btn:hover {
+            border-color: #667eea;
+            background: #f8f9fa;
+        }
+
+        .type-btn.active {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+        }
+
+        .type-btn i {
+            font-size: 1.5rem;
+            color: #667eea;
+        }
+
+        .type-btn span {
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+    .copy-sections {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .copy-section {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+    }
+
+        .copy-section h4 {
+            margin: 0 0 1rem 0;
+            color: #2c3e50;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+    .section-content {
+        min-height: 200px;
+    }
+
+    .arrow-indicator {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: #667eea;
+    }
+
+    .copy-options {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+        .copy-options h4 {
+            margin: 0 0 1rem 0;
+            color: #856404;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+    .options-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .form-check {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .form-check-input {
+        width: 1.2em;
+        height: 1.2em;
+        margin-top: 0.25rem;
+        cursor: pointer;
+    }
+
+    .form-check-label {
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+        .form-check-label small {
+            color: #6c757d;
+            font-size: 0.8rem;
+        }
+
+    .preview-section {
+        background: #e3f2fd;
+        border: 1px solid #2196f3;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+        .preview-section h4 {
+            margin: 0 0 0.75rem 0;
+            color: #1565c0;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+    .preview-content {
+        background: white;
+        padding: 1rem;
+        border-radius: 6px;
+    }
+
+        .preview-content p {
+            margin: 0.5rem 0;
+        }
+
+    .source-info, .target-info {
+        padding: 0.5rem;
+        background: #f8f9fa;
+        border-left: 3px solid #667eea;
+        border-radius: 4px;
+    }
+
+    .loading-container {
+        text-align: center;
+        padding: 2rem;
+        color: #7f8c8d;
+    }
+
+    .simple-spinner {
+        width: 30px;
+        height: 30px;
+        border: 3px solid #f3f4f6;
+        border-top: 3px solid #667eea;
+        border-radius: 50%;
+        margin: 0 auto 1rem;
+        animation: spin-loading 1s linear infinite;
+    }
+
+        .simple-spinner.small {
+            width: 16px;
+            height: 16px;
+            border-width: 2px;
+            margin: 0 0.5rem 0 0;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+    @@keyframes spin-loading {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+    /* Modal base styles */
+    .modal-modern {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1050;
+        backdrop-filter: blur(4px);
+    }
+
+    .modal-content-modern {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        max-height: 90vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .modal-header-modern {
+        padding: 1.5rem;
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .modal-title-modern {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-close-modern {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+        .btn-close-modern:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+    .modal-body-modern {
+        padding: 1.5rem;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    .modal-footer-modern {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        background: #f8f9fa;
+    }
+
+    .btn-modern {
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        border: none;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-primary-modern {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+        .btn-primary-modern:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+    .btn-secondary-modern {
+        background: #6c757d;
+        color: white;
+    }
+
+        .btn-secondary-modern:hover {
+            background: #5a6268;
+        }
+
+    .btn-modern:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+</style>

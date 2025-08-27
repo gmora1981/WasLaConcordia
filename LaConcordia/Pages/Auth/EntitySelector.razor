@@ -1,0 +1,320 @@
+﻿@using LaConcordia.Model
+
+<div class="entity-selector">
+    @if (EntityType == "user")
+    {
+        <div class="search-section">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Buscar usuario por nombre o email..."
+                       @bind="searchTerm" @bind:event="oninput"
+                       @onkeyup="SearchEntities" />
+            </div>
+
+            @if (!string.IsNullOrEmpty(searchTerm) && filteredUsers.Any())
+            {
+                <div class="search-results">
+                    @foreach (var user in filteredUsers.Take(5))
+                    {
+                        <div class="search-result-item" @onclick="() => SelectUser(user)">
+                            <div class="user-avatar-small">
+                                @((!string.IsNullOrEmpty(user.FirstName) ? user.FirstName.Substring(0, 1).ToUpper() : "?"))
+                            </div>
+                            <div class="user-info">
+                                <strong>@user.FirstName @user.LastName</strong>
+                                <small>@user.Email</small>
+                            </div>
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        @if (SelectedUser != null)
+        {
+            <div class="selected-entity">
+                <div class="entity-card selected">
+                    <div class="user-avatar-small">
+                        @((!string.IsNullOrEmpty(SelectedUser.FirstName) ? SelectedUser.FirstName.Substring(0, 1).ToUpper() : "?"))
+                    </div>
+                    <div class="entity-details">
+                        <strong>@SelectedUser.FirstName @SelectedUser.LastName</strong>
+                        <small>@SelectedUser.Email</small>
+                    </div>
+                    @if (AllowClear)
+                    {
+                        <button class="btn-clear" @onclick="ClearSelection">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    }
+                </div>
+            </div>
+        }
+    }
+    else if (EntityType == "role")
+    {
+        <div class="roles-list">
+            @if (Roles != null && Roles.Any())
+            {
+                @foreach (var role in Roles)
+                {
+                    <div class="entity-card @(SelectedRole?.RoleId == role.RoleId ? "selected" : "")"
+                         @onclick="() => SelectRole(role)">
+                        <div class="role-icon">
+                            <i class="fas @(role.RoleName == "Admin" ? "fa-crown" : "fa-user-tag")"></i>
+                        </div>
+                        <div class="entity-details">
+                            <strong>@role.RoleName</strong>
+                            <small>@GetRoleUsersCount(role) usuarios</small>
+                        </div>
+                        @if (SelectedRole?.RoleId == role.RoleId)
+                        {
+                            <i class="fas fa-check-circle check-icon"></i>
+                        }
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="empty-state">
+                    <i class="fas fa-user-tag"></i>
+                    <p>No hay roles disponibles</p>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string EntityType { get; set; } = "user"; // "user" o "role"
+    [Parameter] public List<UserDTO> Users { get; set; } = new();
+    [Parameter] public List<RoleDTO> Roles { get; set; } = new();
+    [Parameter] public UserDTO? SelectedUser { get; set; }
+    [Parameter] public RoleDTO? SelectedRole { get; set; }
+    [Parameter] public EventCallback<UserDTO> OnUserSelected { get; set; }
+    [Parameter] public EventCallback<RoleDTO> OnRoleSelected { get; set; }
+    [Parameter] public EventCallback OnSelectionCleared { get; set; }
+    [Parameter] public bool AllowClear { get; set; } = true;
+    [Parameter] public Func<RoleDTO, int> GetRoleUsersCount { get; set; } = (role) => 0;
+
+    private string searchTerm = "";
+    private List<UserDTO> filteredUsers = new();
+
+    private void SearchEntities()
+    {
+        if (EntityType == "user")
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                filteredUsers.Clear();
+            }
+            else
+            {
+                var searchLower = searchTerm.ToLower();
+                filteredUsers = Users.Where(u =>
+                    (u.Email?.ToLower().Contains(searchLower) == true) ||
+                    (u.FirstName?.ToLower().Contains(searchLower) == true) ||
+                    (u.LastName?.ToLower().Contains(searchLower) == true)
+                ).ToList();
+            }
+        }
+        StateHasChanged();
+    }
+
+    private async Task SelectUser(UserDTO user)
+    {
+        SelectedUser = user;
+        searchTerm = "";
+        filteredUsers.Clear();
+        await OnUserSelected.InvokeAsync(user);
+        StateHasChanged();
+    }
+
+    private async Task SelectRole(RoleDTO role)
+    {
+        SelectedRole = role;
+        await OnRoleSelected.InvokeAsync(role);
+        StateHasChanged();
+    }
+
+    private async Task ClearSelection()
+    {
+        SelectedUser = null;
+        SelectedRole = null;
+        searchTerm = "";
+        filteredUsers.Clear();
+        await OnSelectionCleared.InvokeAsync();
+        StateHasChanged();
+    }
+}
+
+<style>
+    .entity-selector {
+        padding: 1rem;
+    }
+
+    .search-section {
+        position: relative;
+        margin-bottom: 1rem;
+    }
+
+    .search-box {
+        position: relative;
+    }
+
+        .search-box i {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #7f8c8d;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 2.5rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+            .search-box input:focus {
+                outline: none;
+                border-color: #667eea;
+                box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            }
+
+    .search-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        margin-top: 0.5rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        z-index: 10;
+        max-height: 250px;
+        overflow-y: auto;
+    }
+
+    .search-result-item {
+        padding: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        cursor: pointer;
+        transition: background 0.2s ease;
+    }
+
+        .search-result-item:hover {
+            background: #f8f9fa;
+        }
+
+    .user-avatar-small, .role-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 0.9rem;
+        font-weight: 600;
+        flex-shrink: 0;
+    }
+
+    .role-icon {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .user-info, .entity-details {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+        .user-info strong, .entity-details strong {
+            color: #2c3e50;
+            font-size: 0.9rem;
+        }
+
+        .user-info small, .entity-details small {
+            color: #7f8c8d;
+            font-size: 0.8rem;
+        }
+
+    .selected-entity {
+        margin: 1rem 0;
+    }
+
+    .entity-card {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        background: white;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+        .entity-card:hover {
+            border-color: #667eea;
+            background: #f8f9fa;
+        }
+
+        .entity-card.selected {
+            border-color: #667eea;
+            background: #e3f2fd;
+        }
+
+    .check-icon {
+        color: #27ae60;
+        font-size: 1.2rem;
+    }
+
+    .btn-clear {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: none;
+        background: #fee;
+        color: #e74c3c;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+        .btn-clear:hover {
+            background: #e74c3c;
+            color: white;
+            transform: scale(1.1);
+        }
+
+    .roles-list {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #7f8c8d;
+    }
+
+        .empty-state i {
+            font-size: 2rem;
+            color: #e0e0e0;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+</style>

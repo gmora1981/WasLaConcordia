@@ -1,0 +1,809 @@
+﻿@using LaConcordia.Model
+@inject IJSRuntime JSRuntime
+
+@if (showModal)
+{
+    <div class="modal-modern" @onclick="CloseModalBackground" @onclick:stopPropagation="false">
+        <div class="modal-content-modern" style="max-width: 900px;" @onclick:stopPropagation="true">
+            <div class="modal-header-modern modal-header-warning">
+                <h3 class="modal-title-modern">
+                    <i class="fas fa-history"></i> Auditoría de Permisos
+                </h3>
+                <button type="button" class="btn-close-modern" @onclick="CloseModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="modal-body-modern">
+                <!-- Filtros de auditoría -->
+                <div class="audit-filters">
+                    <div class="filter-group">
+                        <label><i class="fas fa-calendar"></i> Rango de Fechas</label>
+                        <div class="date-range">
+                            <input type="date" class="form-control" @bind="startDate" max="@endDate.ToString("yyyy-MM-dd")" />
+                            <span class="date-separator">hasta</span>
+                            <input type="date" class="form-control" @bind="endDate" max="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <label><i class="fas fa-filter"></i> Tipo de Cambio</label>
+                        <div class="filter-buttons">
+                            <button class="filter-btn @(filterType == "all" ? "active" : "")"
+                                    @onclick="@(() => SetFilterType(" all"))">
+                                Todos
+                            </button>
+                            <button class="filter-btn @(filterType == "users" ? "active" : "")"
+                                    @onclick="@(() => SetFilterType(" users"))">
+                                Usuarios
+                            </button>
+                            <button class="filter-btn @(filterType == "roles" ? "active" : "")"
+                                    @onclick="@(() => SetFilterType(" roles"))">
+                                Roles
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <label><i class="fas fa-search"></i> Buscar</label>
+                        <input type="text" class="form-control" placeholder="Buscar por usuario, rol o acción..."
+                               @bind="searchTerm" @bind:event="oninput" />
+                    </div>
+
+                    <button class="btn-modern btn-primary-modern" @onclick="LoadAuditData">
+                        <i class="fas fa-sync"></i> Actualizar
+                    </button>
+                </div>
+
+                <!-- Estadísticas -->
+                <div class="audit-stats">
+                    <div class="stat-box">
+                        <i class="fas fa-clipboard-list"></i>
+                        <div class="stat-info">
+                            <h4>@totalChanges</h4>
+                            <p>Cambios Totales</p>
+                        </div>
+                    </div>
+                    <div class="stat-box">
+                        <i class="fas fa-user-plus"></i>
+                        <div class="stat-info">
+                            <h4>@userChanges</h4>
+                            <p>Cambios en Usuarios</p>
+                        </div>
+                    </div>
+                    <div class="stat-box">
+                        <i class="fas fa-user-tag"></i>
+                        <div class="stat-info">
+                            <h4>@roleChanges</h4>
+                            <p>Cambios en Roles</p>
+                        </div>
+                    </div>
+                    <div class="stat-box">
+                        <i class="fas fa-user-shield"></i>
+                        <div class="stat-info">
+                            <h4>@uniqueAdmins</h4>
+                            <p>Administradores</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timeline de auditoría -->
+                <div class="audit-timeline">
+                    @if (isLoading)
+                    {
+                        <div class="loading-container">
+                            <div class="simple-spinner"></div>
+                            <p>Cargando auditoría...</p>
+                        </div>
+                    }
+                    else if (GetFilteredAuditEntries().Any())
+                    {
+                        <div class="timeline">
+                            @foreach (var entry in GetFilteredAuditEntries())
+                            {
+                                <div class="timeline-item @entry.Type">
+                                    <div class="timeline-marker">
+                                        <i class="fas @GetIconForEntry(entry)"></i>
+                                    </div>
+                                    <div class="timeline-content">
+                                        <div class="timeline-header">
+                                            <h5>@entry.Action</h5>
+                                            <span class="timeline-date">@entry.Date.ToString("dd/MM/yyyy HH:mm")</span>
+                                        </div>
+                                        <div class="timeline-body">
+                                            <p>@entry.Description</p>
+                                            <div class="timeline-details">
+                                                <span class="detail-item">
+                                                    <i class="fas fa-user"></i> @entry.PerformedBy
+                                                </span>
+                                                <span class="detail-item">
+                                                    <i class="fas @(entry.EntityType == "User" ? "fa-user" : "fa-user-tag")"></i>
+                                                    @entry.EntityType: @entry.EntityName
+                                                </span>
+                                                @if (!string.IsNullOrEmpty(entry.NavigationItem))
+                                                {
+                                                    <span class="detail-item">
+                                                        <i class="fas fa-sitemap"></i> @entry.NavigationItem
+                                                    </span>
+                                                }
+                                            </div>
+                                            @if (entry.Changes.Any())
+                                            {
+                                                <div class="timeline-changes">
+                                                    <strong>Cambios:</strong>
+                                                    <ul>
+                                                        @foreach (var change in entry.Changes)
+                                                        {
+                                                            <li>@change</li>
+                                                        }
+                                                    </ul>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        @if (GetFilteredAuditEntries().Count() > 10)
+                        {
+                            <div class="load-more">
+                                <button class="btn-modern btn-secondary-modern" @onclick="LoadMore">
+                                    <i class="fas fa-plus"></i> Cargar más
+                                </button>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="empty-state">
+                            <i class="fas fa-inbox"></i>
+                            <h4>No hay registros de auditoría</h4>
+                            <p>No se encontraron cambios en el período seleccionado</p>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="modal-footer-modern">
+                <button type="button" class="btn-modern btn-primary-modern" @onclick="ExportAuditLog">
+                    <i class="fas fa-download"></i> Exportar
+                </button>
+                <button type="button" class="btn-modern btn-secondary-modern" @onclick="CloseModal">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool showModal { get; set; } = false;
+    [Parameter] public EventCallback OnModalClosed { get; set; }
+
+    private DateTime startDate = DateTime.Now.AddDays(-30);
+    private DateTime endDate = DateTime.Now;
+    private string filterType = "all";
+    private string searchTerm = "";
+    private bool isLoading = false;
+    private int itemsToShow = 10;
+
+    // Estadísticas
+    private int totalChanges = 0;
+    private int userChanges = 0;
+    private int roleChanges = 0;
+    private int uniqueAdmins = 0;
+
+    // Datos de auditoría
+    private List<AuditEntry> auditEntries = new();
+
+    // Clase para entradas de auditoría
+    public class AuditEntry
+    {
+        public DateTime Date { get; set; }
+        public string Action { get; set; } = "";
+        public string Description { get; set; } = "";
+        public string EntityType { get; set; } = "";
+        public string EntityName { get; set; } = "";
+        public string PerformedBy { get; set; } = "";
+        public string NavigationItem { get; set; } = "";
+        public string Type { get; set; } = ""; // "grant", "revoke", "modify"
+        public List<string> Changes { get; set; } = new();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (showModal)
+        {
+            await LoadAuditData();
+        }
+    }
+
+    private async Task LoadAuditData()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            // Simular una pequeña espera para mostrar el loading
+            await Task.Delay(500);
+
+            // Datos de ejemplo para la auditoría
+            auditEntries = new List<AuditEntry>
+            {
+                new AuditEntry
+                {
+                    Date = DateTime.Now.AddHours(-2),
+                    Action = "Permisos Otorgados",
+                    Description = "Se otorgaron nuevos permisos al usuario",
+                    EntityType = "User",
+                    EntityName = "juan.perez@example.com",
+                    PerformedBy = "admin@example.com",
+                    NavigationItem = "Dashboard",
+                    Type = "grant",
+                    Changes = new List<string> { "Ver: ✓", "Crear: ✓" }
+                },
+                new AuditEntry
+                {
+                    Date = DateTime.Now.AddHours(-5),
+                    Action = "Permisos Actualizados",
+                    Description = "Se actualizaron los permisos del rol",
+                    EntityType = "Role",
+                    EntityName = "Editor",
+                    PerformedBy = "admin@example.com",
+                    NavigationItem = "Usuarios",
+                    Type = "modify",
+                    Changes = new List<string> { "Editar: ✓", "Eliminar: ✗" }
+                },
+                new AuditEntry
+                {
+                    Date = DateTime.Now.AddDays(-1),
+                    Action = "Permisos Revocados",
+                    Description = "Se revocaron permisos del usuario",
+                    EntityType = "User",
+                    EntityName = "maria.garcia@example.com",
+                    PerformedBy = "admin@example.com",
+                    NavigationItem = "Configuración",
+                    Type = "revoke",
+                    Changes = new List<string> { "Eliminar: ✗" }
+                },
+                new AuditEntry
+                {
+                    Date = DateTime.Now.AddDays(-2),
+                    Action = "Permisos Creados",
+                    Description = "Se asignaron permisos iniciales al rol",
+                    EntityType = "Role",
+                    EntityName = "Viewer",
+                    PerformedBy = "system",
+                    NavigationItem = "Reportes",
+                    Type = "grant",
+                    Changes = new List<string> { "Ver: ✓" }
+                },
+                new AuditEntry
+                {
+                    Date = DateTime.Now.AddDays(-3),
+                    Action = "Permisos Modificados",
+                    Description = "Se modificaron los permisos del usuario",
+                    EntityType = "User",
+                    EntityName = "carlos.lopez@example.com",
+                    PerformedBy = "admin@example.com",
+                    NavigationItem = "Navegación",
+                    Type = "modify",
+                    Changes = new List<string> { "Ver: ✓", "Crear: ✓", "Editar: ✓", "Eliminar: ✗" }
+                }
+            };
+
+            // Ordenar por fecha descendente
+            auditEntries = auditEntries.OrderByDescending(e => e.Date).ToList();
+
+            // Calcular estadísticas
+            CalculateStatistics();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error cargando auditoría: {ex.Message}");
+            auditEntries = new List<AuditEntry>();
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void CalculateStatistics()
+    {
+        totalChanges = auditEntries.Count;
+        userChanges = auditEntries.Count(e => e.EntityType == "User");
+        roleChanges = auditEntries.Count(e => e.EntityType == "Role");
+        uniqueAdmins = auditEntries.Select(e => e.PerformedBy).Distinct().Count();
+    }
+
+    private void SetFilterType(string type)
+    {
+        filterType = type;
+        StateHasChanged();
+    }
+
+    private IEnumerable<AuditEntry> GetFilteredAuditEntries()
+    {
+        var filtered = auditEntries.AsEnumerable();
+
+        // Filtrar por tipo
+        if (filterType == "users")
+            filtered = filtered.Where(e => e.EntityType == "User");
+        else if (filterType == "roles")
+            filtered = filtered.Where(e => e.EntityType == "Role");
+
+        // Filtrar por búsqueda
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var search = searchTerm.ToLower();
+            filtered = filtered.Where(e =>
+                e.EntityName.ToLower().Contains(search) ||
+                e.PerformedBy.ToLower().Contains(search) ||
+                e.Description.ToLower().Contains(search)
+            );
+        }
+
+        return filtered.Take(itemsToShow);
+    }
+
+    private string GetIconForEntry(AuditEntry entry)
+    {
+        return entry.Type switch
+        {
+            "grant" => "fa-plus-circle",
+            "revoke" => "fa-minus-circle",
+            _ => "fa-edit"
+        };
+    }
+
+    private void LoadMore()
+    {
+        itemsToShow += 10;
+        StateHasChanged();
+    }
+
+    private async Task ExportAuditLog()
+    {
+        var exportData = new
+        {
+            Period = new { StartDate = startDate, EndDate = endDate },
+            Statistics = new { totalChanges, userChanges, roleChanges, uniqueAdmins },
+            Entries = GetFilteredAuditEntries().ToList()
+        };
+
+        var json = System.Text.Json.JsonSerializer.Serialize(exportData,
+            new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+
+        await JSRuntime.InvokeVoidAsync("downloadFile",
+            $"auditoria-permisos-{DateTime.Now:yyyyMMdd}.json", json, "application/json");
+    }
+
+    private async Task CloseModal()
+    {
+        filterType = "all";
+        searchTerm = "";
+        itemsToShow = 10;
+        await OnModalClosed.InvokeAsync();
+    }
+
+    private async Task CloseModalBackground(MouseEventArgs e)
+    {
+        await CloseModal();
+    }
+}
+
+<style>
+    .modal-header-warning {
+        background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%) !important;
+    }
+
+    .audit-filters {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        display: grid;
+        grid-template-columns: 2fr 2fr 1fr auto;
+        gap: 1rem;
+        align-items: end;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+        .filter-group label {
+            font-weight: 500;
+            color: #495057;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+    .date-range {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .date-separator {
+        color: #6c757d;
+        font-size: 0.875rem;
+    }
+
+    .filter-buttons {
+        display: flex;
+        gap: 0.25rem;
+    }
+
+    .filter-btn {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #dee2e6;
+        background: white;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.875rem;
+    }
+
+        .filter-btn:hover {
+            border-color: #ffc107;
+            background: #fff3cd;
+        }
+
+        .filter-btn.active {
+            border-color: #ffc107;
+            background: #ffc107;
+            color: white;
+        }
+
+    .audit-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-box {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+        .stat-box i {
+            font-size: 2rem;
+            color: #ffc107;
+        }
+
+    .stat-info h4 {
+        margin: 0;
+        font-size: 1.5rem;
+        color: #2c3e50;
+    }
+
+    .stat-info p {
+        margin: 0;
+        color: #6c757d;
+        font-size: 0.875rem;
+    }
+
+    .audit-timeline {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        max-height: 500px;
+        overflow-y: auto;
+    }
+
+    .timeline {
+        position: relative;
+        padding-left: 40px;
+    }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #dee2e6;
+        }
+
+    .timeline-item {
+        position: relative;
+        margin-bottom: 2rem;
+    }
+
+    .timeline-marker {
+        position: absolute;
+        left: -25px;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: white;
+        border: 2px solid #dee2e6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .timeline-item.grant .timeline-marker {
+        border-color: #28a745;
+        color: #28a745;
+    }
+
+    .timeline-item.revoke .timeline-marker {
+        border-color: #dc3545;
+        color: #dc3545;
+    }
+
+    .timeline-item.modify .timeline-marker {
+        border-color: #ffc107;
+        color: #ffc107;
+    }
+
+    .timeline-content {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-left: 15px;
+    }
+
+    .timeline-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+        .timeline-header h5 {
+            margin: 0;
+            color: #2c3e50;
+            font-size: 1rem;
+        }
+
+    .timeline-date {
+        color: #6c757d;
+        font-size: 0.875rem;
+    }
+
+    .timeline-body p {
+        margin: 0.5rem 0;
+        color: #495057;
+    }
+
+    .timeline-details {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin: 0.75rem 0;
+    }
+
+    .detail-item {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        background: white;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+
+    .timeline-changes {
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid #dee2e6;
+    }
+
+        .timeline-changes strong {
+            color: #495057;
+            font-size: 0.875rem;
+        }
+
+        .timeline-changes ul {
+            margin: 0.5rem 0 0 0;
+            padding-left: 1.5rem;
+        }
+
+        .timeline-changes li {
+            color: #6c757d;
+            font-size: 0.875rem;
+        }
+
+    .load-more {
+        text-align: center;
+        margin-top: 1rem;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #6c757d;
+    }
+
+        .empty-state i {
+            font-size: 3rem;
+            color: #dee2e6;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .empty-state h4 {
+            margin: 0.5rem 0;
+            color: #495057;
+        }
+
+        .empty-state p {
+            margin: 0;
+            color: #6c757d;
+        }
+
+    .form-control {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #ffc107;
+            box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.1);
+        }
+
+    .loading-container {
+        text-align: center;
+        padding: 3rem;
+        color: #6c757d;
+    }
+
+    .simple-spinner {
+        width: 30px;
+        height: 30px;
+        border: 3px solid #f3f4f6;
+        border-top: 3px solid #ffc107;
+        border-radius: 50%;
+        margin: 0 auto 1rem;
+        animation: spin-loading 1s linear infinite;
+    }
+
+    @@keyframes spin-loading {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+    /* Modal base styles */
+    .modal-modern {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1050;
+        backdrop-filter: blur(4px);
+    }
+
+    .modal-content-modern {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        max-height: 90vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .modal-header-modern {
+        padding: 1.5rem;
+        border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .modal-title-modern {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-close-modern {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+        .btn-close-modern:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+    .modal-body-modern {
+        padding: 1.5rem;
+        overflow-y: auto;
+        flex: 1;
+    }
+
+    .modal-footer-modern {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+        background: #f8f9fa;
+    }
+
+    .btn-modern {
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        border: none;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-primary-modern {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+        .btn-primary-modern:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+    .btn-secondary-modern {
+        background: #6c757d;
+        color: white;
+    }
+
+        .btn-secondary-modern:hover {
+            background: #5a6268;
+        }
+
+    .btn-modern:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+</style>

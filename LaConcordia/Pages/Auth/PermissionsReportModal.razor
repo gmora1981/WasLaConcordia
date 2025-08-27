@@ -1,0 +1,965 @@
+﻿@using LaConcordia.Model
+@using Identity.Api.Interfaces
+@using System.Text.Json
+@inject IPermissionService permissionService
+@inject IJSRuntime JSRuntime
+@inject HttpClient httpClient
+
+@if (showModal)
+{
+    <div class="modal-modern" @onclick="CloseModalBackground" @onclick:stopPropagation="false">
+        <div class="modal-content-modern" style="max-width: 900px;" @onclick:stopPropagation="true">
+            <div class="modal-header-modern modal-header-info">
+                <h3 class="modal-title-modern">
+                    <i class="fas fa-chart-bar"></i> Reporte de Permisos
+                </h3>
+                <button type="button" class="btn-close-modern" @onclick="CloseModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="modal-body-modern">
+                <!-- Selector de tipo de reporte -->
+                <div class="report-type-selector">
+                    <button class="report-btn @(reportType == "summary" ? "active" : "")"
+                            @onclick="@(() => SetReportType(" summary"))">
+                        <i class="fas fa-chart-pie"></i>
+                        <span>Resumen General</span>
+                        <small>Vista general del sistema de permisos</small>
+                    </button>
+                    <button class="report-btn @(reportType == "users" ? "active" : "")"
+                            @onclick="@(() => SetReportType(" users"))">
+                        <i class="fas fa-users"></i>
+                        <span>Reporte de Usuarios</span>
+                        <small>Permisos detallados por usuario</small>
+                    </button>
+                    <button class="report-btn @(reportType == "roles" ? "active" : "")"
+                            @onclick="@(() => SetReportType(" roles"))">
+                        <i class="fas fa-user-tag"></i>
+                        <span>Reporte de Roles</span>
+                        <small>Permisos detallados por rol</small>
+                    </button>
+                    <button class="report-btn @(reportType == "navigation" ? "active" : "")"
+                            @onclick="@(() => SetReportType(" navigation"))">
+                        <i class="fas fa-sitemap"></i>
+                        <span>Reporte de Navegación</span>
+                        <small>Permisos por elemento de menú</small>
+                    </button>
+                </div>
+
+                <!-- Contenido del reporte -->
+                <div class="report-content">
+                    @if (isLoading)
+                    {
+                        <div class="loading-container">
+                            <div class="simple-spinner"></div>
+                            <p>Generando reporte...</p>
+                        </div>
+                    }
+                    else
+                    {
+                        @if (reportType == "summary")
+                        {
+                            <div class="summary-report">
+                                <h4><i class="fas fa-chart-pie"></i> Resumen General del Sistema</h4>
+
+                                <div class="stats-grid">
+                                    <div class="stat-card">
+                                        <div class="stat-icon users">
+                                            <i class="fas fa-users"></i>
+                                        </div>
+                                        <div class="stat-content">
+                                            <h3>@totalUsers</h3>
+                                            <p>Usuarios Totales</p>
+                                            <small>@usersWithPermissions con permisos</small>
+                                        </div>
+                                    </div>
+
+                                    <div class="stat-card">
+                                        <div class="stat-icon roles">
+                                            <i class="fas fa-user-tag"></i>
+                                        </div>
+                                        <div class="stat-content">
+                                            <h3>@totalRoles</h3>
+                                            <p>Roles Totales</p>
+                                            <small>@rolesWithPermissions con permisos</small>
+                                        </div>
+                                    </div>
+
+                                    <div class="stat-card">
+                                        <div class="stat-icon navigation">
+                                            <i class="fas fa-sitemap"></i>
+                                        </div>
+                                        <div class="stat-content">
+                                            <h3>@totalNavigationItems</h3>
+                                            <p>Items de Navegación</p>
+                                            <small>@protectedItems protegidos</small>
+                                        </div>
+                                    </div>
+
+                                    <div class="stat-card">
+                                        <div class="stat-icon permissions">
+                                            <i class="fas fa-key"></i>
+                                        </div>
+                                        <div class="stat-content">
+                                            <h3>@totalPermissions</h3>
+                                            <p>Permisos Asignados</p>
+                                            <small>@activePermissions activos</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="chart-section">
+                                    <h5>Distribución de Permisos</h5>
+                                    <div class="permission-bars">
+                                        <div class="permission-bar">
+                                            <div class="bar-label">Ver</div>
+                                            <div class="bar-progress">
+                                                <div class="bar-fill view" style="width: @GetPercentage(viewPermissions, totalPermissions)%"></div>
+                                            </div>
+                                            <div class="bar-value">@viewPermissions</div>
+                                        </div>
+                                        <div class="permission-bar">
+                                            <div class="bar-label">Crear</div>
+                                            <div class="bar-progress">
+                                                <div class="bar-fill create" style="width: @GetPercentage(createPermissions, totalPermissions)%"></div>
+                                            </div>
+                                            <div class="bar-value">@createPermissions</div>
+                                        </div>
+                                        <div class="permission-bar">
+                                            <div class="bar-label">Editar</div>
+                                            <div class="bar-progress">
+                                                <div class="bar-fill edit" style="width: @GetPercentage(editPermissions, totalPermissions)%"></div>
+                                            </div>
+                                            <div class="bar-value">@editPermissions</div>
+                                        </div>
+                                        <div class="permission-bar">
+                                            <div class="bar-label">Eliminar</div>
+                                            <div class="bar-progress">
+                                                <div class="bar-fill delete" style="width: @GetPercentage(deletePermissions, totalPermissions)%"></div>
+                                            </div>
+                                            <div class="bar-value">@deletePermissions</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else if (reportType == "users")
+                        {
+                            <div class="users-report">
+                                <h4><i class="fas fa-users"></i> Reporte Detallado de Usuarios</h4>
+
+                                <div class="filter-section">
+                                    <input type="text" class="form-control search-input"
+                                           placeholder="Buscar usuario..."
+                                           @bind="searchTerm" @bind:event="oninput" />
+                                </div>
+
+                                <div class="report-table">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Usuario</th>
+                                                <th>Email</th>
+                                                <th>Roles</th>
+                                                <th>Permisos</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var userReport in GetFilteredUserReports())
+                                            {
+                                                <tr>
+                                                    <td>@userReport.FullName</td>
+                                                    <td>@userReport.Email</td>
+                                                    <td>
+                                                        @foreach (var role in userReport.Roles)
+                                                        {
+                                                            <span class="badge badge-role">@role</span>
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        <span class="permission-count">@userReport.PermissionCount permisos</span>
+                                                    </td>
+                                                    <td>
+                                                        <button class="btn-action" @onclick="() => ShowUserDetails(userReport)">
+                                                            <i class="fas fa-eye"></i>
+                                                        </button>
+                                                        <button class="btn-action" @onclick="() => ExportUserReport(userReport)">
+                                                            <i class="fas fa-download"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        }
+                        else if (reportType == "roles")
+                        {
+                            <div class="roles-report">
+                                <h4><i class="fas fa-user-tag"></i> Reporte Detallado de Roles</h4>
+
+                                <div class="roles-list">
+                                    @foreach (var roleReport in roleReports)
+                                    {
+                                        <div class="role-report-card">
+                                            <div class="role-header">
+                                                <h5>
+                                                    <i class="fas @(roleReport.RoleName == "Admin" ? "fa-crown" : "fa-user-tag")"></i>
+                                                    @roleReport.RoleName
+                                                </h5>
+                                                <span class="user-count">@roleReport.UserCount usuarios</span>
+                                            </div>
+                                            <div class="role-permissions">
+                                                <div class="permission-summary">
+                                                    <span class="permission-stat">
+                                                        <i class="fas fa-eye"></i> Ver: @roleReport.ViewCount
+                                                    </span>
+                                                    <span class="permission-stat">
+                                                        <i class="fas fa-plus"></i> Crear: @roleReport.CreateCount
+                                                    </span>
+                                                    <span class="permission-stat">
+                                                        <i class="fas fa-edit"></i> Editar: @roleReport.EditCount
+                                                    </span>
+                                                    <span class="permission-stat">
+                                                        <i class="fas fa-trash"></i> Eliminar: @roleReport.DeleteCount
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                        else if (reportType == "navigation")
+                        {
+                            <div class="navigation-report">
+                                <h4><i class="fas fa-sitemap"></i> Reporte de Permisos por Navegación</h4>
+
+                                <div class="navigation-tree-report">
+                                    @foreach (var navReport in navigationReports)
+                                    {
+                                        <div class="nav-report-item">
+                                            <div class="nav-info">
+                                                <i class="@navReport.Icon"></i>
+                                                <strong>@navReport.Title</strong>
+                                                @if (!string.IsNullOrEmpty(navReport.RequiredRole))
+                                                {
+                                                    <span class="badge badge-warning">Requiere: @navReport.RequiredRole</span>
+                                                }
+                                            </div>
+                                            <div class="nav-stats">
+                                                <span>Usuarios: @navReport.UsersWithAccess</span>
+                                                <span>Roles: @navReport.RolesWithAccess</span>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+
+                <!-- Opciones de exportación -->
+                @if (!isLoading && reportData != null)
+                {
+                    <div class="export-section">
+                        <h5><i class="fas fa-file-export"></i> Opciones de Exportación</h5>
+                        <div class="export-buttons">
+                            <button class="btn-export" @onclick="ExportToJSON">
+                                <i class="fas fa-file-code"></i> Exportar JSON
+                            </button>
+                            <button class="btn-export" @onclick="ExportToCSV">
+                                <i class="fas fa-file-csv"></i> Exportar CSV
+                            </button>
+                            <button class="btn-export" @onclick="PrintReport">
+                                <i class="fas fa-print"></i> Imprimir
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="modal-footer-modern">
+                <button type="button" class="btn-modern btn-primary-modern"
+                        @onclick="GenerateReport"
+                        disabled="@isLoading">
+                    @if (isLoading)
+                    {
+                        <span class="simple-spinner small"></span>
+                        <text>Generando...</text>
+                    }
+                    else
+                    {
+                        <i class="fas fa-sync"></i>
+                        <text>Actualizar Reporte</text>
+                    }
+                </button>
+                <button type="button" class="btn-modern btn-secondary-modern" @onclick="CloseModal">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool showModal { get; set; } = false;
+    [Parameter] public EventCallback OnModalClosed { get; set; }
+
+    private string reportType = "summary";
+    private bool isLoading = false;
+    private string searchTerm = "";
+
+    // Datos del reporte
+    private object? reportData;
+
+    // Summary stats
+    private int totalUsers = 0;
+    private int usersWithPermissions = 0;
+    private int totalRoles = 0;
+    private int rolesWithPermissions = 0;
+    private int totalNavigationItems = 0;
+    private int protectedItems = 0;
+    private int totalPermissions = 0;
+    private int activePermissions = 0;
+    private int viewPermissions = 0;
+    private int createPermissions = 0;
+    private int editPermissions = 0;
+    private int deletePermissions = 0;
+
+    // Report data
+    private List<UserReportItem> userReports = new();
+    private List<RoleReportItem> roleReports = new();
+    private List<NavigationReportItem> navigationReports = new();
+
+    // Classes for report items
+    public class UserReportItem
+    {
+        public string UserId { get; set; } = "";
+        public string FullName { get; set; } = "";
+        public string Email { get; set; } = "";
+        public List<string> Roles { get; set; } = new();
+        public int PermissionCount { get; set; }
+        public List<NavigationPermissionDto> Permissions { get; set; } = new();
+    }
+
+    public class RoleReportItem
+    {
+        public string RoleId { get; set; } = "";
+        public string RoleName { get; set; } = "";
+        public int UserCount { get; set; }
+        public int ViewCount { get; set; }
+        public int CreateCount { get; set; }
+        public int EditCount { get; set; }
+        public int DeleteCount { get; set; }
+    }
+
+    public class NavigationReportItem
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = "";
+        public string? Icon { get; set; }
+        public string? RequiredRole { get; set; }
+        public int UsersWithAccess { get; set; }
+        public int RolesWithAccess { get; set; }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (showModal)
+        {
+            await GenerateReport();
+        }
+    }
+
+    private void SetReportType(string type)
+    {
+        reportType = type;
+        StateHasChanged();
+    }
+
+    private async Task GenerateReport()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            if (reportType == "summary")
+            {
+                await GenerateSummaryReport();
+            }
+            else if (reportType == "users")
+            {
+                await GenerateUsersReport();
+            }
+            else if (reportType == "roles")
+            {
+                await GenerateRolesReport();
+            }
+            else if (reportType == "navigation")
+            {
+                await GenerateNavigationReport();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error generando reporte: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task GenerateSummaryReport()
+    {
+        // Simular carga de datos (reemplazar con llamadas reales al servicio)
+        await Task.Delay(500);
+
+        totalUsers = 45;
+        usersWithPermissions = 38;
+        totalRoles = 5;
+        rolesWithPermissions = 5;
+        totalNavigationItems = 12;
+        protectedItems = 8;
+        totalPermissions = 156;
+        activePermissions = 142;
+        viewPermissions = 45;
+        createPermissions = 32;
+        editPermissions = 38;
+        deletePermissions = 21;
+    }
+
+    private async Task GenerateUsersReport()
+    {
+        var allUsers = await permissionService.GetAllUsersWithPermissionsAsync();
+
+        userReports.Clear();
+        foreach (var user in allUsers)
+        {
+            userReports.Add(new UserReportItem
+            {
+                UserId = user.UserId,
+                FullName = user.Username,
+                Email = user.Email ?? "",
+                Roles = user.Roles,
+                PermissionCount = user.Permissions.Count,
+                Permissions = user.Permissions
+            });
+        }
+    }
+
+    private async Task GenerateRolesReport()
+    {
+        // Implementar carga real de datos
+        await Task.Delay(500);
+
+        roleReports = new List<RoleReportItem>
+        {
+            new RoleReportItem
+            {
+                RoleName = "Admin",
+                UserCount = 3,
+                ViewCount = 12,
+                CreateCount = 12,
+                EditCount = 12,
+                DeleteCount = 12
+            },
+            new RoleReportItem
+            {
+                RoleName = "User",
+                UserCount = 25,
+                ViewCount = 8,
+                CreateCount = 3,
+                EditCount = 3,
+                DeleteCount = 0
+            }
+        };
+    }
+
+    private async Task GenerateNavigationReport()
+    {
+        var items = await permissionService.GetAllNavigationItemsWithPermissionCountAsync();
+
+        navigationReports.Clear();
+        foreach (var item in items)
+        {
+            navigationReports.Add(new NavigationReportItem
+            {
+                Id = item.NavigationItemId,
+                Title = item.NavigationItemTitle,
+                Icon = "fas fa-folder",
+                RequiredRole = null,
+                UsersWithAccess = 10,
+                RolesWithAccess = 2
+            });
+        }
+    }
+
+    private List<UserReportItem> GetFilteredUserReports()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+            return userReports;
+
+        var searchLower = searchTerm.ToLower();
+        return userReports.Where(u =>
+            u.FullName.ToLower().Contains(searchLower) ||
+            u.Email.ToLower().Contains(searchLower)
+        ).ToList();
+    }
+
+    private int GetPercentage(int value, int total)
+    {
+        if (total == 0) return 0;
+        return (int)((value * 100.0) / total);
+    }
+
+    private async Task ShowUserDetails(UserReportItem user)
+    {
+        var details = $"Permisos de {user.FullName}:\n\n";
+        foreach (var permission in user.Permissions.Take(10))
+        {
+            details += $"• {permission.NavigationItemTitle}\n";
+        }
+
+        await JSRuntime.InvokeVoidAsync("alert", details);
+    }
+
+    private async Task ExportUserReport(UserReportItem user)
+    {
+        var json = JsonSerializer.Serialize(user, new JsonSerializerOptions { WriteIndented = true });
+        await JSRuntime.InvokeVoidAsync("console.log", json);
+    }
+
+    private async Task ExportToJSON()
+    {
+        var exportData = new
+        {
+            ReportType = reportType,
+            GeneratedAt = DateTime.Now,
+            Data = reportType switch
+            {
+                "users" => (object)userReports,
+                "roles" => (object)roleReports,
+                "navigation" => (object)navigationReports,
+                _ => (object)new { totalUsers, usersWithPermissions, totalRoles, rolesWithPermissions }
+            }
+        };
+
+        var json = System.Text.Json.JsonSerializer.Serialize(exportData,
+            new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+
+        await JSRuntime.InvokeVoidAsync("downloadFile",
+            "reporte-permisos.json", json, "application/json");
+    }
+
+    private async Task ExportToCSV()
+    {
+        // Implementar exportación CSV
+        await JSRuntime.InvokeVoidAsync("alert", "Exportación CSV estará disponible próximamente");
+    }
+
+    private async Task PrintReport()
+    {
+        await JSRuntime.InvokeVoidAsync("window.print");
+    }
+
+    private async Task CloseModal()
+    {
+        reportType = "summary";
+        searchTerm = "";
+        await OnModalClosed.InvokeAsync();
+    }
+
+    private async Task CloseModalBackground(MouseEventArgs e)
+    {
+        await CloseModal();
+    }
+}
+
+<style>
+    .modal-header-info {
+        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%) !important;
+    }
+
+    .report-type-selector {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .report-btn {
+        padding: 1rem;
+        border: 2px solid #e0e0e0;
+        background: white;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: left;
+    }
+
+        .report-btn:hover {
+            border-color: #17a2b8;
+            background: #f8f9fa;
+        }
+
+        .report-btn.active {
+            border-color: #17a2b8;
+            background: linear-gradient(135deg, #17a2b815 0%, #13849615 100%);
+        }
+
+        .report-btn i {
+            font-size: 1.5rem;
+            color: #17a2b8;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .report-btn span {
+            display: block;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 0.25rem;
+        }
+
+        .report-btn small {
+            color: #6c757d;
+            font-size: 0.8rem;
+        }
+
+    .report-content {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        min-height: 400px;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.5rem;
+    }
+
+        .stat-icon.users {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .stat-icon.roles {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+        }
+
+        .stat-icon.navigation {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+        }
+
+        .stat-icon.permissions {
+            background: linear-gradient(135deg, #43e97b, #38f9d7);
+        }
+
+    .stat-content h3 {
+        margin: 0;
+        font-size: 1.5rem;
+        color: #2c3e50;
+    }
+
+    .stat-content p {
+        margin: 0.25rem 0;
+        color: #495057;
+        font-weight: 500;
+    }
+
+    .stat-content small {
+        color: #6c757d;
+        font-size: 0.8rem;
+    }
+
+    .chart-section {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-top: 1.5rem;
+    }
+
+        .chart-section h5 {
+            margin: 0 0 1rem 0;
+            color: #2c3e50;
+        }
+
+    .permission-bars {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .permission-bar {
+        display: grid;
+        grid-template-columns: 80px 1fr 60px;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .bar-label {
+        font-weight: 500;
+        color: #495057;
+    }
+
+    .bar-progress {
+        height: 24px;
+        background: #e9ecef;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .bar-fill {
+        height: 100%;
+        border-radius: 12px;
+        transition: width 0.5s ease;
+    }
+
+        .bar-fill.view {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .bar-fill.create {
+            background: linear-gradient(90deg, #43e97b, #38f9d7);
+        }
+
+        .bar-fill.edit {
+            background: linear-gradient(90deg, #fa709a, #fee140);
+        }
+
+        .bar-fill.delete {
+            background: linear-gradient(90deg, #f093fb, #f5576c);
+        }
+
+    .bar-value {
+        text-align: right;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+    .filter-section {
+        margin-bottom: 1rem;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+    }
+
+    .report-table {
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+        .table th {
+            background: #f8f9fa;
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+    .badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        border-radius: 4px;
+        margin-right: 0.25rem;
+    }
+
+    .badge-role {
+        background: #e3f2fd;
+        color: #1976d2;
+    }
+
+    .badge-warning {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .permission-count {
+        background: #f8f9fa;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.875rem;
+    }
+
+    .btn-action {
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: #f8f9fa;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        margin-right: 0.25rem;
+    }
+
+        .btn-action:hover {
+            background: #17a2b8;
+            color: white;
+            transform: scale(1.1);
+        }
+
+    .role-report-card {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .role-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+
+        .role-header h5 {
+            margin: 0;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+    .user-count {
+        background: #f8f9fa;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+
+    .permission-summary {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .permission-stat {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        background: #f8f9fa;
+        border-radius: 6px;
+        font-size: 0.875rem;
+    }
+
+    .nav-report-item {
+        background: white;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .nav-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+        .nav-info i {
+            color: #17a2b8;
+            font-size: 1.2rem;
+        }
+
+    .nav-stats {
+        display: flex;
+        gap: 1rem;
+        color: #6c757d;
+        font-size: 0.875rem;
+    }
+
+    .export-section {
+        background: #e7f3ff;
+        border-radius: 8px;
+        padding: 1rem;
+        border: 1px solid #b3d7ff;
+    }
+
+        .export-section h5 {
+            margin: 0 0 0.75rem 0;
+            color: #0066cc;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+    .export-buttons {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .btn-export {
+        padding: 0.5rem 1rem;
+        border: 1px solid #17a2b8;
+        background: white;
+        border-radius: 6px;
+        color: #17a2b8;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+        .btn-export:hover {
+            background: #17a2b8;
+            color: white;
+        }
+
+    /* Estilos comunes ya definidos en otros modales */
+</style>
