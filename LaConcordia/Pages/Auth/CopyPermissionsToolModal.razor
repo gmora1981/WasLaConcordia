@@ -21,17 +21,17 @@
                 <!-- Selector de tipo de entidad -->
                 <div class="entity-type-selector">
                     <button class="type-btn @(entityType == "user" ? "active" : "")"
-                            @onclick="@(() => SetEntityType(" user"))">
+                            @onclick="@(() => SetEntityType("user"))">
                         <i class="fas fa-user"></i>
                         <span>Usuario a Usuario</span>
                     </button>
                     <button class="type-btn @(entityType == "role" ? "active" : "")"
-                            @onclick="@(() => SetEntityType(" role"))">
+                            @onclick="@(() => SetEntityType("role"))">
                         <i class="fas fa-user-tag"></i>
                         <span>Rol a Rol</span>
                     </button>
                     <button class="type-btn @(entityType == "roleToUser" ? "active" : "")"
-                            @onclick="@(() => SetEntityType(" roleToUser"))">
+                            @onclick="@(() => SetEntityType("roleToUser"))">
                         <i class="fas fa-exchange-alt"></i>
                         <span>Rol a Usuario</span>
                     </button>
@@ -54,19 +54,25 @@
                                 @if (entityType == "user")
                                 {
                                     <EntitySelector EntityType="user"
+                                                    Title="Seleccionar Usuario Origen"
+                                                    Description="Usuario del cual se copiarán los permisos"
                                                     Users="users"
                                                     SelectedUser="sourceUser"
                                                     OnUserSelected="OnSourceUserSelected"
-                                                    AllowClear="false" />
+                                                    AllowClear="false"
+                                                    ShowSelectedInfo="true" />
                                 }
                                 else if (entityType == "role" || entityType == "roleToUser")
                                 {
                                     <EntitySelector EntityType="role"
+                                                    Title="Seleccionar Rol Origen"
+                                                    Description="Rol del cual se copiarán los permisos"
                                                     Roles="roles"
                                                     SelectedRole="sourceRole"
                                                     OnRoleSelected="OnSourceRoleSelected"
                                                     GetRoleUsersCount="GetUsersInRoleCount"
-                                                    AllowClear="false" />
+                                                    AllowClear="false"
+                                                    ShowSelectedInfo="true" />
                                 }
                             }
                         </div>
@@ -93,19 +99,25 @@
                                 @if (entityType == "user" || entityType == "roleToUser")
                                 {
                                     <EntitySelector EntityType="user"
+                                                    Title="Seleccionar Usuario Destino"
+                                                    Description="Usuario al cual se copiarán los permisos"
                                                     Users="GetAvailableTargetUsers()"
                                                     SelectedUser="targetUser"
                                                     OnUserSelected="OnTargetUserSelected"
-                                                    AllowClear="false" />
+                                                    AllowClear="false"
+                                                    ShowSelectedInfo="true" />
                                 }
                                 else if (entityType == "role")
                                 {
                                     <EntitySelector EntityType="role"
+                                                    Title="Seleccionar Rol Destino"
+                                                    Description="Rol al cual se copiarán los permisos"
                                                     Roles="GetAvailableTargetRoles()"
                                                     SelectedRole="targetRole"
                                                     OnRoleSelected="OnTargetRoleSelected"
                                                     GetRoleUsersCount="GetUsersInRoleCount"
-                                                    AllowClear="false" />
+                                                    AllowClear="false"
+                                                    ShowSelectedInfo="true" />
                                 }
                             }
                         </div>
@@ -156,7 +168,7 @@
  
                                     @sourceUser?.FirstName@sourceUser?.LastName
                                     @sourceUser?.Email
-                                }
+                                                }
                             </p>
                             <p><strong>Al destino:</strong></p>
                             <p class="target-info">
@@ -226,9 +238,13 @@
     private bool isLoading = false;
     private bool isCopying = false;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnParametersSetAsync()
     {
-        await LoadData();
+        if (showModal && !isLoading && (!users.Any() || !roles.Any()))
+        {
+            Console.WriteLine("🔄 Modal de copia abierto - Cargando datos...");
+            await LoadData();
+        }
     }
 
     private async Task LoadData()
@@ -238,25 +254,35 @@
             isLoading = true;
             StateHasChanged();
 
-            // Cargar usuarios
+            Console.WriteLine("📡 Cargando usuarios...");
             var paginationDTO = new PaginationDTO { Page = 1, RecordsPerPage = 100 };
             var response = await usersRepository.GetUsers(paginationDTO);
             users = response?.Response?.ToList() ?? new List<UserDTO>();
+            Console.WriteLine($"✅ Usuarios cargados: {users.Count}");
 
-            // Cargar roles
+            Console.WriteLine("📡 Cargando roles...");
             var rolesResponse = await usersRepository.GetRoles();
             roles = rolesResponse?.ToList() ?? new List<RoleDTO>();
+            Console.WriteLine($"✅ Roles cargados: {roles.Count}");
 
             // Contar usuarios por rol
+            roleUserCounts.Clear();
             foreach (var role in roles)
             {
-                // Aquí deberías obtener el conteo real desde tu servicio
-                roleUserCounts[role.RoleName] = 0;
+                // CORREGIDO: Verificar que el rol tenga RoleId
+                if (string.IsNullOrEmpty(role.RoleId) && !string.IsNullOrEmpty(role.RoleName))
+                {
+                    role.RoleId = role.RoleName; // Fallback si RoleId está vacío
+                }
+                roleUserCounts[role.RoleName] = 0; // En producción, obtener el conteo real
             }
+
+            Console.WriteLine("✅ Datos cargados correctamente");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error cargando datos: {ex.Message}");
+            Console.WriteLine($"❌ Error cargando datos: {ex.Message}");
+            await OnError.InvokeAsync($"Error cargando datos: {ex.Message}");
         }
         finally
         {
@@ -267,12 +293,15 @@
 
     private void SetEntityType(string type)
     {
+        Console.WriteLine($"🔄 Cambiando tipo de entidad: {type}");
         entityType = type;
+
         // Limpiar selecciones al cambiar tipo
         sourceUser = null;
         targetUser = null;
         sourceRole = null;
         targetRole = null;
+
         StateHasChanged();
     }
 
@@ -280,8 +309,11 @@
     {
         if (sourceUser != null)
         {
-            return users.Where(u => u.UserId != sourceUser.UserId).ToList();
+            var availableUsers = users.Where(u => u.UserId != sourceUser.UserId).ToList();
+            Console.WriteLine($"📊 Usuarios destino disponibles: {availableUsers.Count}");
+            return availableUsers;
         }
+        Console.WriteLine($"📊 Todos los usuarios disponibles: {users.Count}");
         return users;
     }
 
@@ -289,8 +321,11 @@
     {
         if (sourceRole != null)
         {
-            return roles.Where(r => r.RoleId != sourceRole.RoleId).ToList();
+            var availableRoles = roles.Where(r => r.RoleId != sourceRole.RoleId && r.RoleName != sourceRole.RoleName).ToList();
+            Console.WriteLine($"📊 Roles destino disponibles: {availableRoles.Count}");
+            return availableRoles;
         }
+        Console.WriteLine($"📊 Todos los roles disponibles: {roles.Count}");
         return roles;
     }
 
@@ -301,43 +336,55 @@
 
     private void OnSourceUserSelected(UserDTO user)
     {
+        Console.WriteLine($"👤 Usuario origen seleccionado: {user.FirstName} {user.LastName}");
         sourceUser = user;
+        sourceRole = null; // Limpiar rol origen
         StateHasChanged();
     }
 
     private void OnTargetUserSelected(UserDTO user)
     {
+        Console.WriteLine($"🎯 Usuario destino seleccionado: {user.FirstName} {user.LastName}");
         targetUser = user;
+        targetRole = null; // Limpiar rol destino
         StateHasChanged();
     }
 
     private void OnSourceRoleSelected(RoleDTO role)
     {
+        Console.WriteLine($"🏷️ Rol origen seleccionado: {role.RoleName}");
         sourceRole = role;
+        sourceUser = null; // Limpiar usuario origen
         StateHasChanged();
     }
 
     private void OnTargetRoleSelected(RoleDTO role)
     {
+        Console.WriteLine($"🎯 Rol destino seleccionado: {role.RoleName}");
         targetRole = role;
+        targetUser = null; // Limpiar usuario destino
         StateHasChanged();
     }
 
     private bool CanExecuteCopy()
     {
+        bool canExecute = false;
+
         if (entityType == "user")
         {
-            return sourceUser != null && targetUser != null;
+            canExecute = sourceUser != null && targetUser != null;
         }
         else if (entityType == "role")
         {
-            return sourceRole != null && targetRole != null;
+            canExecute = sourceRole != null && targetRole != null;
         }
         else if (entityType == "roleToUser")
         {
-            return sourceRole != null && targetUser != null;
+            canExecute = sourceRole != null && targetUser != null;
         }
-        return false;
+
+        Console.WriteLine($"🔍 CanExecuteCopy: {canExecute} (entityType: {entityType})");
+        return canExecute;
     }
 
     private async Task ExecuteCopy()
@@ -348,6 +395,8 @@
         {
             isCopying = true;
             StateHasChanged();
+
+            Console.WriteLine($"🚀 Ejecutando copia - Tipo: {entityType}");
 
             HttpResponseMessage response;
             string successMessage = "";
@@ -363,6 +412,7 @@
                     MergePermissions = mergePermissions
                 };
 
+                Console.WriteLine($"📤 Copiando de usuario {sourceUser.Email} a {targetUser.Email}");
                 response = await httpClient.PostAsJsonAsync("/api/permissions/copy/user", copyDto);
                 successMessage = $"Permisos copiados exitosamente de {sourceUser.FirstName} {sourceUser.LastName} a {targetUser!.FirstName} {targetUser.LastName}";
             }
@@ -371,12 +421,13 @@
                 var copyDto = new
                 {
                     EntityType = "Role",
-                    SourceId = sourceRole!.RoleId,
-                    TargetId = targetRole!.RoleId,
+                    SourceId = sourceRole!.RoleId ?? sourceRole.RoleName,
+                    TargetId = targetRole!.RoleId ?? targetRole.RoleName,
                     ReplaceExisting = replaceExisting,
                     MergePermissions = mergePermissions
                 };
 
+                Console.WriteLine($"📤 Copiando de rol {sourceRole.RoleName} a {targetRole.RoleName}");
                 response = await httpClient.PostAsJsonAsync("/api/permissions/copy/role", copyDto);
                 successMessage = $"Permisos copiados exitosamente del rol {sourceRole.RoleName} al rol {targetRole!.RoleName}";
             }
@@ -385,29 +436,33 @@
                 var copyDto = new
                 {
                     EntityType = "RoleToUser",
-                    SourceId = sourceRole!.RoleId,
+                    SourceId = sourceRole!.RoleId ?? sourceRole.RoleName,
                     TargetId = targetUser!.UserId,
                     ReplaceExisting = replaceExisting,
                     MergePermissions = mergePermissions
                 };
 
+                Console.WriteLine($"📤 Copiando de rol {sourceRole.RoleName} a usuario {targetUser.Email}");
                 response = await httpClient.PostAsJsonAsync("/api/permissions/copy/role-to-user", copyDto);
                 successMessage = $"Permisos copiados exitosamente del rol {sourceRole.RoleName} al usuario {targetUser!.FirstName} {targetUser.LastName}";
             }
 
             if (response!.IsSuccessStatusCode)
             {
+                Console.WriteLine($"✅ Copia exitosa: {successMessage}");
                 await OnSuccess.InvokeAsync(successMessage);
                 await CloseModal();
             }
             else
             {
                 var error = await response.Content.ReadAsStringAsync();
-                throw new Exception(error);
+                Console.WriteLine($"❌ Error en respuesta: {response.StatusCode} - {error}");
+                throw new Exception($"Error del servidor ({response.StatusCode}): {error}");
             }
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"❌ Error copiando: {ex.Message}");
             await OnError.InvokeAsync($"Error al copiar permisos: {ex.Message}");
         }
         finally
@@ -419,6 +474,9 @@
 
     private async Task CloseModal()
     {
+        Console.WriteLine("🔒 Cerrando modal y limpiando estado");
+
+        // Reset state
         entityType = "user";
         sourceUser = null;
         targetUser = null;
@@ -622,13 +680,16 @@
         }
 
     @@keyframes spin-loading {
-        0% {
-            transform: rotate(0deg);
-        }
+        0%
 
-        100% {
-            transform: rotate(360deg);
-        }
+    {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+
     }
 
     /* Modal base styles */

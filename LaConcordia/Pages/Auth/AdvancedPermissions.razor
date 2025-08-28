@@ -311,7 +311,7 @@
                                 </div>
                                 <h4>Reporte de Permisos</h4>
                                 <p>Genera reportes detallados de permisos</p>
-                                <button class="btn-modern btn-info" @onclick="GeneratePermissionsReport">
+                                <button class="btn-modern btn-info" @onclick="ShowPermissionsReport">
                                     Generar Reporte
                                 </button>
                             </div>
@@ -360,7 +360,7 @@
                                OnSettingsUpdated="OnNavigationSettingsUpdated" />
 }
 
-<!-- Modal de copia de permisos -->
+<!-- Modal de copia de permisos original (para usuarios individuales) -->
 @if (showCopyModal && selectedUserForCopy != null)
 {
     <CopyPermissionsModal showModal="showCopyModal"
@@ -376,6 +376,42 @@
 
 <!-- Modal de asignación masiva global -->
 <GlobalBulkAssignmentModal @bind-showModal="showBulkModal" />
+
+<!-- **NUEVOS MODALES DE HERRAMIENTAS** -->
+<!-- Modal de herramienta de copia avanzada -->
+<CopyPermissionsToolModal showModal="showCopyToolModal"
+                          OnModalClosed="OnCopyToolModalClosed"
+                          OnSuccess="OnCopySuccess"
+                          OnError="OnCopyError" />
+
+<!-- Modal de herramienta de reseteo -->
+<ResetPermissionsModal showModal="showResetModal"
+                       OnModalClosed="OnResetModalClosed"
+                       OnSuccess="OnResetSuccess"
+                       OnError="OnResetError" />
+
+<!-- Modal de reportes -->
+<PermissionsReportModal showModal="showReportModal"
+                        OnModalClosed="OnReportModalClosed" />
+
+<!-- Modal de auditoría -->
+<AuditLogModal showModal="showAuditModal"
+               OnModalClosed="OnAuditModalClosed" />
+
+<!-- Script JavaScript para descargar archivos -->
+<script>
+    window.downloadFile = function(filename, content, contentType) {
+        const blob = new Blob([content], { type: contentType });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    };
+</script>
 
 @code {
     private string activeTab = "users";
@@ -399,13 +435,19 @@
     // Search and filters
     private string userSearchTerm = "";
 
-    // Modal states
+    // Modal states - Modales originales
     private bool showPermissionModal = false;
     private bool showMatrixModal = false;
     private bool showBulkModal = false;
     private bool showCopyModal = false;
     private bool showRolePermissionModal = false;
     private bool showNavigationPermissionModal = false;
+
+    // Modal states - Nuevos modales de herramientas
+    private bool showCopyToolModal = false;
+    private bool showResetModal = false;
+    private bool showReportModal = false;
+    private bool showAuditModal = false;
 
     // Selected items for modals
     private UserDTO? selectedUserForPermissions;
@@ -618,6 +660,14 @@
         activeTab = tab;
 
         // Cerrar todos los modales al cambiar de pestaña
+        CloseAllModals();
+
+        StateHasChanged();
+    }
+
+    private void CloseAllModals()
+    {
+        // Modales originales
         if (showPermissionModal)
         {
             Console.WriteLine("🔒 Cerrando modal de permisos al cambiar de pestaña");
@@ -655,10 +705,29 @@
             selectedUserForCopy = null;
         }
 
-        StateHasChanged();
+        // Nuevos modales de herramientas
+        if (showCopyToolModal)
+        {
+            showCopyToolModal = false;
+        }
+
+        if (showResetModal)
+        {
+            showResetModal = false;
+        }
+
+        if (showReportModal)
+        {
+            showReportModal = false;
+        }
+
+        if (showAuditModal)
+        {
+            showAuditModal = false;
+        }
     }
 
-    // Modal handlers
+    // Modal handlers - Originales
     private void OnCopyModalClosed()
     {
         Console.WriteLine("🔒 Modal de copia cerrado");
@@ -724,6 +793,63 @@
         Console.WriteLine("🔄 Configuración de navegación actualizada");
         await LoadNavigationItems();
         successMessage = "Configuración del elemento de navegación actualizada exitosamente";
+        StateHasChanged();
+    }
+
+    // Modal handlers - Nuevas herramientas
+    private void OnCopyToolModalClosed()
+    {
+        Console.WriteLine("🔒 Modal de herramienta de copia cerrado");
+        showCopyToolModal = false;
+        StateHasChanged();
+    }
+
+    private void OnResetModalClosed()
+    {
+        Console.WriteLine("🔒 Modal de reseteo cerrado");
+        showResetModal = false;
+        StateHasChanged();
+    }
+
+    private void OnResetSuccess(string message)
+    {
+        Console.WriteLine($"✅ Reseteo exitoso: {message}");
+        successMessage = message;
+
+        _ = Task.Delay(5000).ContinueWith(_ =>
+        {
+            successMessage = null;
+            InvokeAsync(StateHasChanged);
+        });
+
+        StateHasChanged();
+    }
+
+    private void OnResetError(string message)
+    {
+        Console.WriteLine($"❌ Error en reseteo: {message}");
+        errorMessage = message;
+
+        _ = Task.Delay(10000).ContinueWith(_ =>
+        {
+            errorMessage = null;
+            InvokeAsync(StateHasChanged);
+        });
+
+        StateHasChanged();
+    }
+
+    private void OnReportModalClosed()
+    {
+        Console.WriteLine("🔒 Modal de reportes cerrado");
+        showReportModal = false;
+        StateHasChanged();
+    }
+
+    private void OnAuditModalClosed()
+    {
+        Console.WriteLine("🔒 Modal de auditoría cerrado");
+        showAuditModal = false;
         StateHasChanged();
     }
 
@@ -858,7 +984,7 @@
         StateHasChanged();
     }
 
-    // Tools
+    // Tools - Métodos originales
     private async Task ShowPermissionMatrix()
     {
         showMatrixModal = true;
@@ -871,211 +997,36 @@
         StateHasChanged();
     }
 
+    // Tools - Nuevos métodos para herramientas avanzadas
     private async Task ShowCopyPermissions()
     {
-        if (users.Any())
-        {
-            selectedUserForCopy = null;
-            showCopyModal = true;
-            StateHasChanged();
-        }
-        else
-        {
-            await JSRuntime.InvokeVoidAsync("alert", "No hay usuarios disponibles para copiar permisos");
-        }
+        Console.WriteLine("🛠️ Abriendo herramienta de copia de permisos");
+        showCopyToolModal = true;
+        StateHasChanged();
     }
 
     private async Task ShowResetPermissions()
     {
-        try
-        {
-            var resetType = await JSRuntime.InvokeAsync<string>("prompt",
-                "¿Qué tipo de permisos desea resetear?\n\n1. Usuario específico\n2. Rol específico\n\nIngrese 1 o 2:");
-
-            if (resetType == "1")
-            {
-                await ResetUserPermissions();
-            }
-            else if (resetType == "2")
-            {
-                await ResetRolePermissions();
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"❌ Error al resetear permisos: {ex.Message}");
-            await displayMessage.DisplayErrorMessage($"Error al resetear permisos: {ex.Message}");
-        }
+        Console.WriteLine("🛠️ Abriendo herramienta de reseteo de permisos");
+        showResetModal = true;
+        StateHasChanged();
     }
 
-    private async Task ResetUserPermissions()
+    private async Task ShowPermissionsReport()
     {
-        if (!users.Any())
-        {
-            await JSRuntime.InvokeVoidAsync("alert", "No hay usuarios disponibles");
-            return;
-        }
-
-        var userOptions = string.Join("\n", users.Select((u, index) =>
-            $"{index + 1}. {u.FirstName} {u.LastName} ({u.Email})"));
-
-        var selection = await JSRuntime.InvokeAsync<string>("prompt",
-            $"Seleccione el usuario para resetear TODOS sus permisos:\n\n{userOptions}\n\nIngrese el número:");
-
-        if (!int.TryParse(selection, out int selectedIndex) ||
-            selectedIndex < 1 || selectedIndex > users.Count) return;
-
-        var selectedUser = users[selectedIndex - 1];
-
-        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm",
-            $"⚠️ ADVERTENCIA ⚠️\n\n¿Está COMPLETAMENTE SEGURO de eliminar TODOS los permisos de {selectedUser.FirstName} {selectedUser.LastName}?\n\nEsta acción NO se puede deshacer.");
-
-        if (!confirmed) return;
-
-        try
-        {
-            var response = await httpClient.DeleteAsync($"/api/permissions/reset/user/{selectedUser.UserId}");
-
-            if (response.IsSuccessStatusCode)
-            {
-                successMessage = $"Permisos reseteados para {selectedUser.FirstName} {selectedUser.LastName}";
-                await JSRuntime.InvokeVoidAsync("alert", successMessage);
-            }
-            else
-            {
-                throw new Exception("Error al resetear permisos del usuario");
-            }
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Error al resetear permisos: {ex.Message}";
-            await displayMessage.DisplayErrorMessage(errorMessage);
-        }
-    }
-
-    private async Task ResetRolePermissions()
-    {
-        if (!roles.Any())
-        {
-            await JSRuntime.InvokeVoidAsync("alert", "No hay roles disponibles");
-            return;
-        }
-
-        var roleOptions = string.Join("\n", roles.Select((r, index) =>
-            $"{index + 1}. {r.RoleName}"));
-
-        var selection = await JSRuntime.InvokeAsync<string>("prompt",
-            $"Seleccione el rol para resetear TODOS sus permisos:\n\n{roleOptions}\n\nIngrese el número:");
-
-        if (!int.TryParse(selection, out int selectedIndex) ||
-            selectedIndex < 1 || selectedIndex > roles.Count) return;
-
-        var selectedRole = roles[selectedIndex - 1];
-
-        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm",
-            $"⚠️ ADVERTENCIA ⚠️\n\n¿Está COMPLETAMENTE SEGURO de eliminar TODOS los permisos del rol {selectedRole.RoleName}?\n\nEsto afectará a {GetUsersInRoleCount(selectedRole.RoleName)} usuarios.\n\nEsta acción NO se puede deshacer.");
-
-        if (!confirmed) return;
-
-        try
-        {
-            var roleId = !string.IsNullOrEmpty(selectedRole.RoleId) ? selectedRole.RoleId : selectedRole.RoleName;
-            var response = await httpClient.DeleteAsync($"/api/permissions/reset/role/{roleId}");
-
-            if (response.IsSuccessStatusCode)
-            {
-                successMessage = $"Permisos reseteados para el rol {selectedRole.RoleName}";
-                await JSRuntime.InvokeVoidAsync("alert", successMessage);
-            }
-            else
-            {
-                throw new Exception("Error al resetear permisos del rol");
-            }
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Error al resetear permisos: {ex.Message}";
-            await displayMessage.DisplayErrorMessage(errorMessage);
-        }
-    }
-
-    private async Task GeneratePermissionsReport()
-    {
-        try
-        {
-            var report = await permissionService.GetAllUsersWithPermissionsAsync();
-
-            if (report != null && report.Any())
-            {
-                var reportSummary = $"📊 REPORTE DE PERMISOS\n";
-                reportSummary += $"═══════════════════════\n\n";
-                reportSummary += $"Total de usuarios con permisos: {report.Count}\n\n";
-
-                var usersWithPermissions = report.Where(r => r.Permissions.Any()).ToList();
-                reportSummary += $"✅ Usuarios con permisos asignados: {usersWithPermissions.Count}\n";
-                reportSummary += $"❌ Usuarios sin permisos específicos: {report.Count - usersWithPermissions.Count}\n\n";
-
-                // Mostrar algunos usuarios con más permisos
-                var topUsers = usersWithPermissions
-                    .OrderByDescending(u => u.Permissions.Count)
-                    .Take(5);
-
-                if (topUsers.Any())
-                {
-                    reportSummary += "Top 5 usuarios con más permisos:\n";
-                    foreach (var user in topUsers)
-                    {
-                        reportSummary += $"• {user.Username}: {user.Permissions.Count} permisos\n";
-                    }
-                }
-
-                await JSRuntime.InvokeVoidAsync("alert", reportSummary);
-            }
-            else
-            {
-                await JSRuntime.InvokeVoidAsync("alert", "No hay datos para generar el reporte");
-            }
-        }
-        catch (Exception ex)
-        {
-            await displayMessage.DisplayErrorMessage($"Error al generar reporte: {ex.Message}");
-        }
+        Console.WriteLine("🛠️ Abriendo herramienta de reportes");
+        showReportModal = true;
+        StateHasChanged();
     }
 
     private async Task ShowAuditLog()
     {
-        try
-        {
-            var endDate = DateTime.UtcNow;
-            var startDate = endDate.AddDays(-30);
-            var audit = await permissionService.GetPermissionAuditAsync(startDate, endDate);
-
-            if (audit != null)
-            {
-                var totalChanges = audit.UserPermissionChanges.Count + audit.RolePermissionChanges.Count;
-
-                var auditSummary = $"📋 AUDITORÍA DE PERMISOS\n";
-                auditSummary += $"═══════════════════════\n\n";
-                auditSummary += $"Período: Últimos 30 días\n";
-                auditSummary += $"Desde: {startDate:dd/MM/yyyy}\n";
-                auditSummary += $"Hasta: {endDate:dd/MM/yyyy}\n\n";
-                auditSummary += $"Total de cambios: {totalChanges}\n";
-                auditSummary += $"• Cambios en usuarios: {audit.UserPermissionChanges.Count}\n";
-                auditSummary += $"• Cambios en roles: {audit.RolePermissionChanges.Count}\n";
-
-                await JSRuntime.InvokeVoidAsync("alert", auditSummary);
-            }
-            else
-            {
-                await JSRuntime.InvokeVoidAsync("alert", "No hay datos de auditoría disponibles");
-            }
-        }
-        catch (Exception ex)
-        {
-            await displayMessage.DisplayErrorMessage($"Error al obtener auditoría: {ex.Message}");
-        }
+        Console.WriteLine("🛠️ Abriendo herramienta de auditoría");
+        showAuditModal = true;
+        StateHasChanged();
     }
 
+    // Métodos de utilidad
     private string GetPermissionSummary(NavigationPermissionDto permission)
     {
         var perms = new List<string>();
