@@ -108,37 +108,40 @@
     <h5>Gestión de Foto del Chofer</h5>
 
 
-    <InputFile OnChange="OnFileSelected" />
+    <div class="row">
+        <!-- Sección 1: Documentos del chofer -->
+        <div class="col-6 border p-3 mb-3">
+            <h5>Documento Frontal / Trasera</h5>
 
-    @if (!string.IsNullOrEmpty(imagenUrl))
-    {
-        <div class="mt-3">
-            <p>Imagen encontrada:</p>
+            <!-- Frontal -->
+            <div class="mb-2">
+                <label>Frontal</label>
+                <InputFile OnChange='@(e => OnFileSelected(e, "FRONTAL"))' />
+                
+            </div>
 
-            <!-- Miniatura -->
-            <img src="@imagenUrl" alt="Foto del chofer"
-                 style="max-width:200px; border:1px solid #ccc; border-radius:5px;" />
-
-            <!-- Enlace directo -->
-            <p class="mt-2">
-                <a href="@imagenUrl" target="_blank">@imagenUrl</a>
-            </p>
-
-            <!-- Botones de acción -->
-            <div class="mt-2">
-                <button class="btn btn-sm btn-danger me-2" @onclick="EliminarImagen">
-                    Eliminar Imagen
-                </button>
-                <a class="btn btn-sm btn-primary" href="@imagenUrl" target="_blank">
-                    Ver en pestaña nueva
-                </a>
+            <!-- Trasera -->
+            <div class="mb-2">
+                <label>Trasera</label>
+                <InputFile OnChange='@(e => OnFileSelected(e, "TRASERA"))' />
+                
             </div>
         </div>
-    }
-    else
-    {
-        <p class="text-muted mt-2">No hay imagen registrada para esta cédula.</p>
-    }
+
+        <!-- Secciones 2,3,4: en progreso -->
+        <div class="col-6 border p-3 mb-3">
+            <h5>Sección 2 (En progreso)</h5>
+        </div>
+        <div class="col-6 border p-3 mb-3">
+            <h5>Sección 3 (En progreso)</h5>
+        </div>
+        <div class="col-6 border p-3 mb-3">
+            <h5>Sección 4 (En progreso)</h5>
+        </div>
+    </div>
+
+
+
 
     <EditForm Model="fichaSeleccionada">
         <div class="row">
@@ -398,6 +401,7 @@
     {
         await CargarListasRelacionadas();  // Cargar listas para combos
         await CargarFichasAsync();          // Cargar listado de fichas
+        
     }
 
     // Método que carga los datos para combos
@@ -490,7 +494,7 @@
         await BuscarUnidad();
         await BuscarDuenopuesto();
         // 👉 AQUI: cargar link/preview de la imagen
-        await CargarImagenPorCedula(ficha.Cedula);
+        // await CargarImagenPorCedula(ficha.Cedula);
 
         esNuevo = false;
         StateHasChanged(); // Refrescar UI
@@ -505,7 +509,7 @@
         codigoUnidad = string.Empty;
         cedulaDuenopuesto = string.Empty;
         archivoSeleccionado = null;
-        imagenUrl = null;          // 👉 limpia preview
+        // imagenUrl = null;          // 👉 limpia preview
         esNuevo = true;
     }
 
@@ -519,22 +523,26 @@
                 // Insertar ficha nueva
                 await fichaRepo.InsertFichaPersonal(fichaSeleccionada);
 
-                // Subir foto si existe
-                if (archivoSeleccionado != null && !string.IsNullOrEmpty(fichaSeleccionada.Cedula))
-                {
-                    await SubirImagen();
-                }
+                // Subir imagen frontal si existe
+                if (imagenFrontalUrl != null)
+                    await SubirImagen("FRONTAL");
+
+                // Subir imagen trasera si existe
+                if (imagenTraseraUrl != null)
+                    await SubirImagen("TRASERA");
             }
             else
             {
                 // Actualizar ficha existente
                 await fichaRepo.UpdateFichaPersonal(fichaSeleccionada);
 
-                // Subir nueva foto SOLO si escogieron una
-                if (archivoSeleccionado != null && !string.IsNullOrEmpty(fichaSeleccionada.Cedula))
-                {
-                    await SubirImagen();
-                }
+                // Subir nueva imagen frontal si escogieron una
+                if (imagenFrontalUrl != null)
+                    await SubirImagen("FRONTAL");
+
+                // Subir nueva imagen trasera si escogieron una
+                if (imagenTraseraUrl != null)
+                    await SubirImagen("TRASERA");
             }
 
             // Recargar listado
@@ -542,8 +550,10 @@
 
             // Reset
             fichaSeleccionada = new FichapersonalDTO();
-            archivoSeleccionado = null;
-            imagenUrl = null;
+            imagenFrontalUrl = null;
+            imagenTraseraUrl = null;
+            imagenFrontalUrl = null;
+            imagenTraseraUrl = null;
             esNuevo = false;
         }
         catch (Exception ex)
@@ -572,7 +582,7 @@
                 await CargarFichasAsync();
                 fichaSeleccionada = new FichapersonalDTO();
                 archivoSeleccionado = null;
-                imagenUrl = null;
+                // imagenUrl = null;
                 esNuevo = false;
             }
         }
@@ -666,44 +676,69 @@
         }
     }
     //imagenes 
-    private string cedulaChofer;
     private IBrowserFile archivoSeleccionado;
-    private string imagenUrl;
+    private string imagenFrontalUrl;
+    private string imagenTraseraUrl;
 
-    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    // Selección de archivo
+    private async Task OnFileSelected(InputFileChangeEventArgs e, string tipoDocumento)
     {
-        archivoSeleccionado = e.File;
-        await SubirImagen();
+        if (tipoDocumento == "FRONTAL")
+            imagenFrontalUrl = e.File;
+        else if (tipoDocumento == "TRASERA")
+            imagenTraseraUrl = e.File;
+
+        if (!string.IsNullOrEmpty(tipoDocumento))
+            await SubirImagen(tipoDocumento);
     }
 
-    private async Task SubirImagen()
+    // Subir imagen al FTP
+    private async Task SubirImagen(string tipoDocumento)
     {
-        if (archivoSeleccionado == null || string.IsNullOrEmpty(fichaSeleccionada.Cedula))
-        {
-            Console.WriteLine("Debe seleccionar un archivo y colocar la cédula.");
+        IBrowserFile archivo = tipoDocumento == "FRONTAL" ? imagenFrontalUrl : imagenTraseraUrl;
+
+        if (archivo == null || string.IsNullOrEmpty(fichaSeleccionada?.Cedula))
             return;
-        }
 
-        using var stream = archivoSeleccionado.OpenReadStream(5_000_000);
-        var nombreArchivo = $"{fichaSeleccionada.Cedula}{Path.GetExtension(archivoSeleccionado.Name)}";
+        using var stream = archivo.OpenReadStream(5_000_000);
+        var nombreArchivo = $"{fichaSeleccionada.Cedula}-{tipoDocumento}{Path.GetExtension(archivo.Name)}";
 
-        await fichaRepo.SubirImagenChoferAsync(stream, nombreArchivo, fichaSeleccionada.Cedula);
+        await fichaRepo.SubirImagenChoferAsync(stream, nombreArchivo, fichaSeleccionada.Cedula, tipoDocumento);
 
-        await CargarImagenPorCedula(); // refrescar preview
-        Console.WriteLine("Imagen subida con éxito.");
+        await CargarImagenPorTipo(tipoDocumento);
+        Console.WriteLine($"Imagen {tipoDocumento} subida con éxito.");
     }
 
-    private async Task BuscarImagen()
+    private async Task CargarImagenPorTipo(string tipoDocumento)
     {
         if (string.IsNullOrEmpty(fichaSeleccionada?.Cedula))
-        {
-            imagenUrl = null;
             return;
-        }
 
-        imagenUrl = await fichaRepo.BuscarImagenChoferAsync(fichaSeleccionada.Cedula);
+        var url = await fichaRepo.BuscarImagenChoferAsync(fichaSeleccionada.Cedula, tipoDocumento);
+
+        if (tipoDocumento == "FRONTAL")
+            imagenFrontalUrl = url;
+        else if (tipoDocumento == "TRASERA")
+            imagenTraseraUrl = url;
+
         StateHasChanged();
     }
+
+    // Buscar imagen por cédula
+    // private async Task BuscarImagen()
+    // {
+    //     if (string.IsNullOrEmpty(fichaSeleccionada?.Cedula))
+    //     {
+    //         imagenUrl = null;
+    //         return;
+    //     }
+
+    //     imagenUrl = await fichaRepo.BuscarImagenChoferAsync(fichaSeleccionada.Cedula);
+    //     StateHasChanged();
+    // }
+
+
+    // Eliminar imagen
     private async Task EliminarImagen()
     {
         if (string.IsNullOrEmpty(fichaSeleccionada?.Cedula))
@@ -716,18 +751,27 @@
         Console.WriteLine("Imagen eliminada correctamente.");
     }
 
-	// Cargar imagen al seleccionar o cambiar la cédula en el formulario
-    private async Task CargarImagenPorCedula(string? cedula = null)
-    {
-        var id = cedula ?? fichaSeleccionada?.Cedula;
-        if (string.IsNullOrWhiteSpace(id))
-        {
-            imagenUrl = null;
-            return;
-        }
+    // Cargar automáticamente al cambiar cédula
+    // private async Task CargarImagenPorCedula(string? cedula = null)
+    // {
+    //     var id = cedula ?? fichaSeleccionada?.Cedula;
 
-        imagenUrl = await fichaRepo.BuscarImagenChoferAsync(id);
-    }
+    //     if (string.IsNullOrWhiteSpace(id))
+    //     {
+    //         imagenUrl = null;
+    //         return;
+    //     }
+
+    //     // BuscarImagenChoferAsync devuelve Task<string>
+    //     imagenUrl = await fichaRepo.BuscarImagenChoferAsync(id);
+
+    //     // ⚡️ Agregamos la base del host para que <img> pueda renderizar bien
+    //     if (!string.IsNullOrEmpty(imagenUrl) && !imagenUrl.StartsWith("http"))
+    //     {
+    //         imagenUrl = $"https://localhost:5001/{imagenUrl}"; 
+    //         // Ojo: reemplaza localhost:5001 por la URL real de tu API publicada
+    //     }
+    // }
 
     // Validaciones para habilitar botones
     private bool PuedeGuardar => !string.IsNullOrWhiteSpace(fichaSeleccionada.Cedula);

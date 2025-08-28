@@ -98,18 +98,23 @@ namespace LaConcordia.Repository
         }
 
         // 🚀 Repository - Subir imagen del chofer
-        public async Task SubirImagenChoferAsync(Stream contenido, string nombreArchivo, string cedulaChofer)
+        public async Task SubirImagenChoferAsync(Stream contenido, string nombreArchivo, string cedulaChofer, string tipoDocumento)
         {
             var content = new MultipartFormDataContent();
             var streamContent = new StreamContent(contenido);
             streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
 
-            content.Add(streamContent, "archivo", nombreArchivo); // ⚠️ coincide con [FromForm] IFormFile archivo
+            // ⚠️ El nombre "archivo" debe coincidir con [FromForm] IFormFile archivo
+            content.Add(streamContent, "archivo", nombreArchivo);
+
+            // Enviar la cédula y tipoDocumento como string
             content.Add(new StringContent(cedulaChofer), "cedula");
+            content.Add(new StringContent(tipoDocumento), "tipoDocumento");
 
             try
             {
-                var response = await _httpClient.PostAsync("api/Fichapersona/SubirImagenChofer", content);
+                // Cambiar la URL al endpoint correcto que recibe tipoDocumento
+                var response = await _httpClient.PostAsync("api/Fichapersona/SubirImagenChoferDocuemtosFrente", content);
 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -123,19 +128,13 @@ namespace LaConcordia.Repository
             }
         }
 
+
         // 🚀 Repository - Buscar imagen del chofer por cédula
-        public async Task<string?> BuscarImagenChoferAsync(string cedulaChofer)
+        public Task<string> BuscarImagenChoferAsync(string cedulaChofer)
         {
-            var response = await _httpClient.GetAsync($"api/Fichapersona/BuscarImagenChofer/{cedulaChofer}");
-
-            if (!response.IsSuccessStatusCode)
-                return null;
-
-            // El backend devuelve la URL como texto
-            var url = await response.Content.ReadAsStringAsync();
-
-            // Si viene con comillas (ej: "\"https://...\"") las quitamos
-            return string.IsNullOrWhiteSpace(url) ? null : url.Trim('"');
+            var baseApi = _httpClient.BaseAddress?.ToString().TrimEnd('/');
+            var url = $"{baseApi}/api/Fichapersona/BuscarImagenChofer/{cedulaChofer}";
+            return Task.FromResult(url);
         }
 
 

@@ -22,7 +22,7 @@ namespace LaConcordia.Interface
         Task<byte[]> ExportarFichaCompleta(ExportFichaDTO exportData);
 
         // Subir imagen del chofer
-        Task SubirImagenChoferAsync(Stream contenido, string nombreArchivo, string cedulaChofer);
+        Task SubirImagenChoferAsync(Stream contenido, string nombreArchivo, string cedulaChofer, string tipoDocumento);
 
         // Buscar imagen por cédula
         Task<string?> BuscarImagenChoferAsync(string cedulaChofer);
