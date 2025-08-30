@@ -1,0 +1,206 @@
+﻿.permission-item {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: white;
+}
+
+.permission-item.effective {
+    border-left: 4px solid #17a2b8;
+    background: #f8fbff;
+    border: 1px solid #bee5eb;
+}
+
+.tab-description {
+    background: #e7f3ff;
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 1.5rem;
+    border-left: 4px solid #17a2b8;
+}
+
+    .tab-description p {
+        margin: 0;
+        color: #0c5460;
+        font-size: 0.9rem;
+    }
+
+.permission-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+    .permission-header h5 {
+        margin: 0;
+        color: #2c3e50;
+    }
+
+.permission-checkboxes {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.permission-display {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.form-check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.alert {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    border-radius: 0.375rem;
+}
+
+.alert-info {
+    color: #0c5460;
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+}
+
+/* Estilos para asignación masiva */
+.bulk-assignment-section {
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.bulk-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    gap: 2rem;
+}
+
+.permission-type-selector h5 {
+    margin: 0 0 0.75rem 0;
+    color: #2c3e50;
+}
+
+.bulk-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn {
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+    border: 1px solid;
+    cursor: pointer;
+    font-size: 0.875rem;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8125rem;
+}
+
+.btn-outline-primary {
+    color: #667eea;
+    border-color: #667eea;
+    background: transparent;
+}
+
+    .btn-outline-primary:hover {
+        background: #667eea;
+        color: white;
+    }
+
+.btn-outline-secondary {
+    color: #6c757d;
+    border-color: #6c757d;
+    background: transparent;
+}
+
+    .btn-outline-secondary:hover {
+        background: #6c757d;
+        color: white;
+    }
+
+.navigation-items-list {
+    margin-bottom: 1.5rem;
+}
+
+    .navigation-items-list h5 {
+        margin: 0 0 1rem 0;
+        color: #2c3e50;
+    }
+
+.navigation-item-checkbox {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    transition: all 0.2s ease;
+}
+
+    .navigation-item-checkbox:hover {
+        background: #f8f9fa;
+        border-color: #667eea;
+    }
+
+    .navigation-item-checkbox .form-check-label {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        cursor: pointer;
+        margin: 0;
+        font-weight: 500;
+    }
+
+.badge {
+    display: inline-block;
+    padding: 0.35em 0.65em;
+    font-size: 0.75em;
+    font-weight: 600;
+    line-height: 1;
+    color: #fff;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.375rem;
+    margin-right: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.badge-success {
+    background-color: #28a745;
+    color: #fff;
+}
+
+.badge-secondary {
+    background-color: #6c757d;
+    color: #fff;
+}
+
+.badge-info {
+    background-color: #17a2b8;
+    color: #fff;
+}
+
+.badge-warning {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.bulk-assignment-footer {
+    text-align: center;
+    padding-top: 1rem;
+    border-top: 1px solid #e0e0e0;
+}
