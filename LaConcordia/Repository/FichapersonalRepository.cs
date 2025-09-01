@@ -114,7 +114,7 @@ namespace LaConcordia.Repository
             try
             {
                 // Cambiar la URL al endpoint correcto que recibe tipoDocumento
-                var response = await _httpClient.PostAsync("api/Fichapersona/SubirImagenChoferDocuemtosFrente", content);
+                var response = await _httpClient.PostAsync("api/Fichapersona/SubirImagenChoferDocumentos", content);
 
                 if (!response.IsSuccessStatusCode)
                 {

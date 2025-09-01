@@ -493,8 +493,7 @@
         // Buscar datos relacionados
         await BuscarUnidad();
         await BuscarDuenopuesto();
-        // 👉 AQUI: cargar link/preview de la imagen
-        // await CargarImagenPorCedula(ficha.Cedula);
+
 
         esNuevo = false;
         StateHasChanged(); // Refrescar UI
@@ -508,9 +507,11 @@
         duenopuestoEncontrado = null;
         codigoUnidad = string.Empty;
         cedulaDuenopuesto = string.Empty;
-        archivoSeleccionado = null;
-        // imagenUrl = null;          // 👉 limpia preview
-        esNuevo = true;
+
+        // archivoSeleccionado = null;
+        archivoFrontal = null;
+        archivoTrasera = null;
+
     }
 
     // Guarda cambios en la ficha seleccionada (nuevo o editar)
@@ -523,26 +524,36 @@
                 // Insertar ficha nueva
                 await fichaRepo.InsertFichaPersonal(fichaSeleccionada);
 
-                // Subir imagen frontal si existe
-                if (imagenFrontalUrl != null)
-                    await SubirImagen("FRONTAL");
+                // Subir archivos seleccionados (si los hay)
+                if (archivoFrontal != null)
+                {
+                    await SubirImagen(archivoFrontal, "FRONTAL");
+                    archivoFrontal = null; // limpiar temporal
+                }
 
-                // Subir imagen trasera si existe
-                if (imagenTraseraUrl != null)
-                    await SubirImagen("TRASERA");
+                if (archivoTrasera != null)
+                {
+                    await SubirImagen(archivoTrasera, "TRASERA");
+                    archivoTrasera = null;
+                }
             }
             else
             {
                 // Actualizar ficha existente
                 await fichaRepo.UpdateFichaPersonal(fichaSeleccionada);
 
-                // Subir nueva imagen frontal si escogieron una
-                if (imagenFrontalUrl != null)
-                    await SubirImagen("FRONTAL");
+                // Subir nuevos si se seleccionaron
+                if (archivoFrontal != null)
+                {
+                    await SubirImagen(archivoFrontal, "FRONTAL");
+                    archivoFrontal = null;
+                }
 
-                // Subir nueva imagen trasera si escogieron una
-                if (imagenTraseraUrl != null)
-                    await SubirImagen("TRASERA");
+                if (archivoTrasera != null)
+                {
+                    await SubirImagen(archivoTrasera, "TRASERA");
+                    archivoTrasera = null;
+                }
             }
 
             // Recargar listado
@@ -550,10 +561,8 @@
 
             // Reset
             fichaSeleccionada = new FichapersonalDTO();
-            imagenFrontalUrl = null;
-            imagenTraseraUrl = null;
-            imagenFrontalUrl = null;
-            imagenTraseraUrl = null;
+            archivoFrontal = null;
+            archivoTrasera = null;
             esNuevo = false;
         }
         catch (Exception ex)
@@ -581,8 +590,7 @@
                 // Reset
                 await CargarFichasAsync();
                 fichaSeleccionada = new FichapersonalDTO();
-                archivoSeleccionado = null;
-                // imagenUrl = null;
+                // archivoSeleccionado = null;
                 esNuevo = false;
             }
         }
@@ -676,67 +684,38 @@
         }
     }
     //imagenes 
-    private IBrowserFile archivoSeleccionado;
-    private string imagenFrontalUrl;
-    private string imagenTraseraUrl;
+    
+    private IBrowserFile archivoFrontal;
+    private IBrowserFile archivoTrasera;
 
     // Selección de archivo
-    private async Task OnFileSelected(InputFileChangeEventArgs e, string tipoDocumento)
+    private Task OnFileSelected(InputFileChangeEventArgs e, string tipoDocumento)
     {
-        if (tipoDocumento == "FRONTAL")
-            imagenFrontalUrl = e.File;
-        else if (tipoDocumento == "TRASERA")
-            imagenTraseraUrl = e.File;
+        var file = e.File;
 
-        if (!string.IsNullOrEmpty(tipoDocumento))
-            await SubirImagen(tipoDocumento);
+        if (tipoDocumento == "FRONTAL")
+            archivoFrontal = file;
+        else if (tipoDocumento == "TRASERA")
+            archivoTrasera = file;
+
+        // opcional: puedes mostrar nombre de archivo en la UI si quieres
+        // no subimos aún: la subida la haremos en GuardarCambios
+        return Task.CompletedTask;
     }
 
-    // Subir imagen al FTP
-    private async Task SubirImagen(string tipoDocumento)
-    {
-        IBrowserFile archivo = tipoDocumento == "FRONTAL" ? imagenFrontalUrl : imagenTraseraUrl;
 
+    // Subir imagen al servidor
+    private async Task SubirImagen(IBrowserFile archivo, string tipoDocumento)
+    {
         if (archivo == null || string.IsNullOrEmpty(fichaSeleccionada?.Cedula))
             return;
 
-        using var stream = archivo.OpenReadStream(5_000_000);
+        using var stream = archivo.OpenReadStream(5_000_000); // límite 5 MB
         var nombreArchivo = $"{fichaSeleccionada.Cedula}-{tipoDocumento}{Path.GetExtension(archivo.Name)}";
 
+        // llama a tu repo (firma: SubirImagenChoferAsync(Stream, string, string, string))
         await fichaRepo.SubirImagenChoferAsync(stream, nombreArchivo, fichaSeleccionada.Cedula, tipoDocumento);
-
-        await CargarImagenPorTipo(tipoDocumento);
-        Console.WriteLine($"Imagen {tipoDocumento} subida con éxito.");
     }
-
-    private async Task CargarImagenPorTipo(string tipoDocumento)
-    {
-        if (string.IsNullOrEmpty(fichaSeleccionada?.Cedula))
-            return;
-
-        var url = await fichaRepo.BuscarImagenChoferAsync(fichaSeleccionada.Cedula, tipoDocumento);
-
-        if (tipoDocumento == "FRONTAL")
-            imagenFrontalUrl = url;
-        else if (tipoDocumento == "TRASERA")
-            imagenTraseraUrl = url;
-
-        StateHasChanged();
-    }
-
-    // Buscar imagen por cédula
-    // private async Task BuscarImagen()
-    // {
-    //     if (string.IsNullOrEmpty(fichaSeleccionada?.Cedula))
-    //     {
-    //         imagenUrl = null;
-    //         return;
-    //     }
-
-    //     imagenUrl = await fichaRepo.BuscarImagenChoferAsync(fichaSeleccionada.Cedula);
-    //     StateHasChanged();
-    // }
-
 
     // Eliminar imagen
     private async Task EliminarImagen()
@@ -745,33 +724,12 @@
             return;
 
         await fichaRepo.EliminarImagenChoferAsync(fichaSeleccionada.Cedula);
-        imagenUrl = null;
+  
         StateHasChanged();
 
         Console.WriteLine("Imagen eliminada correctamente.");
     }
 
-    // Cargar automáticamente al cambiar cédula
-    // private async Task CargarImagenPorCedula(string? cedula = null)
-    // {
-    //     var id = cedula ?? fichaSeleccionada?.Cedula;
-
-    //     if (string.IsNullOrWhiteSpace(id))
-    //     {
-    //         imagenUrl = null;
-    //         return;
-    //     }
-
-    //     // BuscarImagenChoferAsync devuelve Task<string>
-    //     imagenUrl = await fichaRepo.BuscarImagenChoferAsync(id);
-
-    //     // ⚡️ Agregamos la base del host para que <img> pueda renderizar bien
-    //     if (!string.IsNullOrEmpty(imagenUrl) && !imagenUrl.StartsWith("http"))
-    //     {
-    //         imagenUrl = $"https://localhost:5001/{imagenUrl}"; 
-    //         // Ojo: reemplaza localhost:5001 por la URL real de tu API publicada
-    //     }
-    // }
 
     // Validaciones para habilitar botones
     private bool PuedeGuardar => !string.IsNullOrWhiteSpace(fichaSeleccionada.Cedula);
