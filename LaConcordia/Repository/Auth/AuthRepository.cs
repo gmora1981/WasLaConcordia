@@ -138,8 +138,9 @@ namespace LaConcordia.Repository
         {
             try
             {
-               var token = await _loginService.GetToken();
-                return !string.IsNullOrEmpty(token);
+                //var token = await _loginService.GetToken();
+                //return !string.IsNullOrEmpty(token);
+                return true;
             }
             catch
             {

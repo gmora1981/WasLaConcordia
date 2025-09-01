@@ -128,6 +128,37 @@ namespace LaConcordia.Repository
             }
         }
 
+        // Subir imagen de chofer (Licencia, Matrícula o Vehículo)
+        public async Task SubirImagenChoferLMV(Stream contenido, string nombreArchivo, string cedulaChofer, string tipoCarpeta)
+        {
+            var content = new MultipartFormDataContent();
+            var streamContent = new StreamContent(contenido);
+            streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+
+            // ⚠️ El nombre "archivo" debe coincidir con el parámetro [FromForm] IFormFile archivo
+            content.Add(streamContent, "archivo", nombreArchivo);
+
+            // Enviar la cédula y tipoCarpeta como string
+            content.Add(new StringContent(cedulaChofer), "cedula");
+            content.Add(new StringContent(tipoCarpeta), "tipoCarpeta");
+
+            try
+            {
+                // Endpoint correcto del backend
+                var response = await _httpClient.PostAsync("api/Chofer/SubirImagenChoferLMV", content);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var mensaje = await response.Content.ReadAsStringAsync();
+                    throw new Exception($"Error al subir imagen: {mensaje}");
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error al subir la imagen: {ex.Message}", ex);
+            }
+        }
+
 
         // 🚀 Repository - Buscar imagen del chofer por cédula
         public Task<string> BuscarImagenChoferAsync(string cedulaChofer)
