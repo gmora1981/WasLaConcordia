@@ -1,5 +1,4 @@
 ﻿@page "/ficha-persona"
-
 @using LaConcordia.DTO
 @using LaConcordia.Interface
 @using LaConcordia.Pages.FichaObservaciones
@@ -20,14 +19,26 @@
 <h3>Control Ficha Personal</h3>
 
 <!-- Encabezado: Nuevo, Buscar -->
-<div class="mb-3 d-flex gap-2">
-    <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo</button>
-    <input type="text" class="form-control" placeholder="Buscar por Cédula, Nombre o apellidos..." @bind="razonBusqueda" />
-    <select class="form-select" @bind="estadoFiltro">
-        <option value="a">Activo</option>
-        <option value="p">Pasivo</option>
-    </select>
-    <button class="btn btn-success" @onclick="BuscarFichas">Buscar</button>
+
+<div class="card mb-3 p-3 shadow-sm">
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        <button class="btn btn-primary d-flex align-items-center" @onclick="NuevoRegistro">
+            <i class="bi bi-plus-circle me-1"></i> Nuevo
+        </button>
+
+        <div class="flex-grow-1">
+            <input type="text" class="form-control" placeholder="Buscar por Cédula, Nombre o Apellidos..." @bind="razonBusqueda" />
+        </div>
+
+        <select class="form-select w-auto" @bind="estadoFiltro">
+            <option value="a">Activo</option>
+            <option value="p">Pasivo</option>
+        </select>
+
+        <button class="btn btn-success d-flex align-items-center" @onclick="BuscarFichas">
+            <i class="bi bi-search me-1"></i> Buscar
+        </button>
+    </div>
 </div>
 
 <!-- Paginación -->
@@ -45,7 +56,8 @@
 </div>
 
 <!-- Tabla de fichas personales -->
-<table class="table table-bordered table-hover mt-3">
+
+<table class="table table-bordered table-hover table-striped mt-3 shadow-sm">
     <thead class="table-dark">
         <tr>
             <th>Cédula</th>
@@ -56,7 +68,7 @@
             <th>Ingreso</th>
             <th>Estado</th>
             <th>Observaciones</th>
-            <th></th>
+            <th>Beneficiarios</th>
         </tr>
     </thead>
     <tbody>
@@ -69,25 +81,30 @@
                     <td>@ficha.Apellidos</td>
                     <td>@ficha.Nombre</td>
                     <td>@ficha.Celular</td>
-                    <td>@ficha.Fechanacimiento</td>
-                    <td>@ficha.Fechaingreso</td>
-                    <td>@ObtenerNombreEstado(ficha.Estado)</td>
+                    <td>@ficha.Fechanacimiento?.ToShortDateString()</td>
+                    <td>@ficha.Fechaingreso?.ToShortDateString()</td>
                     <td>
-                        <button class="btn btn-info btn-sm"
-                        @onclick="() => AbrirModalObservaciones(ficha.Cedula, ficha.Fkunidad)"
-                        @onclick:stopPropagation="true">
-                            Observaciones
-                        </button>
-
+                        <span class="badge @(ficha.Estado == "a" ? "bg-success" : "bg-secondary")">
+                            @(ficha.Estado == "a" ? "Activo" : "Pasivo")
+                        </span>
                     </td>
-
                     <td>
-                        <button class="btn btn-primary"
-                                @onclick="() => AbrirModalBeneficiarios(ficha.Cedula)"
-                                @onclick:stopPropagation="true">
-                            Ver Beneficiarios
+                        <button class="btn btn-warning d-flex align-items-center"
+                                style="font-size: 1rem; padding: 0.5rem 1rem;"
+                                @onclick="() => AbrirModalObservaciones(ficha.Cedula, ficha.Fkunidad)"
+                                @onclick:stopPropagation="true"
+                                title="Ver Observaciones">
+                            <i class="bi bi-card-text me-1 fs-5"></i> Observaciones
                         </button>
-
+                    </td>
+                    <td>
+                        <button class="btn btn-primary btn-sm"
+                                style="font-size: 0.9rem; padding: 0.4rem 0.8rem;"
+                                @onclick="() => AbrirModalBeneficiarios(ficha.Cedula)"
+                                @onclick:stopPropagation="true"
+                                title="Ver Beneficiarios">
+                            <i class="bi bi-card-text me-1"></i> Beneficiarios
+                        </button>
                     </td>
                 </tr>
             }
@@ -95,60 +112,86 @@
         else
         {
             <tr>
-                <td colspan="7" class="text-center">No se encontraron registros.</td>
+                <td colspan="9" class="text-center text-muted">No se encontraron registros.</td>
             </tr>
         }
     </tbody>
 </table>
 
-<!-- Detalle -->
-<div class="border rounded p-3 mt-3">
-    <h5>Detalle Ficha Personal</h5>
-
-    <h5>Gestión de Foto del Chofer</h5>
 
 
-    <div class="row">
-        <!-- Sección 1: Documentos del chofer -->
-        <div class="col-6 border p-3 mb-3">
-            <h5>Documento Frontal / Trasera</h5>
+<!-- IMAGENES -->
+<div class="row">
+    <!-- Sección 1: Documentos del chofer -->
+    <div class="col-6 border p-3 mb-3">
+        <h5>
+            Documento Frontal / Trasera
 
-            <!-- Frontal -->
-            <div class="mb-2">
-                <label>Frontal</label>
-                <InputFile OnChange='@(e => OnFileSelected(e, "FRONTAL"))' />
-                
-            </div>
+        </h5>
 
-            <!-- Trasera -->
-            <div class="mb-2">
-                <label>Trasera</label>
-                <InputFile OnChange='@(e => OnFileSelected(e, "TRASERA"))' />
-                
-            </div>
+        <!-- Frontal -->
+        <div class="mb-2 d-flex align-items-center">
+            <InputFile OnChange='@(e => OnFileSelected(e, "FRONTAL"))' />
+            <span class="ms-2 status-circle"
+                  style="background-color:@(estadoImagen?.Frontal == true ? "green" : "red")">
+            </span>
+            <label class="ms-2">Frontal</label>
         </div>
 
-        <!-- Secciones 2,3,4: en progreso -->
-        <div class="col-6 border p-3 mb-3">
-            <h5>Sección 2 (En progreso)</h5>
-        </div>
-        <div class="col-6 border p-3 mb-3">
-            <h5>Sección 3 (En progreso)</h5>
-        </div>
-        <div class="col-6 border p-3 mb-3">
-            <h5>Sección 4 (En progreso)</h5>
+        <!-- Trasera -->
+        <div class="mb-2 d-flex align-items-center">
+            <InputFile OnChange='@(e => OnFileSelected(e, "TRASERA"))' />
+            <span class="ms-2 status-circle"
+                  style="background-color:@(estadoImagen?.Trasera == true ? "green" : "red")">
+            </span>
+            <label class="ms-2">Trasera</label>
         </div>
     </div>
 
+    <!-- Sección 2: Licencia -->
+    <div class="col-6 border p-3 mb-3">
+        <h5>
+            Licencia
+            <span class="status-circle" style="background-color:@(estadoImagen?.Licencia == true ? "green" : "red")"></span>
+        </h5>
+        <InputFile OnChange='@(e => OnFileSelected(e, "LICENCIA"))' />
+    </div>
 
+    <!-- Sección 3: Matrícula -->
+    <div class="col-6 border p-3 mb-3">
+        <h5>
+            Matrícula
+            <span class="status-circle" style="background-color:@(estadoImagen?.Matricula == true ? "green" : "red")"></span>
+        </h5>
+        <InputFile OnChange='@(e => OnFileSelected(e, "MATRICULA"))' />
+    </div>
 
+    <!-- Sección 4: Vehículo -->
+    <div class="col-6 border p-3 mb-3">
+        <h5>
+            Vehículo
+            <span class="status-circle" style="background-color:@(estadoImagen?.Vehiculo == true ? "green" : "red")"></span>
+        </h5>
+        <InputFile OnChange='@(e => OnFileSelected(e, "VEHICULO"))' />
+    </div>
+</div>
 
-    <EditForm Model="fichaSeleccionada">
+<style>
+    .status-circle {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 1px solid #00000033;
+        vertical-align: middle;
+    }
+</style>
+
+<EditForm Model="fichaSeleccionada">
         <div class="row">
             <!-- Columna 1 -->
             <div class="col-md-6">
                 
-
 
                 <div class="mb-2">
                     <label class="form-label">Cedula</label>
@@ -239,8 +282,8 @@
             </div>
 
             <!-- Sección Gestión de Unidad -->
-            <div class="col-md-12 border rounded p-3 mt-3">
-                <h6><i class="bi bi-truck"></i> Gestión de Unidad</h6>
+            <div class="card mb-3 p-3 border">
+            <h6 class="card-title"><i class="bi bi-truck"></i> Gestión de Unidad</h6>
 
                 <div class="row">
                     <div class="col-md-4">
@@ -266,8 +309,8 @@
             </div>
 
             <!-- Sección Gestión de Dueño del Puesto -->
-            <div class="col-md-12 border rounded p-3 mt-3">
-                <h6><i class="bi bi-person-badge"></i> Gestión de Dueño del Puesto</h6>
+            <div class="card mb-3 p-3 border">
+            <h6 class="card-title"><i class="bi bi-truck"></i> Gestión del Dueño Del Puesto</h6>
 
                 <div class="row">
                     <div class="col-md-4">
@@ -299,16 +342,21 @@
     </EditForm>
 
     <div class="d-flex gap-2 mt-2">
-        <button class="btn btn-warning" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">Actualizar</button>
+        @* <button class="btn btn-warning" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">Actualizar</button> *@
+    <button class="btn btn-warning" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">
+        @(esNuevo ? "Guardar" : "Actualizar")
+    </button>
+
         <button class="btn btn-danger" @onclick="EliminarFicha" disabled="@(!PuedeEliminar)">Eliminar</button>
         <button class="btn btn-secondary" @onclick="CancelarEdicion">Cancelar</button>
         <div class="ms-2">
-            <button class="btn btn-danger" @onclick="ExportarFicha">
+            <button class="btn btn-info" @onclick="ExportarFicha">
                 Exportar PDF <i class="bi bi-file-earmark-pdf-fill"></i>
             </button>
         </div>
     </div>
-</div>
+
+
 
 <FichaObservacionesModal @ref="modalObservaciones" OnClose="CerrarModalObservaciones" />
 
@@ -332,6 +380,8 @@
     private string razonBusqueda = string.Empty;
     private string estadoFiltro = string.Empty;
     private bool esNuevo = false;
+    private string textoBoton = "Nuevo";
+
 
     // Para gestión de unidad y dueño del puesto
     private string codigoUnidad = string.Empty;
@@ -449,7 +499,7 @@
     }
 
     // Selecciona un registro de la tabla para editar
-    private async void SeleccionarFicha(FichapersonalDTO ficha)
+    private async Task SeleccionarFicha(FichapersonalDTO ficha)
     {
         await CargarBeneficiarios(ficha.Cedula);
 
@@ -494,6 +544,8 @@
         await BuscarUnidad();
         await BuscarDuenopuesto();
 
+        // 🔹 Actualizar estado de imágenes
+        await ActualizarEstadoImagenes(ficha.Cedula);
 
         esNuevo = false;
         StateHasChanged(); // Refrescar UI
@@ -511,59 +563,87 @@
         // archivoSeleccionado = null;
         archivoFrontal = null;
         archivoTrasera = null;
-
+        archivoLicencia = null;
+        archivoMatricula = null;
+        archivoVehiculo = null;
+        esNuevo = true; // Indica que es un registro nuevo
     }
 
+
     // Guarda cambios en la ficha seleccionada (nuevo o editar)
+    // private async Task GuardarCambios()
+    // {
+    //     try
+    //     {
+    //         // 1️⃣ Guardar ficha
+    //         if (esNuevo)
+    //         {
+    //             await fichaRepo.InsertFichaPersonal(fichaSeleccionada);
+    //             esNuevo = false; // ahora ya no es nuevo
+    //             await displayMessage.DisplaySuccessMessage("Ficha creada con éxito ✅");
+    //         }
+    //         else
+    //         {
+    //             await fichaRepo.UpdateFichaPersonal(fichaSeleccionada);
+    //             await displayMessage.DisplaySuccessMessage("Ficha actualizada correctamente ✅");
+    //         }
+
+    //         // 2️⃣ Subir archivos si hay seleccionados
+    //         if (archivoFrontal != null) { await SubirImagen(archivoFrontal, "FRONTAL"); archivoFrontal = null; }
+    //         if (archivoTrasera != null) { await SubirImagen(archivoTrasera, "TRASERA"); archivoTrasera = null; }
+    //         if (archivoLicencia != null) { await SubirImagen(archivoLicencia, "LICENCIA"); archivoLicencia = null; }
+    //         if (archivoMatricula != null) { await SubirImagen(archivoMatricula, "MATRICULA"); archivoMatricula = null; }
+    //         if (archivoVehiculo != null) { await SubirImagen(archivoVehiculo, "VEHICULO"); archivoVehiculo = null; }
+
+    //         // 3️⃣ Actualizar estado de imágenes para la ficha actual
+    //         await ActualizarEstadoImagenes(fichaSeleccionada.Cedula);
+
+    //         // 4️⃣ Recargar listado sin borrar la ficha seleccionada
+    //         await CargarFichasAsync();
+
+    //         // para que los botones verdes/rojos sigan reflejando el estado correcto
+
+    //         StateHasChanged(); // refrescar UI
+
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         await JS.InvokeVoidAsync("alert", $"Error al guardar: {ex.Message}");
+    //     }
+    // }
     private async Task GuardarCambios()
     {
         try
         {
             if (esNuevo)
             {
-                // Insertar ficha nueva
                 await fichaRepo.InsertFichaPersonal(fichaSeleccionada);
-
-                // Subir archivos seleccionados (si los hay)
-                if (archivoFrontal != null)
-                {
-                    await SubirImagen(archivoFrontal, "FRONTAL");
-                    archivoFrontal = null; // limpiar temporal
-                }
-
-                if (archivoTrasera != null)
-                {
-                    await SubirImagen(archivoTrasera, "TRASERA");
-                    archivoTrasera = null;
-                }
+                await displayMessage.DisplaySuccessMessage("Ficha creada con éxito ✅");
             }
             else
             {
-                // Actualizar ficha existente
                 await fichaRepo.UpdateFichaPersonal(fichaSeleccionada);
-
-                // Subir nuevos si se seleccionaron
-                if (archivoFrontal != null)
-                {
-                    await SubirImagen(archivoFrontal, "FRONTAL");
-                    archivoFrontal = null;
-                }
-
-                if (archivoTrasera != null)
-                {
-                    await SubirImagen(archivoTrasera, "TRASERA");
-                    archivoTrasera = null;
-                }
+                await displayMessage.DisplaySuccessMessage("Ficha actualizada correctamente ✅");
             }
 
-            // Recargar listado
+            // Subir archivos si hay
+            if (archivoFrontal != null) { await SubirImagen(archivoFrontal, "FRONTAL"); archivoFrontal = null; }
+            if (archivoTrasera != null) { await SubirImagen(archivoTrasera, "TRASERA"); archivoTrasera = null; }
+            if (archivoLicencia != null) { await SubirImagen(archivoLicencia, "LICENCIA"); archivoLicencia = null; }
+            if (archivoMatricula != null) { await SubirImagen(archivoMatricula, "MATRICULA"); archivoMatricula = null; }
+            if (archivoVehiculo != null) { await SubirImagen(archivoVehiculo, "VEHICULO"); archivoVehiculo = null; }
+
+            await ActualizarEstadoImagenes(fichaSeleccionada.Cedula);
             await CargarFichasAsync();
 
-            // Reset
+            // Limpiar todo y bloquear cédula
             fichaSeleccionada = new FichapersonalDTO();
-            archivoFrontal = null;
-            archivoTrasera = null;
-            esNuevo = false;
+            unidadEncontrada = null;
+            duenopuestoEncontrado = null;
+            codigoUnidad = string.Empty;
+            cedulaDuenopuesto = string.Empty;
+            esNuevo = false; // ya no es nuevo, cédula bloqueada
+            StateHasChanged();
         }
         catch (Exception ex)
         {
@@ -581,9 +661,6 @@
             bool confirm = await JS.InvokeAsync<bool>("confirm", "¿Estás seguro de eliminar esta ficha?");
             if (confirm)
             {
-                // Eliminar imagen de la carpeta
-                await EliminarImagen();
-
                 // Eliminar ficha
                 await fichaRepo.DeleteFichaPersonalById(fichaSeleccionada.Cedula);
 
@@ -595,7 +672,6 @@
             }
         }
     }
-
 
     // Cancela edición y limpia el formulario
     private void CancelarEdicion()
@@ -683,23 +759,63 @@
             await JS.InvokeVoidAsync("alert", $"Error al exportar PDF: {ex.Message}");
         }
     }
+
     //imagenes 
     
     private IBrowserFile archivoFrontal;
     private IBrowserFile archivoTrasera;
+    private IBrowserFile archivoLicencia;
+    private IBrowserFile archivoMatricula;
+    private IBrowserFile archivoVehiculo;
+
+    private class EstadoImagen
+    {
+        public bool Frontal { get; set; }
+        public bool Trasera { get; set; }
+        public bool Licencia { get; set; }
+        public bool Matricula { get; set; }
+        public bool Vehiculo { get; set; }
+    }
+
+    private EstadoImagen estadoImagen = new EstadoImagen();
+
+    // Método que consulta al backend si existen las imágenes
+    private async Task ActualizarEstadoImagenes(string cedula)
+    {
+        try
+        {
+            // Llamada a tu repo que devuelve si existen las imágenes por carpeta
+            var resultado = await fichaRepo.ObtenerEstadoImagenesAsync(cedula);
+
+            // resultado podría ser un objeto con propiedades bool Frontal, Trasera, Licencia, Matricula, Vehiculo
+            estadoImagen.Frontal = resultado.Frontal;
+            estadoImagen.Trasera = resultado.Trasera;
+            estadoImagen.Licencia = resultado.Licencia;
+            estadoImagen.Matricula = resultado.Matricula;
+            estadoImagen.Vehiculo = resultado.Vehiculo;
+
+        }
+        catch
+        {
+            // En caso de error, marcar todo como no existente
+            estadoImagen = new EstadoImagen();
+        }
+    }
 
     // Selección de archivo
     private Task OnFileSelected(InputFileChangeEventArgs e, string tipoDocumento)
     {
         var file = e.File;
 
-        if (tipoDocumento == "FRONTAL")
-            archivoFrontal = file;
-        else if (tipoDocumento == "TRASERA")
-            archivoTrasera = file;
+        switch (tipoDocumento)
+        {
+            case "FRONTAL": archivoFrontal = file; estadoImagen.Frontal = false; break;
+            case "TRASERA": archivoTrasera = file; estadoImagen.Trasera = false; break;
+            case "LICENCIA": archivoLicencia = file; estadoImagen.Licencia = false; break;
+            case "MATRICULA": archivoMatricula = file; estadoImagen.Matricula = false; break;
+            case "VEHICULO": archivoVehiculo = file; estadoImagen.Vehiculo = false; break;
+        }
 
-        // opcional: puedes mostrar nombre de archivo en la UI si quieres
-        // no subimos aún: la subida la haremos en GuardarCambios
         return Task.CompletedTask;
     }
 
@@ -711,23 +827,40 @@
             return;
 
         using var stream = archivo.OpenReadStream(5_000_000); // límite 5 MB
-        var nombreArchivo = $"{fichaSeleccionada.Cedula}-{tipoDocumento}{Path.GetExtension(archivo.Name)}";
+        var extension = Path.GetExtension(archivo.Name);
+        var nombreArchivo = $"{fichaSeleccionada.Cedula}-{tipoDocumento}{extension}";
 
-        // llama a tu repo (firma: SubirImagenChoferAsync(Stream, string, string, string))
-        await fichaRepo.SubirImagenChoferAsync(stream, nombreArchivo, fichaSeleccionada.Cedula, tipoDocumento);
-    }
+        try
+        {
+            switch (tipoDocumento)
+            {
+                case "FRONTAL":
+                    await fichaRepo.SubirImagenChoferAsync(stream, nombreArchivo, fichaSeleccionada.Cedula, "FRONTAL");
+                    break;
+                case "TRASERA":
+                    await fichaRepo.SubirImagenChoferAsync(stream, nombreArchivo, fichaSeleccionada.Cedula, "TRASERA");
+                    break;
+                case "LICENCIA":
+                    await fichaRepo.SubirImagenLicenciaAsync(stream, nombreArchivo, fichaSeleccionada.Cedula);
+                    break;
+                case "MATRICULA":
+                    await fichaRepo.SubirImagenMatriculaAsync(stream, nombreArchivo, fichaSeleccionada.Cedula);
+                    break;
+                case "VEHICULO":
+                    await fichaRepo.SubirImagenVehiculoAsync(stream, nombreArchivo, fichaSeleccionada.Cedula);
+                    break;
+                default:
+                    throw new Exception("Tipo de documento no soportado");
+            }
 
-    // Eliminar imagen
-    private async Task EliminarImagen()
-    {
-        if (string.IsNullOrEmpty(fichaSeleccionada?.Cedula))
-            return;
-
-        await fichaRepo.EliminarImagenChoferAsync(fichaSeleccionada.Cedula);
-  
-        StateHasChanged();
-
-        Console.WriteLine("Imagen eliminada correctamente.");
+            // 🔹 Actualizar estado visual inmediatamente
+            await ActualizarEstadoImagenes(fichaSeleccionada.Cedula);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error subiendo {tipoDocumento}: {ex.Message}");
+        }
     }
 
 

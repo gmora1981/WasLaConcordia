@@ -128,45 +128,73 @@ namespace LaConcordia.Repository
             }
         }
 
-        // Subir imagen de chofer (Licencia, Matrícula o Vehículo)
-        public async Task SubirImagenChoferLMV(Stream contenido, string nombreArchivo, string cedulaChofer, string tipoCarpeta)
+        // 🚀 Repository - Subir imagen de licencia
+        public async Task SubirImagenLicenciaAsync(Stream contenido, string nombreArchivo, string cedula)
         {
             var content = new MultipartFormDataContent();
-            var streamContent = new StreamContent(contenido);
-            streamContent.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
+            content.Add(new StreamContent(contenido), "archivo", nombreArchivo);
+            content.Add(new StringContent(cedula), "cedula");
 
-            // ⚠️ El nombre "archivo" debe coincidir con el parámetro [FromForm] IFormFile archivo
-            content.Add(streamContent, "archivo", nombreArchivo);
+            var response = await _httpClient.PostAsync("api/Fichapersona/SubirImagenLicencia", content);
 
-            // Enviar la cédula y tipoCarpeta como string
-            content.Add(new StringContent(cedulaChofer), "cedula");
-            content.Add(new StringContent(tipoCarpeta), "tipoCarpeta");
-
-            try
+            if (!response.IsSuccessStatusCode)
             {
-                // Endpoint correcto del backend
-                var response = await _httpClient.PostAsync("api/Chofer/SubirImagenChoferLMV", content);
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    var mensaje = await response.Content.ReadAsStringAsync();
-                    throw new Exception($"Error al subir imagen: {mensaje}");
-                }
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Error al subir la imagen: {ex.Message}", ex);
+                var mensaje = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Error al subir imagen de licencia: {mensaje}");
             }
         }
 
-
-        // 🚀 Repository - Buscar imagen del chofer por cédula
-        public Task<string> BuscarImagenChoferAsync(string cedulaChofer)
+        // 🚀 Repository - Subir imagen de matrícula
+        public async Task SubirImagenMatriculaAsync(Stream contenido, string nombreArchivo, string cedula)
         {
-            var baseApi = _httpClient.BaseAddress?.ToString().TrimEnd('/');
-            var url = $"{baseApi}/api/Fichapersona/BuscarImagenChofer/{cedulaChofer}";
-            return Task.FromResult(url);
+            var content = new MultipartFormDataContent();
+            content.Add(new StreamContent(contenido), "archivo", nombreArchivo);
+            content.Add(new StringContent(cedula), "cedula");
+
+            var response = await _httpClient.PostAsync("api/Fichapersona/SubirImagenMatricula", content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var mensaje = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Error al subir imagen de matrícula: {mensaje}");
+            }
         }
+
+        // 🚀 Repository - Subir imagen de vehículo
+        public async Task SubirImagenVehiculoAsync(Stream contenido, string nombreArchivo, string cedula)
+        {
+            var content = new MultipartFormDataContent();
+            content.Add(new StreamContent(contenido), "archivo", nombreArchivo);
+            content.Add(new StringContent(cedula), "cedula");
+
+            var response = await _httpClient.PostAsync("api/Fichapersona/SubirImagenVehiculo", content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var mensaje = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Error al subir imagen de vehículo: {mensaje}");
+            }
+        }
+
+
+
+
+
+        // 🚀 // Obtener estado de imágenes por cédula
+        public async Task<EstadoImagenDTO> ObtenerEstadoImagenesAsync(string cedula)
+        {
+            var response = await _httpClient.GetAsync($"api/Fichapersona/BuscarImagenesChofer/{cedula}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var mensaje = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Error al obtener estado de imágenes: {mensaje}");
+            }
+
+            var estado = await response.Content.ReadFromJsonAsync<EstadoImagenDTO>();
+            return estado ?? new EstadoImagenDTO();
+        }
+
 
 
 
