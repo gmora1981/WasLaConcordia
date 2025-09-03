@@ -97,6 +97,21 @@ namespace LaConcordia.Repository
             return await response.Content.ReadAsByteArrayAsync();
         }
 
+        //exportar imagenes
+        public async Task<byte[]> DescargarImagenesChoferPdf(string cedula)
+        {
+            // Aquí llamamos al endpoint que genera el PDF
+            var response = await _httpClient.GetAsync($"api/Fichapersona/DescargarImagenesChofer/{cedula}");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Error al descargar PDF de imágenes: {errorContent}");
+            }
+
+            return await response.Content.ReadAsByteArrayAsync();
+        }
+
         // 🚀 Repository - Subir imagen del chofer
         public async Task SubirImagenChoferAsync(Stream contenido, string nombreArchivo, string cedulaChofer, string tipoDocumento)
         {

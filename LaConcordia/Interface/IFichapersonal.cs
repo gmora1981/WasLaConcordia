@@ -21,6 +21,10 @@ namespace LaConcordia.Interface
         //exportar 
         Task<byte[]> ExportarFichaCompleta(ExportFichaDTO exportData);
 
+        //exportar imagenes
+        // Descargar PDF de imágenes del chofer
+        Task<byte[]> DescargarImagenesChoferPdf(string cedula);
+
         // Subir imagen del chofer frontal y trasera
         Task SubirImagenChoferAsync(Stream contenido, string nombreArchivo, string cedulaChofer, string tipoDocumento);
 
