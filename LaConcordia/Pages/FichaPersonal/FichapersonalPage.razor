@@ -343,15 +343,20 @@
 
     <div class="d-flex gap-2 mt-2">
         @* <button class="btn btn-warning" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">Actualizar</button> *@
-    <button class="btn btn-warning" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">
-        @(esNuevo ? "Guardar" : "Actualizar")
-    </button>
+        <button class="btn btn-warning" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">
+            @(esNuevo ? "Guardar" : "Actualizar")
+        </button>
 
         <button class="btn btn-danger" @onclick="EliminarFicha" disabled="@(!PuedeEliminar)">Eliminar</button>
         <button class="btn btn-secondary" @onclick="CancelarEdicion">Cancelar</button>
         <div class="ms-2">
             <button class="btn btn-info" @onclick="ExportarFicha">
                 Exportar PDF <i class="bi bi-file-earmark-pdf-fill"></i>
+            </button>
+        </div>
+        <div class="ms-2">
+            <button class="btn btn-info" @onclick="ExportarImagenesChofer">
+                Exportar PDF imagenes<i class="bi bi-file-earmark-pdf-fill"></i>
             </button>
         </div>
     </div>
@@ -569,48 +574,6 @@
         esNuevo = true; // Indica que es un registro nuevo
     }
 
-
-    // Guarda cambios en la ficha seleccionada (nuevo o editar)
-    // private async Task GuardarCambios()
-    // {
-    //     try
-    //     {
-    //         // 1️⃣ Guardar ficha
-    //         if (esNuevo)
-    //         {
-    //             await fichaRepo.InsertFichaPersonal(fichaSeleccionada);
-    //             esNuevo = false; // ahora ya no es nuevo
-    //             await displayMessage.DisplaySuccessMessage("Ficha creada con éxito ✅");
-    //         }
-    //         else
-    //         {
-    //             await fichaRepo.UpdateFichaPersonal(fichaSeleccionada);
-    //             await displayMessage.DisplaySuccessMessage("Ficha actualizada correctamente ✅");
-    //         }
-
-    //         // 2️⃣ Subir archivos si hay seleccionados
-    //         if (archivoFrontal != null) { await SubirImagen(archivoFrontal, "FRONTAL"); archivoFrontal = null; }
-    //         if (archivoTrasera != null) { await SubirImagen(archivoTrasera, "TRASERA"); archivoTrasera = null; }
-    //         if (archivoLicencia != null) { await SubirImagen(archivoLicencia, "LICENCIA"); archivoLicencia = null; }
-    //         if (archivoMatricula != null) { await SubirImagen(archivoMatricula, "MATRICULA"); archivoMatricula = null; }
-    //         if (archivoVehiculo != null) { await SubirImagen(archivoVehiculo, "VEHICULO"); archivoVehiculo = null; }
-
-    //         // 3️⃣ Actualizar estado de imágenes para la ficha actual
-    //         await ActualizarEstadoImagenes(fichaSeleccionada.Cedula);
-
-    //         // 4️⃣ Recargar listado sin borrar la ficha seleccionada
-    //         await CargarFichasAsync();
-
-    //         // para que los botones verdes/rojos sigan reflejando el estado correcto
-
-    //         StateHasChanged(); // refrescar UI
-
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         await JS.InvokeVoidAsync("alert", $"Error al guardar: {ex.Message}");
-    //     }
-    // }
     private async Task GuardarCambios()
     {
         try
@@ -759,6 +722,41 @@
             await JS.InvokeVoidAsync("alert", $"Error al exportar PDF: {ex.Message}");
         }
     }
+
+    //exportar imagenes chofer
+    private async Task ExportarImagenesChofer()
+    {
+        if (string.IsNullOrEmpty(fichaSeleccionada?.Cedula))
+        {
+            await JS.InvokeVoidAsync("alert", "No hay ficha seleccionada para exportar imágenes.");
+            return;
+        }
+
+        try
+        {
+            // Llamada al método del repositorio que descarga el PDF de imágenes
+            var pdfBytes = await fichaRepo.DescargarImagenesChoferPdf(fichaSeleccionada.Cedula);
+
+            if (pdfBytes == null || pdfBytes.Length == 0)
+            {
+                await JS.InvokeVoidAsync("alert", "El PDF de imágenes generado está vacío.");
+                return;
+            }
+
+            // Descargar el PDF usando JavaScript
+            await JS.InvokeVoidAsync("downloadFileFromByteArray", new
+            {
+                byteArray = pdfBytes,
+                fileName = $"ImagenesChofer_{fichaSeleccionada.Cedula}.pdf",
+                contentType = "application/pdf"
+            });
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error al exportar PDF de imágenes: {ex.Message}");
+        }
+    }
+
 
     //imagenes 
     
