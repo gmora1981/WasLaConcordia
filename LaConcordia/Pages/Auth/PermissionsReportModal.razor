@@ -336,38 +336,7 @@
     private List<RoleReportItem> roleReports = new();
     private List<NavigationReportItem> navigationReports = new();
 
-    // Classes for report items
-    public class UserReportItem
-    {
-        public string UserId { get; set; } = "";
-        public string FullName { get; set; } = "";
-        public string Email { get; set; } = "";
-        public List<string> Roles { get; set; } = new();
-        public int PermissionCount { get; set; }
-        public List<NavigationPermissionDto> Permissions { get; set; } = new();
-    }
-
-    public class RoleReportItem
-    {
-        public string RoleId { get; set; } = "";
-        public string RoleName { get; set; } = "";
-        public int UserCount { get; set; }
-        public int ViewCount { get; set; }
-        public int CreateCount { get; set; }
-        public int EditCount { get; set; }
-        public int DeleteCount { get; set; }
-    }
-
-    public class NavigationReportItem
-    {
-        public int Id { get; set; }
-        public string Title { get; set; } = "";
-        public string? Icon { get; set; }
-        public string? RequiredRole { get; set; }
-        public int UsersWithAccess { get; set; }
-        public int RolesWithAccess { get; set; }
-    }
-
+   
     protected override async Task OnParametersSetAsync()
     {
         if (showModal)
