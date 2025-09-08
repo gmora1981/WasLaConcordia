@@ -57,7 +57,7 @@
             <th>Fecha Nac.</th>
             <th>Ingreso</th>
             <th>Estado</th>
-            <th>Observaciones</th>
+            @* <th>Observaciones</th> *@
             <th>Beneficiarios</th>
         </tr>
     </thead>
@@ -78,7 +78,7 @@
                             @(ficha.Estado == "a" ? "Activo" : "Pasivo")
                         </span>
                     </td>
-                    <td>
+                   @*  <td>
                         <button class="btn btn-warning d-flex align-items-center"
                                 style="font-size: 1rem; padding: 0.5rem 1rem;"
                                 @onclick="() => AbrirModalObservaciones(ficha.Cedula, ficha.Fkunidad)"
@@ -86,7 +86,7 @@
                                 title="Ver Observaciones">
                             <i class="bi bi-card-text me-1 fs-5"></i> Observaciones
                         </button>
-                    </td>
+                    </td> *@
                     <td>
                         <button class="btn btn-primary btn-sm"
                                 style="font-size: 0.9rem; padding: 0.4rem 0.8rem;"
@@ -203,7 +203,7 @@
             </div>
             <div class="mb-2">
                 <label class="form-label">Correo</label>
-                <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Correo" />
+                <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Correo" disabled/>
             </div>
             <div class="mb-2">
                 <label class="form-label">Celular</label>
@@ -399,6 +399,10 @@
 
             if (fichaSeleccionada != null)
             {
+                // 🔹 llenar la tabla SOLO con el usuario logueado
+                fichas = new List<FichapersonalDTO> { fichaSeleccionada };
+                TotalUsuarios = 1;
+
                 await CargarBeneficiarios(fichaSeleccionada.Cedula);
                 await CargarListasRelacionadas();
 
@@ -414,12 +418,16 @@
             else
             {
                 await CargarListasRelacionadas();
-                // No existe ficha, habilitar nuevo y desbloquear cédula
                 esNuevo = true;
+
                 fichaSeleccionada = new FichapersonalDTO
                 {
                     Correo = correoLogueado
                 };
+
+                // 🔹 tabla vacía si no existe ficha
+                fichas = new List<FichapersonalDTO>();
+                TotalUsuarios = 0;
             }
         }
     }
