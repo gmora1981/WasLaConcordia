@@ -1,4 +1,11 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@using LaConcordia.Repository
+@using LaConcordia.Model
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IPermissionService permissionService
+@inject AuthenticationStateProvider authenticationStateProvider
+@inject NavigationManager navigationManager
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">LaConcordia</a>
         <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
@@ -9,52 +16,235 @@
 
 <div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
     <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-
-        @*Si agrega otra solo cambiar los numeros *@
-        <div class="nav-item px-3 text-start position-relative">
-            <div class="dropdown-toggle-blazor" @onclick="() => ToggleDropdown(1)">
-                <i class="bi bi-list"></i> Mantenimiento
-                <span class="dropdown-caret">@((IsDropdownOpen(1)) ? "▲" : "▼")</span>
+       @if (isLoading)
+        {
+             <div class="nav-item px-3">
+                <div class="text-center p-3">
+                    <div class="spinner-border spinner-border-sm text-light" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <div class="text-light small mt-2">Cargando menú...</div>
+                </div>
+            </div> 
+        }
+        else 
+        if (navigationMenu != null)
+        {
+            <!-- Home siempre visible -->
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                    <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+                </NavLink>
             </div>
-            @if (IsDropdownOpen(1))
-            {
-                <div class="dropdown-wrapper-blazor">
-                    <ul class="dropdown-blazor">
-                        <li><NavLink class="dropdown-item" href="empresa">Empresas</NavLink></li>
-                        <li><NavLink class="dropdown-item" href="tipolicencium">Tipo de Licencia</NavLink></li>
-                        <li><NavLink class="dropdown-item" href="nacionalidad">Nacionalidad</NavLink></li>
-                        <li><NavLink class="dropdown-item" href="estadoCivil">Estado Civil</NavLink></li>
-                        <li><NavLink class="dropdown-item" href="niveleducacion">Usuario/Nivel Educación</NavLink></li>
-                        <li><NavLink class="dropdown-item" href="cargo">Cargo</NavLink></li>
-                        <li><NavLink class="dropdown-item" href="parentesco">Parentesco</NavLink></li>
-                        <li><NavLink class="dropdown-item" href="duenopuesto">Dueño de puesto</NavLink></li>
-                        <li><NavLink class="dropdown-item" href="unidad">Unidad</NavLink></li>
-                        <li><NavLink class="dropdown-item" href="ficha-persona">FichaPersonal</NavLink></li>
 
-                    </ul>
+            @* Dashboard si tiene acceso *@
+            @if (HasAccess("dashboard") || HasAccess("Dashboard"))
+            {
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="dashboard">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </NavLink>
                 </div>
             }
-        </div>
+
+            @* Renderizar elementos del menú dinámico *@
+            @foreach (var item in GetRootItems())
+            {
+                @if (item.HasAccess)
+                {
+                    @if (item.Children != null && item.Children.Any(c => c.HasAccess))
+                    {
+                        <!-- Elemento con hijos -->
+                        <div class="nav-item px-3 text-start position-relative">
+                            <div class="dropdown-toggle-blazor" @onclick="() => ToggleDropdown(item.Id)">
+                                @if (!string.IsNullOrEmpty(item.Icon))
+                                {
+                                    <i class="@item.Icon"></i>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-list"></i>
+                                }
+                                @item.Title
+                                <span class="dropdown-caret">@((IsDropdownOpen(item.Id)) ? "▲" : "▼")</span>
+                            </div>
+                            @if (IsDropdownOpen(item.Id))
+                            {
+                                <div class="dropdown-wrapper-blazor">
+                                    <ul class="dropdown-blazor">
+                                        @foreach (var child in item.Children.Where(c => c.HasAccess).OrderBy(c => c.Order))
+                                        {
+                                            <li>
+                                                <NavLink class="dropdown-item" href="@child.Url">
+                                                    @if (!string.IsNullOrEmpty(child.Icon))
+                                                    {
+                                                        <i class="@child.Icon small me-1"></i>
+                                                    }
+                                                    @child.Title
+                                                </NavLink>
+                                            </li>
+                                        }
+                                    </ul>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else if (!string.IsNullOrEmpty(item.Url))
+                    {
+                        <!-- Elemento simple sin hijos -->
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="@item.Url">
+                                @if (!string.IsNullOrEmpty(item.Icon))
+                                {
+                                    <i class="@item.Icon"></i>
+                                }
+                                @item.Title
+                            </NavLink>
+                        </div>
+                    }
+                }
+            }
+
+                      @* Cerrar Sesión *@
+            <div class="nav-item px-3 mt-auto border-top pt-3">
+                <button class="nav-link btn btn-link d-flex align-items-center" @onclick="Logout">
+                    <i class="bi bi-box-arrow-right me-2" style="width: 20px; text-align: center;"></i>
+                    <span>Cerrar Sesión</span>
+                </button>
+            </div>
+        }
+        else
+        {
+            <!-- Menú por defecto si no hay permisos -->
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                    <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+                </NavLink>
+            </div>
+
+            <div class="nav-item px-3 mt-auto">
+                <button class="nav-link btn btn-link" @onclick="Logout">
+                    <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+                </button>
+            </div>
+        }
     </nav>
 </div>
 
 @code {
-    
     private bool collapseNavMenu = true;
-
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+    private HashSet<int> openDropdowns = new();
+
+    private NavigationMenuDto? navigationMenu;
+    private bool isLoading = false; // Cambiado a false por defecto
+    private string? currentUserId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            // Obtener el usuario actual
+            var authState = await authenticationStateProvider.GetAuthenticationStateAsync();
+            currentUserId = authState.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+            if (!string.IsNullOrEmpty(currentUserId))
+            {
+                // Cargar el menú de navegación basado en permisos
+                await LoadNavigationMenu();
+            }
+            else
+            {
+                Console.WriteLine("⚠️ No hay usuario autenticado");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error cargando menú de navegación: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadNavigationMenu()
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(currentUserId))
+            {
+                Console.WriteLine("⚠️ No se puede cargar el menú sin un usuario autenticado");
+                return;
+            }
+
+            Console.WriteLine($"📋 Cargando menú para usuario: {currentUserId}");
+
+            // Intentar cargar el menú del usuario
+            navigationMenu = await permissionService.GetUserNavigationMenuAsync(currentUserId);
+
+            if (navigationMenu == null)
+            {
+                Console.WriteLine("⚠️ No se pudo cargar el menú de navegación");
+                // Crear un menú básico por defecto
+                navigationMenu = new NavigationMenuDto
+                {
+                    Id = 0,
+                    Title = "Root",
+                    HasAccess = true,
+                    Children = new List<NavigationMenuDto>()
+                };
+            }
+            else
+            {
+                Console.WriteLine($"✅ Menú cargado con {navigationMenu.Children?.Count ?? 0} elementos");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error al cargar menú de navegación: {ex.Message}");
+            // Crear menú básico en caso de error
+            navigationMenu = new NavigationMenuDto
+            {
+                Id = 0,
+                Title = "Root",
+                HasAccess = true,
+                Children = new List<NavigationMenuDto>()
+            };
+        }
+    }
+
+    private List<NavigationMenuDto> GetRootItems()
+    {
+        if (navigationMenu?.Children != null)
+        {
+            return navigationMenu.Children
+                .Where(item => item.HasAccess)
+                .OrderBy(item => item.Order)
+                .ToList();
+        }
+        return new List<NavigationMenuDto>();
+    }
+
+    private bool HasAccess(string url)
+    {
+        if (navigationMenu?.Children != null)
+        {
+            return navigationMenu.Children.Any(item =>
+                item.HasAccess &&
+                item.Url?.Equals(url, StringComparison.OrdinalIgnoreCase) == true);
+        }
+        return false;
+    }
 
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
     }
-
-    private HashSet<int> openDropdowns = new();
 
     private void ToggleDropdown(int id)
     {
@@ -65,4 +255,70 @@
     }
 
     private bool IsDropdownOpen(int id) => openDropdowns.Contains(id);
+
+    private async Task Logout()
+    {
+        try
+        {
+            // Aquí deberías llamar a tu servicio de logout
+            // Por ejemplo:
+            // await authService.Logout();
+
+            navigationManager.NavigateTo("/login", true);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cerrar sesión: {ex.Message}");
+        }
+    }
 }
+
+<style>
+    /* Estilos simples para el dropdown del menú */
+    .dropdown-wrapper-blazor {
+        background: transparent;
+        padding: 0;
+        margin: 0;
+    }
+
+    .dropdown-blazor {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+        .dropdown-blazor .dropdown-item {
+            color: #d7d7d7;
+            text-decoration: none;
+            display: block;
+            padding: 0.25rem 0;
+            border-radius: 4px;
+            height: auto;
+            line-height: normal;
+        }
+
+            .dropdown-blazor .dropdown-item:hover {
+                background-color: rgba(255,255,255,0.1);
+                color: white;
+            }
+
+            .dropdown-blazor .dropdown-item.active {
+                background-color: rgba(255,255,255,0.25);
+                color: white;
+            }
+
+    .dropdown-toggle-blazor {
+        cursor: pointer;
+        padding: 0.5rem 0;
+        color: #d7d7d7;
+    }
+
+        .dropdown-toggle-blazor:hover {
+            color: white;
+        }
+
+    .dropdown-caret {
+        font-size: 0.75rem;
+        opacity: 0.7;
+    }
+</style>
