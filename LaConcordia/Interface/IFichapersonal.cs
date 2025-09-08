@@ -8,6 +8,8 @@ namespace LaConcordia.Interface
 
         Task<FichapersonalDTO> GetFichaPersonalById(string cedula);
 
+        Task<FichapersonalDTO> GetFichaPersonalByCorreo(string correo);
+
         Task InsertFichaPersonal(FichapersonalDTO New);
 
         Task UpdateFichaPersonal(FichapersonalDTO UpdItem);

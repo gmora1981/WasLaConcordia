@@ -1,4 +1,4 @@
-﻿@page "/ficha-persona"
+﻿@page "/ficha-personaEMP"
 @using LaConcordia.DTO
 @using LaConcordia.Interface
 @using LaConcordia.Pages.FichaObservaciones
@@ -15,29 +15,20 @@
 @inject IFichaobservacione fichaobservacioneRepo
 @inject ISegurovidum segurovidumRepo
 @inject IParentesco parentescoRepo
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <h3>Control Ficha Personal</h3>
+<h3>@correoLogueado</h3>
 
-<!-- Encabezado: Nuevo, Buscar -->
-
-<div class="card mb-3 p-3 shadow-sm">
+<div class="card mb-3 p-3 shadow-sm border">
+    <!-- Encabezado: Nuevo -->
     <div class="d-flex flex-wrap align-items-center gap-2">
-        <button class="btn btn-primary d-flex align-items-center" @onclick="NuevoRegistro">
-            <i class="bi bi-plus-circle me-1"></i> Nuevo
-        </button>
-
-        <div class="flex-grow-1">
-            <input type="text" class="form-control" placeholder="Buscar por Cédula, Nombre o Apellidos..." @bind="razonBusqueda" />
-        </div>
-
-        <select class="form-select w-auto" @bind="estadoFiltro">
-            <option value="a">Activo</option>
-            <option value="p">Pasivo</option>
-        </select>
-
-        <button class="btn btn-success d-flex align-items-center" @onclick="BuscarFichas">
-            <i class="bi bi-search me-1"></i> Buscar
-        </button>
+        @if (fichaSeleccionada == null || string.IsNullOrWhiteSpace(fichaSeleccionada.Cedula))
+        {
+            <button class="btn btn-primary d-flex align-items-center" @onclick="NuevoRegistro">
+                <i class="bi bi-plus-circle me-1"></i> Nuevo
+            </button>
+        }
     </div>
 </div>
 
@@ -48,16 +39,15 @@
     </div>
     <div class="d-flex justify-content-center flex-grow-1">
         <Pagination TotalItems="@TotalUsuarios"
-        PageSize="@PageSize"
-        CurrentPage="@PaginaActual"
-        OnPageChanged="OnPageChangedAsync" />
+                    PageSize="@PageSize"
+                    CurrentPage="@PaginaActual"
+                    />
     </div>
     <div class="flex-grow-1 text-end"></div>
 </div>
 
 <!-- Tabla de fichas personales -->
-
-<table class="table table-bordered table-hover table-striped mt-3 shadow-sm">
+<table class="table table-bordered table-hover table-striped mt-3 shadow-sm border">
     <thead class="table-dark">
         <tr>
             <th>Cédula</th>
@@ -118,60 +108,31 @@
     </tbody>
 </table>
 
-
-
 <!-- IMAGENES -->
-<div class="row">
-    <!-- Sección 1: Documentos del chofer -->
-    <div class="col-6 border p-3 mb-3">
-        <h5>
-            Documento Frontal / Trasera
-
-        </h5>
-
-        <!-- Frontal -->
+<div class="row border p-3 mb-3 shadow-sm">
+    <div class="col-6">
+        <h5>Documento Frontal / Trasera</h5>
         <div class="mb-2 d-flex align-items-center">
             <InputFile OnChange='@(e => OnFileSelected(e, "FRONTAL"))' />
-            <span class="ms-2 status-circle"
-                  style="background-color:@(estadoImagen?.Frontal == true ? "green" : "red")">
-            </span>
+            <span class="ms-2 status-circle" style="background-color:@(estadoImagen?.Frontal == true ? "green" : "red")"></span>
             <label class="ms-2">Frontal</label>
         </div>
-
-        <!-- Trasera -->
         <div class="mb-2 d-flex align-items-center">
             <InputFile OnChange='@(e => OnFileSelected(e, "TRASERA"))' />
-            <span class="ms-2 status-circle"
-                  style="background-color:@(estadoImagen?.Trasera == true ? "green" : "red")">
-            </span>
+            <span class="ms-2 status-circle" style="background-color:@(estadoImagen?.Trasera == true ? "green" : "red")"></span>
             <label class="ms-2">Trasera</label>
         </div>
     </div>
-
-    <!-- Sección 2: Licencia -->
-    <div class="col-6 border p-3 mb-3">
-        <h5>
-            Licencia
-            <span class="status-circle" style="background-color:@(estadoImagen?.Licencia == true ? "green" : "red")"></span>
-        </h5>
+    <div class="col-6">
+        <h5>Licencia <span class="status-circle" style="background-color:@(estadoImagen?.Licencia == true ? "green" : "red")"></span></h5>
         <InputFile OnChange='@(e => OnFileSelected(e, "LICENCIA"))' />
     </div>
-
-    <!-- Sección 3: Matrícula -->
-    <div class="col-6 border p-3 mb-3">
-        <h5>
-            Matrícula
-            <span class="status-circle" style="background-color:@(estadoImagen?.Matricula == true ? "green" : "red")"></span>
-        </h5>
+    <div class="col-6">
+        <h5>Matrícula <span class="status-circle" style="background-color:@(estadoImagen?.Matricula == true ? "green" : "red")"></span></h5>
         <InputFile OnChange='@(e => OnFileSelected(e, "MATRICULA"))' />
     </div>
-
-    <!-- Sección 4: Vehículo -->
-    <div class="col-6 border p-3 mb-3">
-        <h5>
-            Vehículo
-            <span class="status-circle" style="background-color:@(estadoImagen?.Vehiculo == true ? "green" : "red")"></span>
-        </h5>
+    <div class="col-6">
+        <h5>Vehículo <span class="status-circle" style="background-color:@(estadoImagen?.Vehiculo == true ? "green" : "red")"></span></h5>
         <InputFile OnChange='@(e => OnFileSelected(e, "VEHICULO"))' />
     </div>
 </div>
@@ -187,179 +148,146 @@
     }
 </style>
 
-<EditForm Model="fichaSeleccionada">
-        <div class="row">
-            <!-- Columna 1 -->
-            <div class="col-md-6">
-                
 
-                <div class="mb-2">
-                    <label class="form-label">Cedula</label>
-                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Cedula"  disabled="@(!esNuevo)" />
-                </div>
-                <div class="mb-2">
-                    <label class="form-label">Apellidos</label>
-                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Apellidos"  />
-                </div>
-                <div class="mb-2">
-                    <label class="form-label">Telefono</label>
-                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Telefono" />
-                </div>
-                <div class="mb-2">
-                    <label class="form-label">Fecha Nacimiento</label>
-                    <InputDate class="form-control" @bind-Value="fichaSeleccionada.Fechanacimiento" />
-                </div>
-                <div class="mb-2">
-                    <label class="form-label">Domicilio</label>
-                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Domicilio" />
-                </div>
-
-                <!-- Tipo Licencia -->
-                <div class="mb-2">
-                    <label class="form-label">Tipo Licencia</label>
-                    <InputSelect class="form-select" @bind-Value="fichaSeleccionada.Fktipolicencia">
-                        <option value="">-- Seleccione Tipo Licencia --</option>
-                        @foreach (var tipo in listaTipoLicencia)
-                        {
-                            <option value="@tipo.Idtipo">@tipo.Tipolicencia</option>
-                        }
-                    </InputSelect>
-                </div>
-
-                <!-- Cargo -->
-                <div class="mb-2">
-                    <label class="form-label">Cargo</label>
-                    <InputSelect class="form-select" @bind-Value="fichaSeleccionada.Fkcargo">
-                        <option value="">-- Seleccione Cargo --</option>
-                        @foreach (var tipo in listaCargos)
-                        {
-                            <option value="@tipo.Idcargo">@tipo.Cargo1</option>
-                        }
-                    </InputSelect>
-                </div>
-
-
+<EditForm Model="fichaSeleccionada" class="border p-3 shadow-sm">
+    <div class="row">
+        <!-- Columna 1 -->
+        <div class="col-md-6">
+            <div class="mb-2">
+                <label class="form-label">Cédula</label>
+                <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Cedula" disabled="@(!esNuevo)" />
             </div>
-
-            <!-- Columna 2 -->
-            <div class="col-md-6">
-                <div class="mb-2">
-                    <label class="form-label">Nombre</label>
-                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Nombre"/>
-                </div>
-                <div class="mb-2">
-                    <label class="form-label">Correo</label>
-                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Correo"  />
-                </div>
-                <div class="mb-2">
-                    <label class="form-label">Celular</label>
-                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Celular"/>
-                </div>
-                <div class="mb-2">
-                    <label class="form-label">Fecha Ingreso</label>
-                    <InputDate class="form-control" @bind-Value="fichaSeleccionada.Fechaingreso" />
-                </div>
-                <div class="mb-2">
-                    <label class="form-label">Referencia</label>
-                    <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Referencia"  />
-                </div>
-
-                <!-- Nacionalidad -->
-                <div class="mb-2">
-                    <label class="form-label">Nacionalidad</label>
-                    <InputSelect class="form-select" @bind-Value="fichaSeleccionada.Fknacionalidad">
-                        <option value="">-- Seleccione Nacionalidad --</option>
-                        @foreach (var nac in listaNacionalidad)
-                        {
-                            <option value="@nac.Idnacionalidad">@nac.Nacionalidad1</option>
-                        }
-                    </InputSelect>
-                </div>
-                <div class="mb-2">
-                    <label class="form-label">CUOTA</label>
-                    <InputNumber class="form-control mb-2" @bind-Value="fichaSeleccionada.Cuotaf" />
-                </div>
+            <div class="mb-2">
+                <label class="form-label">Apellidos</label>
+                <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Apellidos" />
             </div>
-
-            <!-- Sección Gestión de Unidad -->
-            <div class="card mb-3 p-3 border">
-            <h6 class="card-title"><i class="bi bi-truck"></i> Gestión de Unidad</h6>
-
-                <div class="row">
-                    <div class="col-md-4">
-                        <InputText class="form-control mb-2" @bind-Value="codigoUnidad" />
-                    </div>
-                    <div class="col-md-2">
-                        <button class="btn btn-outline-primary" @onclick="BuscarUnidad">Buscar Unidad</button>
-                    </div>
-                </div>
-
-                @if (unidadEncontrada is not null)
-                {
-                    <div class="row">
-                        <div class="col-md-4"><strong>Placa:</strong> @unidadEncontrada.Placa</div>
-                        <div class="col-md-4"><strong>Propietario:</strong> @unidadEncontrada.Propietario</div>
-                        <div class="col-md-4"><strong>Marca:</strong> @unidadEncontrada.Marca</div>
-                        <div class="col-md-4"><strong>Modelo:</strong> @unidadEncontrada.Modelo</div>
-                        <div class="col-md-4"><strong>Color:</strong> @unidadEncontrada.Color</div>
-                        <div class="col-md-4"><strong>Año:</strong> @unidadEncontrada.Anio</div>
-                        <div class="col-md-4"><strong>Fecha:</strong> @unidadEncontrada.Fecha?.ToShortDateString()</div>
-                    </div>
-                }
+            <div class="mb-2">
+                <label class="form-label">Teléfono</label>
+                <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Telefono" />
             </div>
-
-            <!-- Sección Gestión de Dueño del Puesto -->
-            <div class="card mb-3 p-3 border">
-            <h6 class="card-title"><i class="bi bi-truck"></i> Gestión del Dueño Del Puesto</h6>
-
-                <div class="row">
-                    <div class="col-md-4">
-                        <InputText class="form-control mb-2"@bind-Value="cedulaDuenopuesto" />
-                    </div>
-                    <div class="col-md-2">
-                        <button class="btn btn-outline-primary" @onclick="BuscarDuenopuesto">Buscar Dueño</button>
-                    </div>
-                </div>
-
-                @if (duenopuestoEncontrado is not null)
-                {
-                    <div class="row">
-                        <div class="col-md-6"><strong>Nombres:</strong> @duenopuestoEncontrado.Nombres</div>
-                        <div class="col-md-6"><strong>Apellidos:</strong> @duenopuestoEncontrado.Apellidos</div>
-                    </div>
-                }
+            <div class="mb-2">
+                <label class="form-label">Fecha Nacimiento</label>
+                <InputDate class="form-control" @bind-Value="fichaSeleccionada.Fechanacimiento" />
             </div>
-
-            <!-- Estado en toda la fila -->
-            <div class="col-md-12">
-                <InputSelect class="form-control mb-2" @bind-Value="fichaSeleccionada.Estado">
-                    <option value="">-- Estado --</option>
-                    <option value="a">Activo</option>
-                    <option value="p">Pasivo</option>
+            <div class="mb-2">
+                <label class="form-label">Domicilio</label>
+                <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Domicilio" />
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Tipo Licencia</label>
+                <InputSelect class="form-select" @bind-Value="fichaSeleccionada.Fktipolicencia">
+                    <option value="">-- Seleccione Tipo Licencia --</option>
+                    @foreach (var tipo in listaTipoLicencia)
+                    {
+                        <option value="@tipo.Idtipo">@tipo.Tipolicencia</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Cargo</label>
+                <InputSelect class="form-select" @bind-Value="fichaSeleccionada.Fkcargo">
+                    <option value="">-- Seleccione Cargo --</option>
+                    @foreach (var tipo in listaCargos)
+                    {
+                        <option value="@tipo.Idcargo">@tipo.Cargo1</option>
+                    }
                 </InputSelect>
             </div>
         </div>
-    </EditForm>
 
-    <div class="d-flex gap-2 mt-2">
-        @* <button class="btn btn-warning" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">Actualizar</button> *@
-        <button class="btn btn-warning" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">
-            @(esNuevo ? "Guardar" : "Actualizar")
-        </button>
-
-        <button class="btn btn-danger" @onclick="EliminarFicha" disabled="@(!PuedeEliminar)">Eliminar</button>
-        <button class="btn btn-secondary" @onclick="CancelarEdicion">Cancelar</button>
-        <div class="ms-2">
-            <button class="btn btn-info" @onclick="ExportarFicha">
-                Exportar PDF <i class="bi bi-file-earmark-pdf-fill"></i>
-            </button>
+        <!-- Columna 2 -->
+        <div class="col-md-6">
+            <div class="mb-2">
+                <label class="form-label">Nombre</label>
+                <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Nombre" />
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Correo</label>
+                <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Correo" />
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Celular</label>
+                <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Celular" />
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Fecha Ingreso</label>
+                <InputDate class="form-control" @bind-Value="fichaSeleccionada.Fechaingreso" />
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Referencia</label>
+                <InputText class="form-control mb-2" @bind-Value="fichaSeleccionada.Referencia" />
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Nacionalidad</label>
+                <InputSelect class="form-select" @bind-Value="fichaSeleccionada.Fknacionalidad">
+                    <option value="">-- Seleccione Nacionalidad --</option>
+                    @foreach (var nac in listaNacionalidad)
+                    {
+                        <option value="@nac.Idnacionalidad">@nac.Nacionalidad1</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="mb-2">
+                <label class="form-label">CUOTA</label>
+                <InputNumber class="form-control mb-2" @bind-Value="fichaSeleccionada.Cuotaf" />
+            </div>
         </div>
-        <div class="ms-2">
-            <button class="btn btn-info" @onclick="ExportarImagenesChofer">
-                Exportar PDF imagenes<i class="bi bi-file-earmark-pdf-fill"></i>
-            </button>
+
+        <!-- Gestión de Unidad -->
+        <div class="card mb-3 p-3 border">
+            <h6 class="card-title"><i class="bi bi-truck"></i> Gestión de Unidad</h6>
+            <div class="row">
+                <div class="col-md-4">
+                    <InputText class="form-control mb-2" @bind-Value="codigoUnidad" />
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-outline-primary" @onclick="BuscarUnidad">Buscar Unidad</button>
+                </div>
+            </div>
+            @if (unidadEncontrada is not null)
+            {
+                <div class="row">
+                    <div class="col-md-4"><strong>Placa:</strong> @unidadEncontrada.Placa</div>
+                    <div class="col-md-4"><strong>Propietario:</strong> @unidadEncontrada.Propietario</div>
+                    <div class="col-md-4"><strong>Marca:</strong> @unidadEncontrada.Marca</div>
+                    <div class="col-md-4"><strong>Modelo:</strong> @unidadEncontrada.Modelo</div>
+                    <div class="col-md-4"><strong>Color:</strong> @unidadEncontrada.Color</div>
+                    <div class="col-md-4"><strong>Año:</strong> @unidadEncontrada.Anio</div>
+                </div>
+            }
+        </div>
+
+        <!-- Dueño del puesto -->
+        <div class="card mb-3 p-3 border">
+            <h6 class="card-title"><i class="bi bi-person"></i> Dueño del Puesto</h6>
+            <div class="row">
+                <div class="col-md-4">
+                    <InputText class="form-control mb-2" @bind-Value="cedulaDuenopuesto" />
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-outline-primary" @onclick="BuscarDuenopuesto">Buscar Dueño</button>
+                </div>
+            </div>
+            @if (duenopuestoEncontrado is not null)
+            {
+                <div class="row">
+                    <div class="col-md-4"><strong>Cédula:</strong> @duenopuestoEncontrado.Cedula</div>
+                    <div class="col-md-4"><strong>Nombre:</strong> @duenopuestoEncontrado.Nombres</div>
+                    <div class="col-md-4"><strong>Apellidos:</strong> @duenopuestoEncontrado.Apellidos</div>
+                </div>
+            }
+        </div>
+
+        <!-- Botones -->
+        <div class="d-flex gap-2 mt-2">
+            <button class="btn btn-success" @onclick="GuardarCambios" disabled="@( !PuedeGuardar )">Guardar / Actualizar</button>
+            <button class="btn btn-danger" @onclick="EliminarFicha" disabled="@( !PuedeEliminar )">Eliminar</button>
+            <button class="btn btn-secondary" @onclick="CancelarEdicion">Cancelar</button>
+            <button class="btn btn-info" @onclick="ExportarFicha">Exportar PDF</button>
+            <button class="btn btn-warning" @onclick="ExportarImagenesChofer">Exportar Imágenes</button>
         </div>
     </div>
+</EditForm>
 
 
 
@@ -372,6 +300,9 @@
 @code {
     // Listado paginado de fichas personales
     private List<FichapersonalDTO> fichas = new();
+
+    //usuario logueado
+    private string? correoLogueado;
 
     // Registro seleccionado para mostrar y editar
     private FichapersonalDTO fichaSeleccionada = new();
@@ -454,35 +385,58 @@
     // Inicialización al cargar la página
     protected override async Task OnInitializedAsync()
     {
-        await CargarListasRelacionadas();  // Cargar listas para combos
-        await CargarFichasAsync();          // Cargar listado de fichas
-        
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            correoLogueado = user.Identity.Name;
+        }
+
+        if (!string.IsNullOrWhiteSpace(correoLogueado))
+        {
+            fichaSeleccionada = await fichaRepo.GetFichaPersonalByCorreo(correoLogueado);
+
+            if (fichaSeleccionada != null)
+            {
+                await CargarBeneficiarios(fichaSeleccionada.Cedula);
+                await CargarListasRelacionadas();
+
+                codigoUnidad = fichaSeleccionada.Fkunidad ?? string.Empty;
+                cedulaDuenopuesto = fichaSeleccionada.Fkdpuesto ?? string.Empty;
+
+                await BuscarUnidad();
+                await BuscarDuenopuesto();
+                await ActualizarEstadoImagenes(fichaSeleccionada.Cedula);
+
+                esNuevo = false;
+            }
+            else
+            {
+                await CargarListasRelacionadas();
+                // No existe ficha, habilitar nuevo y desbloquear cédula
+                esNuevo = true;
+                fichaSeleccionada = new FichapersonalDTO
+                {
+                    Correo = correoLogueado
+                };
+            }
+        }
     }
+
+
 
     // Método que carga los datos para combos
     private async Task CargarListasRelacionadas()
     {
 
-		listaParentesco = await parentescoRepo.ParentescoInfoAll();
+        listaParentesco = await parentescoRepo.ParentescoInfoAll();
         listaCargos = await cargoRepo.GetCargoInfoAll();
         listaTipoLicencia = await tipolicenciaRepo.GetTipolicenciaInfoAll();
         listaNacionalidad = await nacionalidadRepo.GetNacionalidadesAll();
     }
 
-    // Carga el listado de fichas según filtros y paginación
-    private async Task CargarFichasAsync()
-    {
-        var resultado = await fichaRepo.GetFichaPersonalPaginados(PaginaActual, PageSize, razonBusqueda, estadoFiltro);
-        fichas = resultado.Items;
-        TotalUsuarios = resultado.TotalItems;
-    }
 
-    // Acción del botón Buscar
-    private async Task BuscarFichas()
-    {
-        PaginaActual = 1;
-        await CargarFichasAsync();
-    }
 
     // Busca el dueño del puesto por cédula
     private async Task BuscarDuenopuesto()
@@ -516,26 +470,26 @@
 
         // Copiar datos del registro seleccionado
         fichaSeleccionada = new FichapersonalDTO
-            {
-                Cedula = ficha.Cedula,
-                Nombre = ficha.Nombre,
-                Apellidos = ficha.Apellidos,
-                Correo = ficha.Correo,
-                Telefono = ficha.Telefono,
-                Celular = ficha.Celular,
-                Fechanacimiento = ficha.Fechanacimiento,
-                Fechaingreso = ficha.Fechaingreso,
-                Domicilio = ficha.Domicilio,
-                Referencia = ficha.Referencia,
-                Estadoservicio = ficha.Estadoservicio,
-                Cuotaf = ficha.Cuotaf,
-                Estado = ficha.Estado,
-                Fknacionalidad = ficha.Fknacionalidad,
-                Fkunidad = ficha.Fkunidad,
-                Fkdpuesto = ficha.Fkdpuesto,
-                Fkcargo = ficha.Fkcargo,
-                Fktipolicencia = ficha.Fktipolicencia
-            };
+        {
+            Cedula = ficha.Cedula,
+            Nombre = ficha.Nombre,
+            Apellidos = ficha.Apellidos,
+            Correo = ficha.Correo,
+            Telefono = ficha.Telefono,
+            Celular = ficha.Celular,
+            Fechanacimiento = ficha.Fechanacimiento,
+            Fechaingreso = ficha.Fechaingreso,
+            Domicilio = ficha.Domicilio,
+            Referencia = ficha.Referencia,
+            Estadoservicio = ficha.Estadoservicio,
+            Cuotaf = ficha.Cuotaf,
+            Estado = ficha.Estado,
+            Fknacionalidad = ficha.Fknacionalidad,
+            Fkunidad = ficha.Fkunidad,
+            Fkdpuesto = ficha.Fkdpuesto,
+            Fkcargo = ficha.Fkcargo,
+            Fktipolicencia = ficha.Fktipolicencia
+        };
 
         // Reiniciar datos relacionados
         unidadEncontrada = null;
@@ -573,7 +527,6 @@
         archivoVehiculo = null;
         esNuevo = true; // Indica que es un registro nuevo
     }
-
     private async Task GuardarCambios()
     {
         try
@@ -598,7 +551,7 @@
                 if (archivoMatricula != null) { tareas.Add(SubirImagen(archivoMatricula, "MATRICULA")); archivoMatricula = null; }
                 if (archivoVehiculo != null) { tareas.Add(SubirImagen(archivoVehiculo, "VEHICULO")); archivoVehiculo = null; }
 
-                await Task.WhenAll(tareas); // espera a que todas terminen
+                await Task.WhenAll(tareas);
             }
             catch (Exception ex)
             {
@@ -606,18 +559,29 @@
             }
 
             await ActualizarEstadoImagenes(fichaSeleccionada.Cedula);
-            await CargarFichasAsync();
 
-            // Mostrar mensaje de éxito solo después de guardar ficha + imágenes
+            // Mostrar mensaje de éxito
             await displayMessage.DisplaySuccessMessage(esNuevo ? "Ficha creada con éxito ✅" : "Ficha actualizada correctamente ✅");
 
-            // Limpiar todo y bloquear cédula
-            fichaSeleccionada = new FichapersonalDTO();
+            // 🔹 Cargar solo el usuario logueado en la tabla
+            if (!string.IsNullOrWhiteSpace(correoLogueado))
+            {
+                var fichaUsuario = await fichaRepo.GetFichaPersonalByCorreo(correoLogueado);
+                fichas = fichaUsuario != null ? new List<FichapersonalDTO> { fichaUsuario } : new List<FichapersonalDTO>();
+                TotalUsuarios = fichas.Count;
+            }
+
+            // Limpiar formulario y mantener cédula bloqueada
+            fichaSeleccionada = new FichapersonalDTO
+            {
+                Correo = correoLogueado
+            };
             unidadEncontrada = null;
             duenopuestoEncontrado = null;
             codigoUnidad = string.Empty;
             cedulaDuenopuesto = string.Empty;
-            esNuevo = false; // ya no es nuevo, cédula bloqueada
+            esNuevo = false;
+
             StateHasChanged();
         }
         catch (Exception ex)
@@ -641,7 +605,7 @@
                 await fichaRepo.DeleteFichaPersonalById(fichaSeleccionada.Cedula);
 
                 // Reset
-                await CargarFichasAsync();
+
                 fichaSeleccionada = new FichapersonalDTO();
                 // archivoSeleccionado = null;
                 esNuevo = false;
@@ -660,12 +624,7 @@
         cedulaDuenopuesto = string.Empty;
     }
 
-    // Maneja cambio de página en paginación
-    private async Task OnPageChangedAsync(int nuevaPagina)
-    {
-        PaginaActual = nuevaPagina;
-        await CargarFichasAsync();
-    }
+
 
     // Traduce código estado a texto
     private string ObtenerNombreEstado(string? estado)
@@ -696,7 +655,7 @@
         }
     }
 
-    //exportar 
+    //exportar
     private async Task ExportarFicha()
     {
         if (string.IsNullOrEmpty(fichaSeleccionada?.Cedula))
@@ -771,8 +730,8 @@
     }
 
 
-    //imagenes 
-    
+    //imagenes
+
     private IBrowserFile archivoFrontal;
     private IBrowserFile archivoTrasera;
     private IBrowserFile archivoLicencia;

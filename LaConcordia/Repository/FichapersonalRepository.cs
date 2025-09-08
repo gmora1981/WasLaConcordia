@@ -31,6 +31,22 @@ namespace LaConcordia.Repository
             return await _httpClient.GetFromJsonAsync<FichapersonalDTO>($"api/Fichapersona/GetFichaPersonalById/{cedula}");
         }
 
+        public async Task<FichapersonalDTO?> GetFichaPersonalByCorreo(string correo)
+        {
+            try
+            {
+                var correoEncoded = Uri.EscapeDataString(correo);
+                return await _httpClient.GetFromJsonAsync<FichapersonalDTO>(
+                    $"api/Fichapersona/GetFichaPersonalByCorreo/{correoEncoded}");
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                // Aquí controlas si no existe, devuelves null
+                return null;
+            }
+        }
+
+
         public async Task InsertFichaPersonal(FichapersonalDTO New)
         {
             var response = await _httpClient.PostAsJsonAsync("api/Fichapersona/InsertFichaPersonal", New);
