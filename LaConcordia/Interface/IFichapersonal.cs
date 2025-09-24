@@ -34,15 +34,11 @@ namespace LaConcordia.Interface
         Task SubirImagenLicenciaAsync(Stream contenido, string nombreArchivo, string cedula);
         Task SubirImagenMatriculaAsync(Stream contenido, string nombreArchivo, string cedula);
         Task SubirImagenVehiculoAsync(Stream contenido, string nombreArchivo, string cedula);
-
-
-
         // Obtener estado de imágenes por cédula
         Task<EstadoImagenDTO> ObtenerEstadoImagenesAsync(string cedula);
-
-
         // Eliminar imagen por cédula
         Task EliminarImagenChoferAsync(string cedulaChofer);
-
+        //para ver si estan todas las imagenes o falta alguna 
+        Task<bool> ValidarImagenesChoferAsync(string cedula);
     }
 }

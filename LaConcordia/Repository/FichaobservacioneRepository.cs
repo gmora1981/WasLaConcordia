@@ -92,5 +92,6 @@ namespace LaConcordia.Repository
 
             return await _httpClient.GetFromJsonAsync<PagedResult<FichaobservacioneDTO>>(url);
         }
+
     }
 }

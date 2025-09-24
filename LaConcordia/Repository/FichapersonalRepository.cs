@@ -241,6 +241,16 @@ namespace LaConcordia.Repository
             }
         }
 
-
+        public async Task<bool> ValidarImagenesChoferAsync(string cedula)
+        {
+            try
+            {
+                return await _httpClient.GetFromJsonAsync<bool>($"api/Fichapersona/ValidarImagenesChofer/{cedula}");
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new Exception("Error al validar las imágenes del chofer.", ex);
+            }
+        }
     }
 }
