@@ -39,6 +39,6 @@ namespace LaConcordia.Interface
         // Eliminar imagen por cédula
         Task EliminarImagenChoferAsync(string cedulaChofer);
         //para ver si estan todas las imagenes o falta alguna 
-        Task<bool> ValidarImagenesChoferAsync(string cedula);
+        
     }
 }

@@ -108,20 +108,7 @@
                         </button>
                     </td>
                     <td>
-                        @if (ficha.DocumentosCompletos == null)
-                        {
-                            <span>Cargando...</span>
-                            @* Aquí podemos disparar la verificación visual *@
-                            @CheckDocumentos(ficha)
-                        }
-                        else if (ficha.DocumentosCompletos == true)
-                        {
-                            <span class="text-success">Completo</span>
-                        }
-                        else
-                        {
-                            <span class="text-danger">Incompleto</span>
-                        }
+                        completos?
                     </td>
 
                 </tr>
@@ -889,24 +876,6 @@
         catch (Exception ex)
         {
             await JS.InvokeVoidAsync("alert", $"Error subiendo {tipoDocumento}: {ex.Message}");
-        }
-    }
-
-    //
-    private async Task CheckDocumentos(FichapersonalDTO ficha)
-    {
-        // Evita hacer la misma consulta varias veces
-        if (ficha.DocumentosCompletos != null) return;
-
-        try
-        {
-            ficha.DocumentosCompletos = await fichaRepo.ValidarImagenesChoferAsync(ficha.Cedula);
-            StateHasChanged(); // Actualiza la tabla cuando llegue la respuesta
-        }
-        catch
-        {
-            ficha.DocumentosCompletos = false; // Error = marcar como incompleto
-            StateHasChanged();
         }
     }
 

@@ -39,7 +39,7 @@
         public string? DuenoCedula { get; set; }
         public string? DuenoNombres { get; set; }
         public string? DuenoApellidos { get; set; }
-        public bool? DocumentosCompletos { get; set; }  // para que se pueda ver en la grilla si estan completas o no las imagenes 
+       
 
     }
 }
