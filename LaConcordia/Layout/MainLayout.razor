@@ -1,24 +1,34 @@
 ﻿@inherits LayoutComponentBase
+<div class="page">
 <AuthorizeView>
     <Authorized>
-<div class="page">
+
     <div class="sidebar">
         <NavMenu />
     </div>
+    </Authorized>
+</AuthorizeView>
+    <div class="main">
+<AuthorizeView>
+    <Authorized>
 
-    <main>
-        @* <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div> *@
+                <div class="top-row px-4" >
+                    <h6>
+                        <a href="/CambiarPassword" style="color:darkblue;">
+                            Hola, @context.User.Identity.Name!
+                        </a>
+                    </h6>
+                    <a href="Logout" class="ml-md-auto btn btn-danger">
+                        Salir <span class="oi oi-arrow-right"></span>
+                    </a>
+                </div>
 
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
-</div>
 
     </Authorized>
-    <NotAuthorized>
-        @Body
-    </NotAuthorized>
 </AuthorizeView>
+  
+<div class="content px-4">
+    @Body
+</div>
+</div>
+ </div> 

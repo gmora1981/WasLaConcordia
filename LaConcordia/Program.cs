@@ -25,7 +25,10 @@ Console.WriteLine("🔧 DESARROLLO - API: http://localhost:5191/");
     // PRODUCCIÓN: SmartASP.NET
     builder.Services.AddScoped(sp => new HttpClient 
     { 
+        //Desarollo en Datos para probar
         BaseAddress = new Uri("https://api.laconcordia.compugtech.com/"),
+        //Producción en Datos 
+        //BaseAddress = new Uri("https://api.lconcordia.com"),
         Timeout = TimeSpan.FromSeconds(60)
     });
     Console.WriteLine("🔧 PRODUCCIÓN - API: https://api.laconcordia.compugtech.com/");
