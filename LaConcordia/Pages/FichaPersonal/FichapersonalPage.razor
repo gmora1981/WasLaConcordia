@@ -108,7 +108,9 @@
                         </button>
                     </td>
                     <td>
-                        @ficha.Documentacion
+                    <td>
+                        @(string.IsNullOrWhiteSpace(ficha.Documentacion) ? "INCOMPLETA" : ficha.Documentacion)
+                    </td>
                         @* <InputSelect class="form-select" @bind-Value="ficha.Documentacion">
                             <option value="INCOMPLETA" selected="@(string.IsNullOrEmpty(ficha.Documentacion) ? true : false)">INCOMPLETA</option>
                             <option value="COMPLETA">COMPLETA</option>
