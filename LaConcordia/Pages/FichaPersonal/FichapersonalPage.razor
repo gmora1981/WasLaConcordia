@@ -108,7 +108,11 @@
                         </button>
                     </td>
                     <td>
-                        completos?
+                        @ficha.Documentacion
+                        @* <InputSelect class="form-select" @bind-Value="ficha.Documentacion">
+                            <option value="INCOMPLETA" selected="@(string.IsNullOrEmpty(ficha.Documentacion) ? true : false)">INCOMPLETA</option>
+                            <option value="COMPLETA">COMPLETA</option>
+                        </InputSelect> *@
                     </td>
 
                 </tr>
@@ -243,7 +247,14 @@
                     </InputSelect>
                 </div>
 
-
+            <!-- Documentos completos -->
+            <div class="mb-2">
+                <label class="form-label">Documentación Completa</label>
+                <InputSelect class="form-select" @bind-Value="fichaSeleccionada.Documentacion">
+                    <option value="INCOMPLETA" selected="@(string.IsNullOrEmpty(fichaSeleccionada.Documentacion))">INCOMPLETA</option>
+                    <option value="COMPLETA">COMPLETA</option>
+                </InputSelect>
+            </div>
             </div>
 
             <!-- Columna 2 -->
@@ -539,7 +550,8 @@
                 Fkunidad = ficha.Fkunidad,
                 Fkdpuesto = ficha.Fkdpuesto,
                 Fkcargo = ficha.Fkcargo,
-                Fktipolicencia = ficha.Fktipolicencia
+                Fktipolicencia = ficha.Fktipolicencia,
+                Documentacion = string.IsNullOrEmpty(ficha.Documentacion) ? "INCOMPLETA" : ficha.Documentacion
             };
 
         // Reiniciar datos relacionados
