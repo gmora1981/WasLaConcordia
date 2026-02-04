@@ -799,17 +799,66 @@
 
 
     // Subir imagen al servidor
+    // private async Task SubirImagen(IBrowserFile archivo, string tipoDocumento)
+    // {
+        // if (archivo == null || string.IsNullOrEmpty(fichaSeleccionada?.Cedula))
+        //     return;
+       
+        // using var stream = archivo.OpenReadStream(5_000_000); // límite 5 MB
+        // var extension = Path.GetExtension(archivo.Name);
+        // var nombreArchivo = $"{fichaSeleccionada.Cedula}-{tipoDocumento}{extension}";
+
+        // try
+        // {
+        //     switch (tipoDocumento)
+        //     {
+        //         case "FRONTAL":
+        //             await fichaRepo.SubirImagenChoferAsync(stream, nombreArchivo, fichaSeleccionada.Cedula, "FRONTAL");
+        //             break;
+        //         case "TRASERA":
+        //             await fichaRepo.SubirImagenChoferAsync(stream, nombreArchivo, fichaSeleccionada.Cedula, "TRASERA");
+        //             break;
+        //         case "LICENCIA":
+        //             await fichaRepo.SubirImagenLicenciaAsync(stream, nombreArchivo, fichaSeleccionada.Cedula);
+        //             break;
+        //         case "MATRICULA":
+        //             await fichaRepo.SubirImagenMatriculaAsync(stream, nombreArchivo, fichaSeleccionada.Cedula);
+        //             break;
+        //         case "VEHICULO":
+        //             await fichaRepo.SubirImagenVehiculoAsync(stream, nombreArchivo, fichaSeleccionada.Cedula);
+        //             break;
+        //         default:
+        //             throw new Exception("Tipo de documento no soportado");
+        //     }
+
+        //     // 🔹 Actualizar estado visual inmediatamente
+        //     await ActualizarEstadoImagenes(fichaSeleccionada.Cedula);
+        //     StateHasChanged();
+        // }
+        // catch (Exception ex)
+        // {
+        //     await JS.InvokeVoidAsync("alert", $"Error subiendo {tipoDocumento}: {ex.Message}");
+        // }
+
+
+    // }
     private async Task SubirImagen(IBrowserFile archivo, string tipoDocumento)
     {
         if (archivo == null || string.IsNullOrEmpty(fichaSeleccionada?.Cedula))
             return;
 
-        using var stream = archivo.OpenReadStream(5_000_000); // límite 5 MB
-        var extension = Path.GetExtension(archivo.Name);
-        var nombreArchivo = $"{fichaSeleccionada.Cedula}-{tipoDocumento}{extension}";
-
         try
         {
+            // 1. Redimensionar en el cliente (Ej: Máximo 1200px y formato JPEG para comprimir)
+            // El navegador se encarga de bajar el peso por ti.
+            var archivoRedimensionado = await archivo.RequestImageFileAsync("image/jpeg", 1200, 1200);
+
+            // 2. Usar el stream del archivo ya pequeño (5MB es ahora más que suficiente)
+            using var stream = archivoRedimensionado.OpenReadStream(5_000_000);
+
+            // Forzamos extensión .jpg ya que RequestImageFileAsync convierte el formato
+            var nombreArchivo = $"{fichaSeleccionada.Cedula}-{tipoDocumento}.jpg";
+
             switch (tipoDocumento)
             {
                 case "FRONTAL":
@@ -831,7 +880,6 @@
                     throw new Exception("Tipo de documento no soportado");
             }
 
-            // 🔹 Actualizar estado visual inmediatamente
             await ActualizarEstadoImagenes(fichaSeleccionada.Cedula);
             StateHasChanged();
         }
@@ -840,7 +888,6 @@
             await JS.InvokeVoidAsync("alert", $"Error subiendo {tipoDocumento}: {ex.Message}");
         }
     }
-
 
     // Validaciones para habilitar botones
     private bool PuedeGuardar => !string.IsNullOrWhiteSpace(fichaSeleccionada.Cedula);
