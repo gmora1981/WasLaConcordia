@@ -851,17 +851,57 @@
 
 
     // Subir imagen al servidor
+    private async Task<IBrowserFile> ComprimirImagenAsync(IBrowserFile archivo, long maxBytes = 1_000_000)
+    {
+        // Calidad inicial
+        int quality = 90;
+        int width = 1024;
+        int height = 1024;
+
+        IBrowserFile archivoProcesado = archivo;
+
+        // Si ya está dentro del límite, no hacemos nada
+        if (archivo.Size <= maxBytes)
+            return archivo;
+
+        while (true)
+        {
+            // Convertimos a JPEG con las dimensiones actuales
+            archivoProcesado = await archivo.RequestImageFileAsync("image/jpeg", width, height);
+
+            // Obtenemos tamaño aproximado
+            using var stream = archivoProcesado.OpenReadStream(maxBytes * 10); // abrir más grande temporal
+            var buffer = new byte[stream.Length];
+            await stream.ReadAsync(buffer);
+
+            if (buffer.Length <= maxBytes || quality <= 20)
+                break; // cumple el límite o llegamos a calidad mínima
+
+            // Reducir tamaño para la siguiente iteración
+            width = (int)(width * 0.9);   // reducir 10%
+            height = (int)(height * 0.9);
+            quality -= 10;                // reducir calidad 10%
+        }
+
+        return archivoProcesado;
+    }
+
     private async Task SubirImagen(IBrowserFile archivo, string tipoDocumento)
     {
         if (archivo == null || string.IsNullOrEmpty(fichaSeleccionada?.Cedula))
             return;
 
-        using var stream = archivo.OpenReadStream(5_000_000); // límite 5 MB
-        var extension = Path.GetExtension(archivo.Name);
-        var nombreArchivo = $"{fichaSeleccionada.Cedula}-{tipoDocumento}{extension}";
-
         try
         {
+            // 🔹 Comprimir progresivamente hasta 1 MB
+            IBrowserFile archivoProcesado = await ComprimirImagenAsync(archivo, 1_000_000);
+
+            using var stream = archivoProcesado.OpenReadStream(1_000_000); // límite 1 MB
+            var extension = Path.GetExtension(archivo.Name);
+            var nombreArchivo = archivoProcesado != archivo
+                ? $"{fichaSeleccionada.Cedula}-{tipoDocumento}.jpg"
+                : $"{fichaSeleccionada.Cedula}-{tipoDocumento}{extension}";
+
             switch (tipoDocumento)
             {
                 case "FRONTAL":
@@ -883,7 +923,6 @@
                     throw new Exception("Tipo de documento no soportado");
             }
 
-            // 🔹 Actualizar estado visual inmediatamente
             await ActualizarEstadoImagenes(fichaSeleccionada.Cedula);
             StateHasChanged();
         }
@@ -892,6 +931,9 @@
             await JS.InvokeVoidAsync("alert", $"Error subiendo {tipoDocumento}: {ex.Message}");
         }
     }
+
+
+
 
 
     // Validaciones para habilitar botones
