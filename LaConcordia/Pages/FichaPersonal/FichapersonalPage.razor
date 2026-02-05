@@ -856,29 +856,50 @@
         if (archivo == null || string.IsNullOrEmpty(fichaSeleccionada?.Cedula))
             return;
 
-        using var stream = archivo.OpenReadStream(5_000_000); // límite 5 MB
-        var extension = Path.GetExtension(archivo.Name);
-        var nombreArchivo = $"{fichaSeleccionada.Cedula}-{tipoDocumento}{extension}";
-
         try
         {
+            // 🔹 Solo comprimir si pesa más de 5 MB
+            IBrowserFile archivoProcesado = archivo;
+
+            if (archivo.Size > 5_000_000)
+            {
+                archivoProcesado = await archivo.RequestImageFileAsync(
+                    "image/jpeg",   // formato de salida
+                    1024,           // ancho máximo
+                    1024            // alto máximo
+                );
+            }
+
+            using var stream = archivoProcesado.OpenReadStream(5_000_000);
+
+            var extension = Path.GetExtension(archivo.Name);
+            // Forzamos jpg si se comprimió
+            var nombreArchivo = archivoProcesado != archivo
+                ? $"{fichaSeleccionada.Cedula}-{tipoDocumento}.jpg"
+                : $"{fichaSeleccionada.Cedula}-{tipoDocumento}{extension}";
+
             switch (tipoDocumento)
             {
                 case "FRONTAL":
                     await fichaRepo.SubirImagenChoferAsync(stream, nombreArchivo, fichaSeleccionada.Cedula, "FRONTAL");
                     break;
+
                 case "TRASERA":
                     await fichaRepo.SubirImagenChoferAsync(stream, nombreArchivo, fichaSeleccionada.Cedula, "TRASERA");
                     break;
+
                 case "LICENCIA":
                     await fichaRepo.SubirImagenLicenciaAsync(stream, nombreArchivo, fichaSeleccionada.Cedula);
                     break;
+
                 case "MATRICULA":
                     await fichaRepo.SubirImagenMatriculaAsync(stream, nombreArchivo, fichaSeleccionada.Cedula);
                     break;
+
                 case "VEHICULO":
                     await fichaRepo.SubirImagenVehiculoAsync(stream, nombreArchivo, fichaSeleccionada.Cedula);
                     break;
+
                 default:
                     throw new Exception("Tipo de documento no soportado");
             }
@@ -892,6 +913,8 @@
             await JS.InvokeVoidAsync("alert", $"Error subiendo {tipoDocumento}: {ex.Message}");
         }
     }
+
+
 
 
     // Validaciones para habilitar botones
