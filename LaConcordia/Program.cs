@@ -31,7 +31,7 @@ Console.WriteLine("🔧 DESARROLLO - API: http://localhost:5191/");
         BaseAddress = new Uri("https://api.lconcordia.com"),
         Timeout = TimeSpan.FromSeconds(60)
     });
-    Console.WriteLine("🔧 PRODUCCIÓN - API: https://api.laconcordia.compugtech.com/");
+    Console.WriteLine("🔧 PRODUCCIÓN - API: https://api.laconcordia.com/");
 #endif
 
 //builder.Services.AddTelerikBlazor();
