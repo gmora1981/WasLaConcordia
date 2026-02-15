@@ -176,13 +176,21 @@ namespace LaConcordia.Repository
         }
 
         // 🚀 Repository - Subir imagen de matrícula
-        public async Task SubirImagenMatriculaAsync(Stream contenido, string nombreArchivo, string cedula)
+        public async Task SubirImagenMatriculaAsync(
+        Stream contenido,
+        string nombreArchivo,
+        string cedula,
+        string tipoImagen)
         {
             var content = new MultipartFormDataContent();
+
             content.Add(new StreamContent(contenido), "archivo", nombreArchivo);
             content.Add(new StringContent(cedula), "cedula");
+            content.Add(new StringContent(tipoImagen), "tipoImagen"); // 👈 FALTABA
 
-            var response = await _httpClient.PostAsync("api/Fichapersona/SubirImagenMatricula", content);
+            var response = await _httpClient.PostAsync(
+                "api/Fichapersona/SubirImagenMatricula",
+                content);
 
             if (!response.IsSuccessStatusCode)
             {
@@ -190,6 +198,21 @@ namespace LaConcordia.Repository
                 throw new Exception($"Error al subir imagen de matrícula: {mensaje}");
             }
         }
+
+        //public async Task SubirImagenMatriculaAsync(Stream contenido, string nombreArchivo, string cedula)
+        //{
+        //    var content = new MultipartFormDataContent();
+        //    content.Add(new StreamContent(contenido), "archivo", nombreArchivo);
+        //    content.Add(new StringContent(cedula), "cedula");
+
+        //    var response = await _httpClient.PostAsync("api/Fichapersona/SubirImagenMatricula", content);
+
+        //    if (!response.IsSuccessStatusCode)
+        //    {
+        //        var mensaje = await response.Content.ReadAsStringAsync();
+        //        throw new Exception($"Error al subir imagen de matrícula: {mensaje}");
+        //    }
+        //}
 
         // 🚀 Repository - Subir imagen de vehículo
         public async Task SubirImagenVehiculoAsync(Stream contenido, string nombreArchivo, string cedula)
@@ -241,6 +264,6 @@ namespace LaConcordia.Repository
             }
         }
 
-        
+
     }
 }
