@@ -870,8 +870,16 @@
                 case "LICENCIA":
                     await fichaRepo.SubirImagenLicenciaAsync(stream, nombreArchivo, fichaSeleccionada.Cedula);
                     break;
-                case "MATRICULA":
-                    await fichaRepo.SubirImagenMatriculaAsync(stream, nombreArchivo, fichaSeleccionada.Cedula);
+                // case "MATRICULA":
+                //     await fichaRepo.SubirImagenMatriculaAsync(stream, nombreArchivo, fichaSeleccionada.Cedula);
+                //     break;
+                case "MATRICULA_FRONTAL":
+                    await fichaRepo.SubirImagenMatriculaAsync(stream, nombreArchivo, fichaSeleccionada.Cedula, "frontal");
+                    break;
+
+                // Matrícula trasera
+                case "MATRICULA_TRASERA":
+                    await fichaRepo.SubirImagenMatriculaAsync(stream, nombreArchivo, fichaSeleccionada.Cedula, "trasera");
                     break;
                 case "VEHICULO":
                     await fichaRepo.SubirImagenVehiculoAsync(stream, nombreArchivo, fichaSeleccionada.Cedula);
