@@ -462,7 +462,7 @@
     {
         try
         {
-            var paginationDTO = new PaginationDTO { Page = 1, RecordsPerPage = 100 };
+            var paginationDTO = new PaginationDTO { Page = 1, RecordsPerPage = 200 };
             var response = await usersRepository.GetUsers(paginationDTO);
             allUsers = response?.Response?.ToList() ?? new List<UserDTO>();
         }

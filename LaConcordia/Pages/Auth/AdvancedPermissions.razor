@@ -75,6 +75,18 @@
                 @* PESTAÑA USUARIOS *@
                 @if (activeTab == "users")
                 {
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+    <div class="flex-grow-1">
+        <p class="text-muted mb-0">Total: @TotalUsuarios | Página: @PaginaActual</p>
+    </div>
+    <div class="d-flex justify-content-center flex-grow-1">
+        <Pagination TotalItems="@TotalUsuarios"
+                    PageSize="@PageSize"
+                    CurrentPage="@PaginaActual"
+                    />
+    </div>
+    <div class="flex-grow-1 text-end"></div>
+</div>
                     <div class="tab-pane" style="background: white; padding: 1.5rem; border-radius: 8px; min-height: 300px;">
                         <h3>Gestión de Permisos por Usuario</h3>
 
@@ -455,6 +467,11 @@
     private RoleDTO? selectedRoleForPermissions;
     private NavigationItemDto? selectedNavigationItem;
 
+    // Paginación
+    private int PaginaActual = 1;
+    private int PageSize = 8;
+    private int TotalUsuarios = 0;
+
     protected override async Task OnInitializedAsync()
     {
         Console.WriteLine("🔥 OnInitializedAsync - INICIANDO");
@@ -495,7 +512,7 @@
             isLoadingUsers = true;
             StateHasChanged();
 
-            var paginationDTO = new PaginationDTO { Page = 1, RecordsPerPage = 100 };
+            var paginationDTO = new PaginationDTO { Page = 1, RecordsPerPage = 20 };
             var response = await usersRepository.GetUsers(paginationDTO);
 
             if (response?.Response != null)

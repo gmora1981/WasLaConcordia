@@ -48,8 +48,9 @@
                 <p style="margin-top: 1rem; color: #7f8c8d;">Cargando usuarios...</p>
             </div>
         }
-        else if (!string.IsNullOrEmpty(searchTerm) && filteredUsers != null)
+        else if (!string.IsNullOrEmpty(searchTerm))
         {
+            <!-- Modo búsqueda -->
             <div class="search-info">
                 <span>
                     Mostrando <strong>@filteredUsers.Count</strong> resultado(s) para "<strong>@searchTerm</strong>"
@@ -72,77 +73,16 @@
             }
             else
             {
-                <table class="admin-table user-table">
-                    <thead>
-                        <tr>
-                            <th>Usuario</th>
-                            <th>Nombre Completo</th>
-                            <th>Roles</th>
-                            <th>Estado</th>
-                            <th style="text-align: center;">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var user in filteredUsers)
-                        {
-                            <tr>
-                                <td>
-                                    <div class="user-info">
-                                        <div class="user-avatar">
-                                            @user.FirstName.Substring(0, 1).ToUpper()
-                                        </div>
-                                        <div class="user-details">
-                                            <span class="user-name">@user.Email</span>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>@user.FirstName @user.LastName</td>
-                                <td>
-                                    @if (userRoles.ContainsKey(user.UserId))
-                                    {
-                                        @foreach (var role in userRoles[user.UserId])
-                                        {
-                                            <span class="role-badge @GetRoleClass(role)">@role</span>
-                                        }
-                                    }
-                                    else
-                                    {
-                                        <span class="role-badge role-pending">Sin Roles</span>
-                                    }
-                                </td>
-                                <td>
-                                    <span style="color: #27ae60;">
-                                        <i class="fas fa-check-circle"></i> Activo
-                                    </span>
-                                </td>
-                                <td>
-                                    <div class="action-buttons" style="justify-content: center;">
-                                        <button class="btn-icon btn-edit" @onclick="() => ShowEditModal(user)" title="Editar">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn-icon btn-roles" @onclick="() => ShowRoleModal(user)" title="Gestionar Roles">
-                                            <i class="fas fa-user-tag"></i>
-                                        </button>
-                                        <button class="btn-icon btn-delete" @onclick="() => ConfirmDelete(user)" title="Eliminar">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-
-                @if (!string.IsNullOrEmpty(searchTerm))
-                {
-                    <p style="text-align: center; margin-top: 1rem; color: #7f8c8d;">
-                        <i class="fas fa-info-circle"></i> La búsqueda solo muestra resultados de la página actual
-                    </p>
-                }
+                @RenderUsersTable(filteredUsers)
+                
+                <p style="text-align: center; margin-top: 1rem; color: #7f8c8d;">
+                    <i class="fas fa-info-circle"></i> La búsqueda solo muestra resultados de la página actual
+                </p>
             }
         }
-        else if (filteredUsers == null || !filteredUsers.Any())
+        else if (users == null || !users.Any())
         {
+            <!-- Sin usuarios -->
             <div class="empty-state">
                 <i class="fas fa-users-slash"></i>
                 <h3>No hay usuarios registrados</h3>
@@ -151,74 +91,18 @@
         }
         else
         {
-            <table class="admin-table user-table">
-                <thead>
-                    <tr>
-                        <th>Usuario</th>
-                        <th>Nombre Completo</th>
-                        <th>Roles</th>
-                        <th>Estado</th>
-                        <th style="text-align: center;">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var user in filteredUsers)
-                    {
-                        <tr>
-                            <td>
-                                <div class="user-info">
-                                    <div class="user-avatar">
-                                        @user.FirstName.Substring(0, 1).ToUpper()
-                                    </div>
-                                    <div class="user-details">
-                                        <span class="user-name">@user.Email</span>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>@user.FirstName @user.LastName</td>
-                            <td>
-                                @if (userRoles.ContainsKey(user.UserId))
-                                {
-                                    @foreach (var role in userRoles[user.UserId])
-                                    {
-                                        <span class="role-badge @GetRoleClass(role)">@role</span>
-                                    }
-                                }
-                                else
-                                {
-                                    <span class="role-badge role-pending">Sin Roles</span>
-                                }
-                            </td>
-                            <td>
-                                <span style="color: #27ae60;">
-                                    <i class="fas fa-check-circle"></i> Activo
-                                </span>
-                            </td>
-                            <td>
-                                <div class="action-buttons" style="justify-content: center;">
-                                    <button class="btn-icon btn-edit" @onclick="() => ShowEditModal(user)" title="Editar">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button class="btn-icon btn-roles" @onclick="() => ShowRoleModal(user)" title="Gestionar Roles">
-                                        <i class="fas fa-user-tag"></i>
-                                    </button>
-                                    <button class="btn-icon btn-delete" @onclick="() => ConfirmDelete(user)" title="Eliminar">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+            <!-- Tabla normal con paginación -->
+            @RenderUsersTable(filteredUsers)
 
-            @if (totalAmountOfPages > 1)
-            {
-                <Pagination CurrentPage="@paginationDTO.Page"
-                            SelectedPage="SelectedPage" 
-                            TotalAmountPages="totalAmountOfPages" />
-            }
+           
         }
+         @if (totalAmountOfPages >= 1)
+            {
+                <Pagination TotalItems="@(totalAmountOfPages * paginationDTO.RecordsPerPage)"
+                            PageSize="@paginationDTO.RecordsPerPage"
+                            CurrentPage="@paginationDTO.Page"
+                            OnPageChanged="SelectedPage" />
+            }
     </div>
 </div>
 
@@ -451,7 +335,71 @@
         await LoadData();
     }
 
-   
+    // RenderFragment para evitar duplicación de código de la tabla
+    private RenderFragment RenderUsersTable(List<UserDTO> usersToRender) => __builder =>
+    {
+        <table class="admin-table user-table">
+            <thead>
+                <tr>
+                    <th>Usuario</th>
+                    <th>Nombre Completo</th>
+                    <th>Roles</th>
+                    <th>Estado</th>
+                    <th style="text-align: center;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in usersToRender)
+                {
+                    <tr>
+                        <td>
+                            <div class="user-info">
+                                <div class="user-avatar">
+                                    @user.FirstName.Substring(0, 1).ToUpper()
+                                </div>
+                                <div class="user-details">
+                                    <span class="user-name">@user.Email</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td>@user.FirstName @user.LastName</td>
+                        <td>
+                            @if (userRoles.ContainsKey(user.UserId))
+                            {
+                                @foreach (var role in userRoles[user.UserId])
+                                {
+                                    <span class="role-badge @GetRoleClass(role)">@role</span>
+                                }
+                            }
+                            else
+                            {
+                                <span class="role-badge role-pending">Sin Roles</span>
+                            }
+                        </td>
+                        <td>
+                            <span style="color: #27ae60;">
+                                <i class="fas fa-check-circle"></i> Activo
+                            </span>
+                        </td>
+                        <td>
+                            <div class="action-buttons" style="justify-content: center;">
+                                <button class="btn-icon btn-edit" @onclick="() => ShowEditModal(user)" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn-icon btn-roles" @onclick="() => ShowRoleModal(user)" title="Gestionar Roles">
+                                    <i class="fas fa-user-tag"></i>
+                                </button>
+                                <button class="btn-icon btn-delete" @onclick="() => ConfirmDelete(user)" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    };
+
     private async Task LoadData()
     {
         try
@@ -461,7 +409,7 @@
             // Load users
             await LoadUsers();
 
-            // Load roles - ahora con RoleId disponible
+            // Load roles
             availableRoles = await usersRepository.GetRoles();
 
             // Load user roles
@@ -476,6 +424,7 @@
             isLoading = false;
         }
     }
+
     private async Task LoadUsers()
     {
         var paginatedResponse = await usersRepository.GetUsers(paginationDTO);
@@ -518,13 +467,15 @@
                 $"{u.FirstName} {u.LastName}".ToLower().Contains(searchLower)
             ).ToList();
         }
-        StateHasChanged(); // Forzar actualización de la UI
+        StateHasChanged();
     }
 
     private async Task SelectedPage(int page)
     {
         paginationDTO.Page = page;
         await LoadUsers();
+        await LoadUserRoles();
+        StateHasChanged();
     }
 
     private void ShowCreateModal()
@@ -542,8 +493,8 @@
             Email = user.Email,
             FirstName = user.FirstName,
             LastName = user.LastName,
-            Password = "", // Vacío para edición
-            ConfirmPassword = "" // Vacío para edición
+            Password = "",
+            ConfirmPassword = ""
         };
         isEditMode = true;
         showUserModal = true;
@@ -577,19 +528,16 @@
 
             if (isEditMode)
             {
-                // Para actualización, si la contraseña está vacía, confirmPassword también debe estar vacío
                 if (string.IsNullOrEmpty(userInfo.Password))
                 {
                     userInfo.ConfirmPassword = "";
                 }
 
-                // Actualizar usuario existente
                 await usersRepository.UpdateUser(userInfo);
                 await displayMessage.DisplaySuccessMessage("Usuario actualizado correctamente");
             }
             else
             {
-                // Verificar si el email ya existe
                 var emailExists = await usersRepository.CheckEmailExists(userInfo.Email);
                 if (emailExists)
                 {
@@ -597,7 +545,6 @@
                     return;
                 }
 
-                // Crear nuevo usuario
                 var userToken = await accountsRepository.Register(userInfo);
                 await displayMessage.DisplaySuccessMessage("Usuario creado correctamente");
             }
@@ -708,7 +655,6 @@
             {
                 var errorMessage = "Error al eliminar usuario";
                 
-                // Parsear mensajes de error específicos
                 if (ex.Message.Contains("propio usuario"))
                 {
                     errorMessage = "No puede eliminar su propio usuario";
@@ -729,7 +675,6 @@
 
     private async Task SearchUsers()
     {
-        // Forzar actualización de la búsqueda
         FilterUsers();
         await Task.CompletedTask;
     }

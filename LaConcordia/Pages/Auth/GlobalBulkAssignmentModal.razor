@@ -329,7 +329,7 @@
             StateHasChanged();
 
             // Cargar usuarios
-            var paginationDTO = new PaginationDTO { Page = 1, RecordsPerPage = 100 };
+            var paginationDTO = new PaginationDTO { Page = 1, RecordsPerPage = 200 };
             var response = await usersRepository.GetUsers(paginationDTO);
             users = response.Response;
             filteredUsers = new List<UserDTO>(users);
