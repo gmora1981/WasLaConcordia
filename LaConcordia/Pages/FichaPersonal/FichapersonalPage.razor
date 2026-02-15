@@ -169,13 +169,31 @@
     </div>
 
     <!-- Sección 3: Matrícula -->
-    <div class="col-6 border p-3 mb-3">
+    @* <div class="col-6 border p-3 mb-3">
         <h5>
             Matrícula
             <span class="status-circle" style="background-color:@(estadoImagen?.Matricula == true ? "green" : "red")"></span>
         </h5>
         <InputFile OnChange='@(e => OnFileSelected(e, "MATRICULA"))' />
+    </div> *@
+    <!-- Matrícula Frontal -->
+    <div class="mb-2 d-flex align-items-center">
+        <InputFile OnChange='@(e => OnFileSelected(e, "MATRICULA_FRONTAL"))' />
+        <span class="ms-2 status-circle"
+              style="background-color:@(estadoImagen?.MatriculaFrontal == true ? "green" : "red")">
+        </span>
+        <label class="ms-2">Frontal</label>
     </div>
+
+    <!-- Matrícula Trasera -->
+    <div class="mb-2 d-flex align-items-center">
+        <InputFile OnChange='@(e => OnFileSelected(e, "MATRICULA_TRASERA"))' />
+        <span class="ms-2 status-circle"
+              style="background-color:@(estadoImagen?.MatriculaTrasera == true ? "green" : "red")">
+        </span>
+        <label class="ms-2">Trasera</label>
+    </div>
+
 
     <!-- Sección 4: Vehículo -->
     <div class="col-6 border p-3 mb-3">
@@ -474,14 +492,14 @@
     {
         await CargarListasRelacionadas();  // Cargar listas para combos
         await CargarFichasAsync();          // Cargar listado de fichas
-        
+
     }
 
     // Método que carga los datos para combos
     private async Task CargarListasRelacionadas()
     {
 
-		listaParentesco = await parentescoRepo.ParentescoInfoAll();
+        listaParentesco = await parentescoRepo.ParentescoInfoAll();
         listaCargos = await cargoRepo.GetCargoInfoAll();
         listaTipoLicencia = await tipolicenciaRepo.GetTipolicenciaInfoAll();
         listaNacionalidad = await nacionalidadRepo.GetNacionalidadesAll();
@@ -588,7 +606,9 @@
         archivoFrontal = null;
         archivoTrasera = null;
         archivoLicencia = null;
-        archivoMatricula = null;
+        // archivoMatricula = null;
+        archivoMatriculaFrontal = null;
+        archivoMatriculaTrasera = null;
         archivoVehiculo = null;
         esNuevo = true; // Indica que es un registro nuevo
     }
@@ -614,7 +634,19 @@
                 if (archivoFrontal != null) { tareas.Add(SubirImagen(archivoFrontal, "FRONTAL")); archivoFrontal = null; }
                 if (archivoTrasera != null) { tareas.Add(SubirImagen(archivoTrasera, "TRASERA")); archivoTrasera = null; }
                 if (archivoLicencia != null) { tareas.Add(SubirImagen(archivoLicencia, "LICENCIA")); archivoLicencia = null; }
-                if (archivoMatricula != null) { tareas.Add(SubirImagen(archivoMatricula, "MATRICULA")); archivoMatricula = null; }
+                // if (archivoMatricula != null) { tareas.Add(SubirImagen(archivoMatricula, "MATRICULA")); archivoMatricula = null; }
+                // Matrícula frontal y trasera
+                if (archivoMatriculaFrontal != null)
+                {
+                    tareas.Add(SubirImagen(archivoMatriculaFrontal, "MATRICULA_FRONTAL"));
+                    archivoMatriculaFrontal = null;
+                }
+                if (archivoMatriculaTrasera != null)
+                {
+                    tareas.Add(SubirImagen(archivoMatriculaTrasera, "MATRICULA_TRASERA"));
+                    archivoMatriculaTrasera = null;
+                }
+
                 if (archivoVehiculo != null) { tareas.Add(SubirImagen(archivoVehiculo, "VEHICULO")); archivoVehiculo = null; }
 
                 await Task.WhenAll(tareas); // espera a que todas terminen
@@ -644,9 +676,6 @@
             await JS.InvokeVoidAsync("alert", $"Error al guardar: {ex.Message}");
         }
     }
-
-
-
 
     // Elimina la ficha seleccionada
     private async Task EliminarFicha()
@@ -795,7 +824,9 @@
     private IBrowserFile archivoFrontal;
     private IBrowserFile archivoTrasera;
     private IBrowserFile archivoLicencia;
-    private IBrowserFile archivoMatricula;
+    // private IBrowserFile archivoMatricula;
+    private IBrowserFile archivoMatriculaFrontal;
+    private IBrowserFile archivoMatriculaTrasera;
     private IBrowserFile archivoVehiculo;
 
     private class EstadoImagen
@@ -803,7 +834,9 @@
         public bool Frontal { get; set; }
         public bool Trasera { get; set; }
         public bool Licencia { get; set; }
-        public bool Matricula { get; set; }
+        // public bool Matricula { get; set; }
+        public bool MatriculaFrontal { get; set; }
+        public bool MatriculaTrasera { get; set; }
         public bool Vehiculo { get; set; }
     }
 
@@ -821,7 +854,9 @@
             estadoImagen.Frontal = resultado.Frontal;
             estadoImagen.Trasera = resultado.Trasera;
             estadoImagen.Licencia = resultado.Licencia;
-            estadoImagen.Matricula = resultado.Matricula;
+            // estadoImagen.Matricula = resultado.Matricula;
+            estadoImagen.MatriculaFrontal = resultado.MatriculaFrontal;  // <- separado
+            estadoImagen.MatriculaTrasera = resultado.MatriculaTrasera;  // <- separado
             estadoImagen.Vehiculo = resultado.Vehiculo;
 
         }
@@ -842,13 +877,14 @@
             case "FRONTAL": archivoFrontal = file; estadoImagen.Frontal = false; break;
             case "TRASERA": archivoTrasera = file; estadoImagen.Trasera = false; break;
             case "LICENCIA": archivoLicencia = file; estadoImagen.Licencia = false; break;
-            case "MATRICULA": archivoMatricula = file; estadoImagen.Matricula = false; break;
+            // case "MATRICULA": archivoMatricula = file; estadoImagen.Matricula = false; break;
+            case "MATRICULA_FRONTAL": archivoMatriculaFrontal = file; estadoImagen.MatriculaFrontal = false; break;
+            case "MATRICULA_TRASERA": archivoMatriculaTrasera = file; estadoImagen.MatriculaTrasera = false; break;
             case "VEHICULO": archivoVehiculo = file; estadoImagen.Vehiculo = false; break;
         }
 
         return Task.CompletedTask;
     }
-
 
     // Subir imagen al servidor
     private async Task<IBrowserFile> ComprimirImagenAsync(IBrowserFile archivo, long maxBytes = 1_000_000)
@@ -913,9 +949,18 @@
                 case "LICENCIA":
                     await fichaRepo.SubirImagenLicenciaAsync(stream, nombreArchivo, fichaSeleccionada.Cedula);
                     break;
-                case "MATRICULA":
-                    await fichaRepo.SubirImagenMatriculaAsync(stream, nombreArchivo, fichaSeleccionada.Cedula);
+                // case "MATRICULA":
+                //     await fichaRepo.SubirImagenMatriculaAsync(stream, nombreArchivo, fichaSeleccionada.Cedula);
+                //     break;
+                case "MATRICULA_FRONTAL":
+                    await fichaRepo.SubirImagenMatriculaAsync(stream, nombreArchivo, fichaSeleccionada.Cedula, "frontal");
                     break;
+
+                // Matrícula trasera
+                case "MATRICULA_TRASERA":
+                    await fichaRepo.SubirImagenMatriculaAsync(stream, nombreArchivo, fichaSeleccionada.Cedula, "trasera");
+                    break;
+
                 case "VEHICULO":
                     await fichaRepo.SubirImagenVehiculoAsync(stream, nombreArchivo, fichaSeleccionada.Cedula);
                     break;
@@ -931,10 +976,6 @@
             await JS.InvokeVoidAsync("alert", $"Error subiendo {tipoDocumento}: {ex.Message}");
         }
     }
-
-
-
-
 
     // Validaciones para habilitar botones
     private bool PuedeGuardar => !string.IsNullOrWhiteSpace(fichaSeleccionada.Cedula);

@@ -23,9 +23,14 @@
 <div class="card mb-3 p-3 shadow-sm border">
     <!-- Encabezado: Nuevo -->
     <div class="d-flex flex-wrap align-items-center gap-2">
-        @if (fichaSeleccionada == null || string.IsNullOrWhiteSpace(fichaSeleccionada.Cedula))
+        @if (isLoading)
         {
-            <button class="btn btn-primary d-flex align-items-center" @onclick="NuevoRegistro">
+            <div class="spinner-border text-primary"></div>
+        }
+        else if (!fichaExiste)
+        {
+            <button class="btn btn-primary d-flex align-items-center"
+                    @onclick="NuevoRegistro">
                 <i class="bi bi-plus-circle me-1"></i> Nuevo
             </button>
         }
@@ -148,7 +153,7 @@
     }
 </style>
 
-
+<fieldset disabled="@isLoading">
 <EditForm Model="fichaSeleccionada" class="border p-3 shadow-sm">
     <div class="row">
         <!-- Columna 1 -->
@@ -288,7 +293,7 @@
         </div>
     </div>
 </EditForm>
-
+</fieldset>
 
 
 <FichaObservacionesModal @ref="modalObservaciones" OnClose="CerrarModalObservaciones" />
@@ -305,7 +310,11 @@
     private string? correoLogueado;
 
     // Registro seleccionado para mostrar y editar
-    private FichapersonalDTO fichaSeleccionada = new();
+    
+    //private FichapersonalDTO fichaSeleccionada = new();
+    private FichapersonalDTO? fichaSeleccionada;
+    private bool isLoading = true;
+    private bool fichaExiste = false;
 
     // Listas para los combos de selección
     private List<NacionalidadDTO> listaNacionalidad = new();
@@ -739,7 +748,6 @@
 
 
     //imagenes
-
     private IBrowserFile archivoFrontal;
     private IBrowserFile archivoTrasera;
     private IBrowserFile archivoLicencia;
@@ -883,6 +891,7 @@
 
 
     // Validaciones para habilitar botones
-    private bool PuedeGuardar => !string.IsNullOrWhiteSpace(fichaSeleccionada.Cedula);
+    private bool PuedeGuardar =>
+    fichaSeleccionada != null && !string.IsNullOrWhiteSpace(fichaSeleccionada.Cedula);
     private bool PuedeEliminar => !esNuevo && !string.IsNullOrWhiteSpace(fichaSeleccionada.Cedula);
 }

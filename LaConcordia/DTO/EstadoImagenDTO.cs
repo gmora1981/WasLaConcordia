@@ -6,6 +6,12 @@
         public bool Trasera { get; set; }
         public bool Licencia { get; set; }
         public bool Matricula { get; set; }
+
+        public bool MatriculaFrontal { get; set; }
+        public bool MatriculaTrasera { get; set; }
+
         public bool Vehiculo { get; set; }
+
+
     }
 }
