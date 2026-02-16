@@ -177,13 +177,16 @@
         <InputFile OnChange='@(e => OnFileSelected(e, "MATRICULA"))' />
     </div> *@
     <!-- Matrícula Frontal -->
-    <div class="mb-2 d-flex align-items-center">
+    <div class="col-6 border p-3 mb-3">
+        <h5>
+            Matrícula Frontal / Trasera
+        </h5>
         <InputFile OnChange='@(e => OnFileSelected(e, "MATRICULA_FRONTAL"))' />
         <span class="ms-2 status-circle"
               style="background-color:@(estadoImagen?.MatriculaFrontal == true ? "green" : "red")">
         </span>
         <label class="ms-2">Frontal</label>
-    </div>
+   
 
     <!-- Matrícula Trasera -->
     <div class="mb-2 d-flex align-items-center">
@@ -194,7 +197,7 @@
         <label class="ms-2">Trasera</label>
     </div>
 
-
+    </div>
     <!-- Sección 4: Vehículo -->
     <div class="col-6 border p-3 mb-3">
         <h5>
