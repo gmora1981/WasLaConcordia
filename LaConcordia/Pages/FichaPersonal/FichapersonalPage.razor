@@ -136,7 +136,7 @@
     <!-- Sección 1: Documentos del chofer -->
     <div class="col-6 border p-3 mb-3">
         <h5>
-            Documento Frontal / Trasera
+            Cédula Frontal / Trasera
 
         </h5>
 
@@ -159,16 +159,8 @@
         </div>
     </div>
 
-    <!-- Sección 2: Licencia -->
-    <div class="col-6 border p-3 mb-3">
-        <h5>
-            Licencia
-            <span class="status-circle" style="background-color:@(estadoImagen?.Licencia == true ? "green" : "red")"></span>
-        </h5>
-        <InputFile OnChange='@(e => OnFileSelected(e, "LICENCIA"))' />
-    </div>
+    <!-- Sección 2: Matrícula -->
 
-    <!-- Sección 3: Matrícula -->
     @* <div class="col-6 border p-3 mb-3">
         <h5>
             Matrícula
@@ -186,17 +178,28 @@
               style="background-color:@(estadoImagen?.MatriculaFrontal == true ? "green" : "red")">
         </span>
         <label class="ms-2">Frontal</label>
-   
 
-    <!-- Matrícula Trasera -->
-    <div class="mb-2 d-flex align-items-center">
-        <InputFile OnChange='@(e => OnFileSelected(e, "MATRICULA_TRASERA"))' />
-        <span class="ms-2 status-circle"
-              style="background-color:@(estadoImagen?.MatriculaTrasera == true ? "green" : "red")">
-        </span>
-        <label class="ms-2">Trasera</label>
+
+        <!-- Matrícula Trasera -->
+        <div class="mb-2 d-flex align-items-center">
+            <InputFile OnChange='@(e => OnFileSelected(e, "MATRICULA_TRASERA"))' />
+            <span class="ms-2 status-circle"
+                  style="background-color:@(estadoImagen?.MatriculaTrasera == true ? "green" : "red")">
+            </span>
+            <label class="ms-2">Trasera</label>
+        </div>
+
+
+    <!-- Sección 3: Licencia -->
+    <div class="col-6 border p-3 mb-3">
+        <h5>
+            Licencia
+            <span class="status-circle" style="background-color:@(estadoImagen?.Licencia == true ? "green" : "red")"></span>
+        </h5>
+        <InputFile OnChange='@(e => OnFileSelected(e, "LICENCIA"))' />
     </div>
 
+    
     </div>
     <!-- Sección 4: Vehículo -->
     <div class="col-6 border p-3 mb-3">
