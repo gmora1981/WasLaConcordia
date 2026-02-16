@@ -546,7 +546,8 @@
     private async Task SeleccionarFicha(FichapersonalDTO ficha)
     {
         await CargarBeneficiarios(ficha.Cedula);
-
+        // Asignar directamente la referencia
+        fichaSeleccionada = ficha;
         esNuevo = false;
         StateHasChanged(); // refrescar UI
 
@@ -554,28 +555,28 @@
         await CargarListasRelacionadas();
 
         // Copiar datos del registro seleccionado
-        fichaSeleccionada = new FichapersonalDTO
-            {
-                Cedula = ficha.Cedula,
-                Nombre = ficha.Nombre,
-                Apellidos = ficha.Apellidos,
-                Correo = ficha.Correo,
-                Telefono = ficha.Telefono,
-                Celular = ficha.Celular,
-                Fechanacimiento = ficha.Fechanacimiento,
-                Fechaingreso = ficha.Fechaingreso,
-                Domicilio = ficha.Domicilio,
-                Referencia = ficha.Referencia,
-                Estadoservicio = ficha.Estadoservicio,
-                Cuotaf = ficha.Cuotaf,
-                Estado = ficha.Estado,
-                Fknacionalidad = ficha.Fknacionalidad,
-                Fkunidad = ficha.Fkunidad,
-                Fkdpuesto = ficha.Fkdpuesto,
-                Fkcargo = ficha.Fkcargo,
-                Fktipolicencia = ficha.Fktipolicencia,
-                Documentacion = string.IsNullOrEmpty(ficha.Documentacion) ? "INCOMPLETA" : ficha.Documentacion
-            };
+        // fichaSeleccionada = new FichapersonalDTO
+        //     {
+        //         Cedula = ficha.Cedula,
+        //         Nombre = ficha.Nombre,
+        //         Apellidos = ficha.Apellidos,
+        //         Correo = ficha.Correo,
+        //         Telefono = ficha.Telefono,
+        //         Celular = ficha.Celular,
+        //         Fechanacimiento = ficha.Fechanacimiento,
+        //         Fechaingreso = ficha.Fechaingreso,
+        //         Domicilio = ficha.Domicilio,
+        //         Referencia = ficha.Referencia,
+        //         Estadoservicio = ficha.Estadoservicio,
+        //         Cuotaf = ficha.Cuotaf,
+        //         Estado = ficha.Estado,
+        //         Fknacionalidad = ficha.Fknacionalidad,
+        //         Fkunidad = ficha.Fkunidad,
+        //         Fkdpuesto = ficha.Fkdpuesto,
+        //         Fkcargo = ficha.Fkcargo,
+        //         Fktipolicencia = ficha.Fktipolicencia,
+        //         Documentacion = string.IsNullOrEmpty(ficha.Documentacion) ? "INCOMPLETA" : ficha.Documentacion
+        //     };
 
         // Reiniciar datos relacionados
         unidadEncontrada = null;
