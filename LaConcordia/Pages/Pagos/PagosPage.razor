@@ -1,0 +1,310 @@
+@page "/cobros-monitoria"
+@using LaConcordia.DTO
+@using LaConcordia.Interface
+@inject IPagos pagosRepo
+@inject IFichapersonal fichaRepo
+@inject IDisplayMessage displayMessage
+
+<h3>Cobros de Monitoria</h3>
+
+<div class="d-flex gap-2 align-items-end mb-3" style="max-width: 700px;">
+    <div class="flex-grow-1">
+        <label>Cédula del socio</label>
+        <input class="form-control" @bind="cedulaBuscar" />
+    </div>
+    <button class="btn btn-secondary" @onclick="BuscarSocio">Buscar</button>
+</div>
+
+@if (deuda != null)
+{
+    <p><strong>@deuda.Apellidos @deuda.Nombre</strong> — C.I. @deuda.Cedula</p>
+    <p class="fw-bold">Total a pagar: @deuda.TotalAPagar.ToString("0.00")</p>
+
+    <div class="row">
+        <div class="col-md-6">
+            <h6>Cuota Semanal (Total: @deuda.TotalCuota.ToString("0.00"))</h6>
+            <table class="table table-sm table-bordered">
+                <thead class="table-dark"><tr><th>Período</th><th>Semana</th><th>Saldo</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var c in deuda.CuotasPendientes)
+                    {
+                        <tr>
+                            <td>@c.Periodo</td>
+                            <td>@c.Semana</td>
+                            <td>@((c.Valor - c.Abono)?.ToString("0.00"))</td>
+                            <td><button class="btn btn-sm btn-primary" @onclick="() => SeleccionarCuota(c)">Pagar</button></td>
+                        </tr>
+                    }
+                    @if (deuda.CuotasPendientes.Count == 0)
+                    {
+                        <tr><td colspan="4" class="text-center text-muted">Sin pendientes</td></tr>
+                    }
+                </tbody>
+            </table>
+
+            <h6>Multas (Total: @deuda.TotalMulta.ToString("0.00"))</h6>
+            <table class="table table-sm table-bordered">
+                <thead class="table-dark"><tr><th>ID</th><th>Tipo</th><th>Saldo</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var m in deuda.MultasPendientes)
+                    {
+                        <tr>
+                            <td>@m.Idmulta</td>
+                            <td>@m.Tipo</td>
+                            <td>@((m.Valor - m.Abono)?.ToString("0.00"))</td>
+                            <td><button class="btn btn-sm btn-primary" @onclick='() => SeleccionarUbm(m.Idmulta, "M", m.Valor, m.Abono, $"Multa {m.Idmulta}")'>Pagar</button></td>
+                        </tr>
+                    }
+                    @if (deuda.MultasPendientes.Count == 0)
+                    {
+                        <tr><td colspan="4" class="text-center text-muted">Sin pendientes</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="col-md-6">
+            <h6>Plan Ayuda (Total: @deuda.TotalPlanAyuda.ToString("0.00"))</h6>
+            <table class="table table-sm table-bordered">
+                <thead class="table-dark"><tr><th>Beneficiario</th><th>Saldo</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var p in deuda.PlanAyudaPendientes)
+                    {
+                        <tr>
+                            <td>@p.Beneficiario</td>
+                            <td>@((p.Valor - p.Abono)?.ToString("0.00"))</td>
+                            <td><button class="btn btn-sm btn-primary" @onclick='() => SeleccionarUbm(p.Beneficiario, "B", p.Valor, p.Abono, $"Plan Ayuda {p.Beneficiario}")'>Pagar</button></td>
+                        </tr>
+                    }
+                    @if (deuda.PlanAyudaPendientes.Count == 0)
+                    {
+                        <tr><td colspan="3" class="text-center text-muted">Sin pendientes</td></tr>
+                    }
+                </tbody>
+            </table>
+
+            <h6>Plan Choque (Total: @deuda.TotalPlanChoque.ToString("0.00"))</h6>
+            <table class="table table-sm table-bordered">
+                <thead class="table-dark"><tr><th>Unidad</th><th>Saldo</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var p in deuda.PlanChoquePendientes)
+                    {
+                        <tr>
+                            <td>@p.Unidad</td>
+                            <td>@((p.Valor - p.Abono)?.ToString("0.00"))</td>
+                            <td><button class="btn btn-sm btn-primary" @onclick='() => SeleccionarUbm(p.Unidad, "U", p.Valor, p.Abono, $"Plan Choque {p.Unidad}")'>Pagar</button></td>
+                        </tr>
+                    }
+                    @if (deuda.PlanChoquePendientes.Count == 0)
+                    {
+                        <tr><td colspan="3" class="text-center text-muted">Sin pendientes</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    @if (pagoActivo)
+    {
+        <div class="border rounded p-3 mt-3" style="max-width: 500px;">
+            <h5>Registrar pago — @concepto</h5>
+            <p>Saldo: @saldo.ToString("0.00")</p>
+
+            <div class="mb-2">
+                <label>Forma de pago</label>
+                <select class="form-select" @bind="formaDePago" @bind:after="OnFormaDePagoChanged">
+                    <option value="">-- Seleccione --</option>
+                    <option value="EFECTIVO">Efectivo</option>
+                    <option value="EXONERACION">Exoneración</option>
+                    <option value="INACTIVO">Inactivo</option>
+                    <option value="BANCO GUAYAQUIL">Banco Guayaquil</option>
+                    <option value="BANCO PICHINCHA">Banco Pichincha</option>
+                    <option value="BANCO DEL PACIFICO">Banco del Pacífico</option>
+                    <option value="COMISION">Comisión</option>
+                    <option value="CUENTAXCOBRAR">Cuenta x Cobrar</option>
+                </select>
+            </div>
+
+            @if (RequiereComprobante)
+            {
+                <div class="mb-2">
+                    <label>Número de comprobante</label>
+                    <input class="form-control" @bind="numComprobante" />
+                </div>
+                <button class="btn btn-outline-secondary btn-sm mb-2" @onclick="Validar" disabled="@string.IsNullOrWhiteSpace(numComprobante)">Validar</button>
+                @if (comprobanteValidado)
+                {
+                    <p class="text-success">Comprobante válido.</p>
+                }
+            }
+
+            <div class="mb-2">
+                <label>Valor a pagar</label>
+                <input class="form-control" type="number" step="0.01" min="0" @bind="valorAPagar" />
+            </div>
+
+            <div class="mb-2">
+                <label>Detalle</label>
+                <input class="form-control" @bind="detalle" />
+            </div>
+
+            <div class="d-flex gap-2 mt-2">
+                <button class="btn btn-primary" @onclick="Guardar" disabled="@(!PuedeGuardar)">Guardar</button>
+                <button class="btn btn-secondary" @onclick="CancelarPago">Cancelar</button>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private string cedulaBuscar = string.Empty;
+    private DeudaSocioDTO? deuda;
+
+    // Item seleccionado para pago
+    private bool pagoActivo = false;
+    private string tipoPago = string.Empty; // "CUOTA", "M", "B", "U"
+    private string concepto = string.Empty;
+    private string? periodoSel, semanaSel, ubmSel;
+    private decimal saldo;
+
+    private string formaDePago = string.Empty;
+    private string numComprobante = string.Empty;
+    private bool comprobanteValidado = false;
+    private decimal? valorAPagar;
+    private string detalle = string.Empty;
+
+    private bool RequiereComprobante => !string.IsNullOrEmpty(formaDePago)
+        && formaDePago != "EFECTIVO" && formaDePago != "EXONERACION" && formaDePago != "INACTIVO";
+
+    private bool PuedeGuardar => !string.IsNullOrEmpty(formaDePago) && valorAPagar.HasValue && valorAPagar.Value > 0
+        && (!RequiereComprobante || comprobanteValidado);
+
+    private async Task BuscarSocio()
+    {
+        if (string.IsNullOrWhiteSpace(cedulaBuscar))
+            return;
+
+        try
+        {
+            deuda = await pagosRepo.GetDeudaSocio(cedulaBuscar);
+            if (deuda == null)
+            {
+                await displayMessage.DisplayErrorMessage("No se encontró un socio con esa cédula.");
+            }
+            pagoActivo = false;
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al consultar la deuda: " + ex.Message);
+        }
+    }
+
+    private void SeleccionarCuota(GenerarCuotaDTO c)
+    {
+        tipoPago = "CUOTA";
+        periodoSel = c.Periodo;
+        semanaSel = c.Semana;
+        ubmSel = null;
+        concepto = $"Cuota semanal {c.Periodo} - Semana {c.Semana}";
+        saldo = (c.Valor ?? 0) - (c.Abono ?? 0);
+        AbrirPanelPago();
+    }
+
+    private void SeleccionarUbm(string ubm, string tipo, decimal? valor, decimal? abono, string descripcion)
+    {
+        tipoPago = tipo;
+        ubmSel = ubm;
+        periodoSel = null;
+        semanaSel = null;
+        concepto = descripcion;
+        saldo = (valor ?? 0) - (abono ?? 0);
+        AbrirPanelPago();
+    }
+
+    private void AbrirPanelPago()
+    {
+        formaDePago = string.Empty;
+        numComprobante = string.Empty;
+        comprobanteValidado = false;
+        valorAPagar = null;
+        detalle = string.Empty;
+        pagoActivo = true;
+    }
+
+    private void CancelarPago()
+    {
+        pagoActivo = false;
+    }
+
+    private void OnFormaDePagoChanged()
+    {
+        comprobanteValidado = false;
+        numComprobante = string.Empty;
+    }
+
+    private async Task Validar()
+    {
+        try
+        {
+            var existe = await pagosRepo.ExisteComprobante(formaDePago, numComprobante);
+            if (existe)
+            {
+                await displayMessage.DisplayErrorMessage("El comprobante ya existe.");
+                comprobanteValidado = false;
+            }
+            else
+            {
+                comprobanteValidado = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al validar el comprobante: " + ex.Message);
+        }
+    }
+
+    private async Task Guardar()
+    {
+        if (deuda == null || !valorAPagar.HasValue) return;
+
+        try
+        {
+            if (tipoPago == "CUOTA")
+            {
+                await pagosRepo.PagarCuota(new PagoCuotaRequestDTO
+                    {
+                        Periodo = periodoSel!,
+                        Semana = semanaSel!,
+                        Cidentidad = deuda.Cedula,
+                        ValorAPagar = valorAPagar.Value,
+                        FormaDePago = formaDePago,
+                        Banco = formaDePago,
+                        NumComprobante = RequiereComprobante ? numComprobante : null,
+                        Detalle = detalle
+                    });
+            }
+            else
+            {
+                await pagosRepo.PagarUbm(new PagoUbmRequestDTO
+                    {
+                        Ubm = ubmSel!,
+                        Tipo = tipoPago,
+                        Cidentidad = deuda.Cedula,
+                        ValorAPagar = valorAPagar.Value,
+                        FormaDePago = formaDePago,
+                        Banco = formaDePago,
+                        NumComprobante = RequiereComprobante ? numComprobante : null,
+                        Detalle = detalle
+                    });
+            }
+
+            await displayMessage.DisplaySuccessMessage("Movimiento guardado con éxito.");
+            pagoActivo = false;
+            deuda = await pagosRepo.GetDeudaSocio(deuda.Cedula);
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al guardar el pago: " + ex.Message);
+        }
+    }
+}
