@@ -1,0 +1,367 @@
+@page "/pedido"
+@using LaConcordia.DTO
+@using LaConcordia.Interface
+@using LaConcordia.Pagination
+@using Modelo.laconcordia.Modelo.Database
+@inject IPedido pedidoRepo
+@inject IJSRuntime JS
+@inject IDisplayMessage displayMessage
+
+<h3>Gestión de Pedidos</h3>
+
+<!-- Filtros de búsqueda -->
+<div class="border rounded p-3 mb-3 bg-light">
+    <h5>Filtros de Búsqueda</h5>
+    <div class="row">
+        <div class="col-md-3 mb-2">
+            <label class="form-label">Celular</label>
+            <input type="text" class="form-control" placeholder="Buscar por celular..." @bind="filtroCelular" />
+        </div>
+        <div class="col-md-3 mb-2">
+            <label class="form-label">Unidad</label>
+            <input type="text" class="form-control" placeholder="Buscar por unidad..." @bind="filtroUnidad" />
+        </div>
+        <div class="col-md-3 mb-2">
+            <label class="form-label">Estado</label>
+            <select class="form-select" @bind="filtroEstado">
+                <option value="">-- Todos --</option>
+                <option value="ACTIVO">ACTIVO</option>
+                <option value="PROCESO">PROCESO</option>
+                <option value="FINALIZADO">FINALIZADO</option>
+                <option value="CANCELADO">CANCELADO</option>
+            </select>
+        </div>
+    </div>
+    <div class="row mt-2">
+        <div class="col-md-3 mb-2">
+            <label class="form-label">Fecha Desde</label>
+            <input type="date" class="form-control" @bind="filtroFechaDesde" />
+        </div>
+        <div class="col-md-3 mb-2">
+            <label class="form-label">Fecha Hasta</label>
+            <input type="date" class="form-control" @bind="filtroFechaHasta" />
+        </div>
+        <div class="col-md-6 mb-2 d-flex align-items-end gap-2">
+            <button class="btn btn-success flex-grow-1" @onclick="BuscarPedidos">Buscar</button>
+            <button class="btn btn-secondary flex-grow-1" @onclick="LimpiarFiltros">Limpiar Filtros</button>
+            <button class="btn btn-primary flex-grow-1" @onclick="NuevoRegistro">Nuevo Pedido</button>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mt-3">
+    <div class="flex-grow-1">
+        <p class="text-muted mb-0">Total: @TotalRegistros | Página: @PaginaActual</p>
+    </div>
+    <div class="d-flex justify-content-center flex-grow-1">
+        <Pagination TotalItems="@TotalRegistros"
+                    PageSize="@PageSize"
+                    CurrentPage="@PaginaActual"
+                    OnPageChanged="OnPageChangedAsync" />
+    </div>
+    <div class="flex-grow-1 text-end">
+    </div>
+</div>
+
+<!-- Tabla de Pedidos -->
+<table class="table table-bordered table-hover mt-2">
+    <thead class="table-dark">
+        <tr>
+            <th>Fecha Registro</th>
+            <th>Celular</th>
+            <th>Unidad</th>
+            <th>Conductor</th>
+            <th>Precio</th>
+            <th>Km</th>
+            <th>Estado</th>
+            <th>Autorizado</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (listaPedidos != null && listaPedidos.Count > 0)
+        {
+            @foreach (var pedido in listaPedidos)
+            {
+                <tr @onclick="() => SeleccionarPedido(pedido)" class="@(pedido.Celular == pedidoSeleccionado?.Celular && pedido.Fecharegistro == pedidoSeleccionado?.Fecharegistro ? "table-primary" : "")" style="cursor: pointer;">
+                    <td>@pedido.Fecharegistro.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td>@pedido.Celular</td>
+                    <td>@pedido.Unidad</td>
+                    <td>@pedido.Conductor</td>
+                    <td>@pedido.Precio?.ToString("C")</td>
+                    <td>@pedido.Km</td>
+                    <td>@pedido.Estado</td>
+                    <td>@pedido.Autorizado</td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="8" class="text-center">No se encontraron pedidos.</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<!-- Formulario de detalle -->
+<div class="border rounded p-3 mt-3">
+    <h5>Detalle Pedido</h5>
+    <EditForm Model="pedidoSeleccionado">
+        <div class="row">
+            <div class="col-md-4 mb-2">
+                <label class="form-label">Celular Pasajero</label>
+                <InputText class="form-control" @bind-Value="pedidoSeleccionado.Celular" disabled="@(!esNuevo)" placeholder="Celular" />
+            </div>
+            <div class="col-md-4 mb-2">
+                <label class="form-label">Fecha Registro</label>
+                <input type="datetime-local" class="form-control" value="@pedidoSeleccionado.Fecharegistro.ToString("yyyy-MM-ddTHH:mm")" disabled />
+            </div>
+            <div class="col-md-4 mb-2">
+                <label class="form-label">Estado</label>
+                <InputSelect class="form-select" @bind-Value="pedidoSeleccionado.Estado">
+                    <option value="">-- Seleccione --</option>
+                    <option value="ACTIVO">ACTIVO</option>
+                    <option value="PROCESO">PROCESO</option>
+                    <option value="FINALIZADO">FINALIZADO</option>
+                    <option value="CANCELADO">CANCELADO</option>
+                </InputSelect>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-3 mb-2">
+                <label class="form-label">Unidad Asignada</label>
+                <InputText class="form-control" @bind-Value="pedidoSeleccionado.Unidad" placeholder="Unidad" />
+            </div>
+            <div class="col-md-3 mb-2">
+                <label class="form-label">CI Conductor</label>
+                <InputText class="form-control" @bind-Value="pedidoSeleccionado.Ciconductor" placeholder="C.I. Conductor" />
+            </div>
+            <div class="col-md-6 mb-2">
+                <label class="form-label">Conductor</label>
+                <InputText class="form-control" @bind-Value="pedidoSeleccionado.Conductor" placeholder="Nombre Conductor" />
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-3 mb-2">
+                <label class="form-label">Precio ($)</label>
+                <InputNumber class="form-control" @bind-Value="pedidoSeleccionado.Precio" placeholder="0.00" />
+            </div>
+            <div class="col-md-3 mb-2">
+                <label class="form-label">Km</label>
+                <InputNumber class="form-control" @bind-Value="pedidoSeleccionado.Km" placeholder="0.00" />
+            </div>
+            <div class="col-md-3 mb-2">
+                <label class="form-label">N° Voucher</label>
+                <InputText class="form-control" @bind-Value="pedidoSeleccionado.Numvoucher" placeholder="Voucher" />
+            </div>
+            <div class="col-md-3 mb-2">
+                <label class="form-label">Empleado</label>
+                <InputText class="form-control" @bind-Value="pedidoSeleccionado.Empleado" placeholder="Empleado" />
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-3 mb-2">
+                <label class="form-label">Origen Latitud</label>
+                <InputNumber class="form-control" @bind-Value="pedidoSeleccionado.Origenlat" />
+            </div>
+            <div class="col-md-3 mb-2">
+                <label class="form-label">Origen Longitud</label>
+                <InputNumber class="form-control" @bind-Value="pedidoSeleccionado.Origenlog" />
+            </div>
+            <div class="col-md-3 mb-2">
+                <label class="form-label">Destino Latitud</label>
+                <InputNumber class="form-control" @bind-Value="pedidoSeleccionado.Destinolat" />
+            </div>
+            <div class="col-md-3 mb-2">
+                <label class="form-label">Destino Longitud</label>
+                <InputNumber class="form-control" @bind-Value="pedidoSeleccionado.Destinolog" />
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-3 mb-2 flex-column d-flex justify-content-end pb-2">
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="chkAutorizado" 
+                           checked="@(pedidoSeleccionado.Autorizado == "s")" 
+                           @onchange="OnAutorizadoChanged" />
+                    <label class="form-check-label" for="chkAutorizado">Autorizado</label>
+                </div>
+            </div>
+            <div class="col-md-3 mb-2 flex-column d-flex justify-content-end pb-2">
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="chkValija" 
+                           checked="@(pedidoSeleccionado.Valija == "s")" 
+                           @onchange="OnValijaChanged" />
+                    <label class="form-check-label" for="chkValija">Valija</label>
+                </div>
+            </div>
+            <div class="col-md-6 mb-2">
+                <label class="form-label">RUC Empresa</label>
+                <InputText class="form-control" @bind-Value="pedidoSeleccionado.Ruc" placeholder="RUC" />
+            </div>
+        </div>
+    </EditForm>
+
+    <div class="d-flex gap-2 mt-3">
+        <button class="btn btn-warning" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">Guardar</button>
+        <button class="btn btn-secondary" @onclick="CancelarEdicion">Cancelar</button>
+    </div>
+</div>
+
+@code {
+    private List<PedidoDTO> listaPedidos = new();
+    private Pedido pedidoSeleccionado = new();
+    private string filtroCelular = string.Empty;
+    private string filtroUnidad = string.Empty;
+    private string filtroEstado = string.Empty;
+    private DateTime? filtroFechaDesde;
+    private DateTime? filtroFechaHasta;
+
+    private bool esNuevo = false;
+    private int PaginaActual = 1;
+    private int PageSize = 8;
+    private int TotalRegistros = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        pedidoSeleccionado.Fecharegistro = DateTime.Now;
+        await CargarPedidosAsync();
+    }
+
+    private async Task CargarPedidosAsync()
+    {
+        try
+        {
+            var resultado = await pedidoRepo.GetPedidosPaginados(
+                PaginaActual, PageSize, 
+                filtroCelular, filtroUnidad, filtroEstado, 
+                filtroFechaDesde, filtroFechaHasta);
+
+            listaPedidos = resultado.Items ?? new();
+            TotalRegistros = resultado.TotalItems;
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al cargar los pedidos: " + ex.Message);
+        }
+    }
+
+    private async void BuscarPedidos()
+    {
+        PaginaActual = 1;
+        await CargarPedidosAsync();
+    }
+
+    private void LimpiarFiltros()
+    {
+        filtroCelular = string.Empty;
+        filtroUnidad = string.Empty;
+        filtroEstado = string.Empty;
+        filtroFechaDesde = null;
+        filtroFechaHasta = null;
+        BuscarPedidos();
+    }
+
+    private void SeleccionarPedido(PedidoDTO p)
+    {
+        pedidoSeleccionado = new Pedido
+            {
+                Celular = p.Celular,
+                Origenlat = p.Origenlat,
+                Origenlog = p.Origenlog,
+                Destinolat = p.Destinolat,
+                Destinolog = p.Destinolog,
+                Tiempodemora = p.Tiempodemora,
+                Ruc = p.Ruc,
+                Fecharegistro = p.Fecharegistro,
+                Usuario = p.Usuario,
+                Base = p.Base,
+                Unidad = p.Unidad,
+                Ciconductor = p.Ciconductor,
+                Conductor = p.Conductor,
+                Unidadsiguiente = p.Unidadsiguiente,
+                Ciconductorsiguiente = p.Ciconductorsiguiente,
+                Conductorsiguiente = p.Conductorsiguiente,
+                Precio = p.Precio,
+                Km = p.Km,
+                Numvoucher = p.Numvoucher,
+                Valija = p.Valija,
+                Empleado = p.Empleado,
+                Recorrido = p.Recorrido,
+                Estado = p.Estado,
+                Autorizado = p.Autorizado
+            };
+        esNuevo = false;
+    }
+
+    private void NuevoRegistro()
+    {
+        pedidoSeleccionado = new Pedido
+            {
+                Fecharegistro = DateTime.Now,
+                Estado = "ACTIVO",
+                Autorizado = "n",
+                Valija = "n"
+            };
+        esNuevo = true;
+    }
+
+    private void OnAutorizadoChanged(ChangeEventArgs e)
+    {
+        bool isChecked = (bool)(e.Value ?? false);
+        pedidoSeleccionado.Autorizado = isChecked ? "s" : "n";
+    }
+
+    private void OnValijaChanged(ChangeEventArgs e)
+    {
+        bool isChecked = (bool)(e.Value ?? false);
+        pedidoSeleccionado.Valija = isChecked ? "s" : "n";
+    }
+
+    private async Task GuardarCambios()
+    {
+        try
+        {
+            // Limpieza básica y mayúsculas
+            if (pedidoSeleccionado.Conductor != null)
+                pedidoSeleccionado.Conductor = pedidoSeleccionado.Conductor.ToUpper();
+            if (pedidoSeleccionado.Empleado != null)
+                pedidoSeleccionado.Empleado = pedidoSeleccionado.Empleado.ToUpper();
+
+            if (esNuevo)
+            {
+                pedidoSeleccionado.Fecharegistro = DateTime.Now;
+                await pedidoRepo.InsertPedido(pedidoSeleccionado);
+            }
+            else
+            {
+                await pedidoRepo.UpdatePedido(pedidoSeleccionado);
+            }
+
+            await CargarPedidosAsync();
+            pedidoSeleccionado = new Pedido { Fecharegistro = DateTime.Now };
+            esNuevo = false;
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al guardar: " + ex.Message);
+        }
+    }
+
+    private void CancelarEdicion()
+    {
+        pedidoSeleccionado = new Pedido { Fecharegistro = DateTime.Now };
+        esNuevo = false;
+    }
+
+    private async Task OnPageChangedAsync(int nuevaPagina)
+    {
+        PaginaActual = nuevaPagina;
+        await CargarPedidosAsync();
+    }
+
+    private bool PuedeGuardar => !string.IsNullOrWhiteSpace(pedidoSeleccionado.Celular) && !string.IsNullOrWhiteSpace(pedidoSeleccionado.Unidad);
+}

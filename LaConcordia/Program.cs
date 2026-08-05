@@ -1,4 +1,4 @@
-﻿using Identity.Api.Interfaces;
+using Identity.Api.Interfaces;
 using LaConcordia;
 using LaConcordia.Auth;
 using LaConcordia.Helpers;
@@ -47,6 +47,8 @@ builder.Services.AddScoped<IUnidad, UnidadRepository>();
 builder.Services.AddScoped<IFichapersonal, FichapersonalRepository>();
 builder.Services.AddScoped<IFichaobservacione, FichaobservacioneRepository>();
 builder.Services.AddScoped<ISegurovidum, SegurovidumRepository>();
+builder.Services.AddScoped<IPasajero, PasajeroRepository>();
+builder.Services.AddScoped<IPedido, PedidoRepository>();
 
 configureservices(builder.Services);
 

@@ -1,0 +1,251 @@
+@page "/pasajero"
+@using LaConcordia.DTO
+@using LaConcordia.Interface
+@using LaConcordia.Pagination
+@using Modelo.laconcordia.Modelo.Database
+@inject IPasajero pasajeroRepo
+@inject IJSRuntime JS
+@inject IDisplayMessage displayMessage
+
+<h3>Gestión de Pasajeros</h3>
+
+<!-- Controles de búsqueda -->
+<div class="mb-3 d-flex gap-2">
+    <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo Pasajero</button>
+    <input type="text" class="form-control" placeholder="Buscar por celular..." @bind="filtroCelular" />
+    <input type="text" class="form-control" placeholder="Buscar por nombre..." @bind="filtroNombres" />
+    <button class="btn btn-success" @onclick="BuscarPasajeros">Buscar</button>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mt-3">
+    <div class="flex-grow-1">
+        <p class="text-muted mb-0">Total: @TotalRegistros | Página: @PaginaActual</p>
+    </div>
+    <div class="d-flex justify-content-center flex-grow-1">
+        <Pagination TotalItems="@TotalRegistros"
+                    PageSize="@PageSize"
+                    CurrentPage="@PaginaActual"
+                    OnPageChanged="OnPageChangedAsync" />
+    </div>
+    <div class="flex-grow-1 text-end">
+    </div>
+</div>
+
+<!-- Tabla de Pasajeros -->
+<table class="table table-bordered table-hover mt-2">
+    <thead class="table-dark">
+        <tr>
+            <th>Celular</th>
+            <th>Nombres</th>
+            <th>Sexo</th>
+            <th>Correo</th>
+            <th>Whatsapp</th>
+            <th>Publicidad</th>
+            <th>Observación</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (listaPasajeros != null && listaPasajeros.Count > 0)
+        {
+            @foreach (var pasajero in listaPasajeros)
+            {
+                <tr @onclick="() => SeleccionarPasajero(pasajero)" class="@(pasajero.Celular == pasajeroSeleccionado?.Celular ? "table-primary" : "")" style="cursor: pointer;">
+                    <td>@pasajero.Celular</td>
+                    <td>@pasajero.Nombres</td>
+                    <td>@(pasajero.Sexo == "F" ? "Femenino" : "Masculino")</td>
+                    <td>@pasajero.Correo</td>
+                    <td>@pasajero.Whatsapp</td>
+                    <td>@(pasajero.Publicidad == 1 ? "Sí" : "No")</td>
+                    <td>@pasajero.Observacion</td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="7" class="text-center">No se encontraron pasajeros.</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<!-- Formulario de detalle -->
+<div class="border rounded p-3 mt-3">
+    <h5>Detalle Pasajero</h5>
+    <EditForm Model="pasajeroSeleccionado">
+        <div class="row">
+            <div class="col-md-6 mb-2">
+                <label class="form-label">Celular</label>
+                <InputText class="form-control" @bind-Value="pasajeroSeleccionado.Celular" disabled="@(!esNuevo)" placeholder="Celular (ej. 0999999999)" />
+            </div>
+            <div class="col-md-6 mb-2">
+                <label class="form-label">Nombres</label>
+                <InputText class="form-control" @bind-Value="pasajeroSeleccionado.Nombres" placeholder="Nombres Completos" />
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-2">
+                <label class="form-label">Sexo</label>
+                <InputSelect class="form-select" @bind-Value="pasajeroSeleccionado.Sexo">
+                    <option value="">-- Seleccione --</option>
+                    <option value="M">Masculino</option>
+                    <option value="F">Femenino</option>
+                </InputSelect>
+            </div>
+            <div class="col-md-6 mb-2">
+                <label class="form-label">Correo</label>
+                <InputText type="email" class="form-control" @bind-Value="pasajeroSeleccionado.Correo" placeholder="correo@ejemplo.com" />
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-2">
+                <label class="form-label">Whatsapp</label>
+                <InputText class="form-control" @bind-Value="pasajeroSeleccionado.Whatsapp" placeholder="Whatsapp" />
+            </div>
+            <div class="col-md-6 mb-2 flex-column d-flex justify-content-end pb-2">
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="chkPublicidad" 
+                           checked="@(pasajeroSeleccionado.Publicidad == 1)" 
+                           @onchange="OnPublicidadChanged" />
+                    <label class="form-check-label" for="chkPublicidad">Recibir Publicidad</label>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12 mb-2">
+                <label class="form-label">Observación</label>
+                <InputTextArea class="form-control" @bind-Value="pasajeroSeleccionado.Observacion" placeholder="Observaciones adicionales..." rows="2" />
+            </div>
+        </div>
+    </EditForm>
+
+    <div class="d-flex gap-2 mt-3">
+        <button class="btn btn-warning" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">Guardar</button>
+        <button class="btn btn-danger" @onclick="EliminarPasajero" disabled="@(!PuedeEliminar)">Eliminar</button>
+        <button class="btn btn-secondary" @onclick="CancelarEdicion">Cancelar</button>
+    </div>
+</div>
+
+@code {
+    private List<Pasajero> listaPasajeros = new();
+    private Pasajero pasajeroSeleccionado = new();
+    private string filtroCelular = string.Empty;
+    private string filtroNombres = string.Empty;
+
+    private bool esNuevo = false;
+    private int PaginaActual = 1;
+    private int PageSize = 8;
+    private int TotalRegistros = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarPasajerosAsync();
+    }
+
+    private async Task CargarPasajerosAsync()
+    {
+        try
+        {
+            var resultado = await pasajeroRepo.GetPasajerosPaginados(PaginaActual, PageSize, filtroNombres, filtroCelular);
+            listaPasajeros = resultado.Items ?? new();
+            TotalRegistros = resultado.TotalItems;
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al cargar los pasajeros: " + ex.Message);
+        }
+    }
+
+    private async void BuscarPasajeros()
+    {
+        PaginaActual = 1;
+        await CargarPasajerosAsync();
+    }
+
+    private void SeleccionarPasajero(Pasajero p)
+    {
+        pasajeroSeleccionado = new Pasajero
+            {
+                Celular = p.Celular,
+                Nombres = p.Nombres,
+                Observacion = p.Observacion,
+                Correo = p.Correo,
+                Sexo = p.Sexo,
+                Whatsapp = p.Whatsapp,
+                Publicidad = p.Publicidad
+            };
+        esNuevo = false;
+    }
+
+    private void NuevoRegistro()
+    {
+        pasajeroSeleccionado = new Pasajero();
+        esNuevo = true;
+    }
+
+    private void OnPublicidadChanged(ChangeEventArgs e)
+    {
+        bool isChecked = (bool)(e.Value ?? false);
+        pasajeroSeleccionado.Publicidad = isChecked ? 1 : 0;
+    }
+
+    private async Task GuardarCambios()
+    {
+        try
+        {
+            // Limpieza básica y mayúsculas/minúsculas
+            if (pasajeroSeleccionado.Nombres != null)
+                pasajeroSeleccionado.Nombres = pasajeroSeleccionado.Nombres.ToUpper();
+            if (pasajeroSeleccionado.Observacion != null)
+                pasajeroSeleccionado.Observacion = pasajeroSeleccionado.Observacion.ToUpper();
+            if (pasajeroSeleccionado.Correo != null)
+                pasajeroSeleccionado.Correo = pasajeroSeleccionado.Correo.ToLower();
+
+            if (esNuevo)
+                await pasajeroRepo.InsertPasajero(pasajeroSeleccionado);
+            else
+                await pasajeroRepo.UpdatePasajero(pasajeroSeleccionado);
+
+            await CargarPasajerosAsync();
+            pasajeroSeleccionado = new Pasajero();
+            esNuevo = false;
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al guardar: " + ex.Message);
+        }
+    }
+
+    private async Task EliminarPasajero()
+    {
+        bool confirm = await JS.InvokeAsync<bool>("confirm", "¿Está seguro de eliminar este pasajero?");
+        if (confirm)
+        {
+            try
+            {
+                await pasajeroRepo.DeletePasajeroByCelular(pasajeroSeleccionado.Celular);
+                await CargarPasajerosAsync();
+                pasajeroSeleccionado = new Pasajero();
+            }
+            catch (Exception ex)
+            {
+                await displayMessage.DisplayErrorMessage("Error al eliminar: " + ex.Message);
+            }
+        }
+    }
+
+    private void CancelarEdicion()
+    {
+        pasajeroSeleccionado = new Pasajero();
+        esNuevo = false;
+    }
+
+    private async Task OnPageChangedAsync(int nuevaPagina)
+    {
+        PaginaActual = nuevaPagina;
+        await CargarPasajerosAsync();
+    }
+
+    private bool PuedeGuardar => !string.IsNullOrWhiteSpace(pasajeroSeleccionado.Celular) && !string.IsNullOrWhiteSpace(pasajeroSeleccionado.Nombres);
+    private bool PuedeEliminar => !esNuevo && !string.IsNullOrWhiteSpace(pasajeroSeleccionado.Celular);
+}
