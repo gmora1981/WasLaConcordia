@@ -1,0 +1,136 @@
+@page "/control-unidades"
+@using LaConcordia.DTO
+@using LaConcordia.Interface
+@inject IControlUnidad controlUnidadRepo
+@inject IDisplayMessage displayMessage
+
+<h3>Control de Unidades</h3>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <label class="form-label">Turno</label>
+        <select class="form-select" @bind="turno">
+            <option value="">-- Seleccione --</option>
+            <option value="MAÑANA">Mañana</option>
+            <option value="TARDE">Tarde</option>
+            <option value="NOCHE">Noche</option>
+        </select>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <h5>Fuera de Servicio</h5>
+        <table class="table table-bordered table-hover">
+            <thead class="table-dark">
+                <tr><th>Unidad</th><th>Nombres</th><th>Apellidos</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var f in fueraDeServicio)
+                {
+                    <tr>
+                        <td>@f.Fkunidad</td>
+                        <td>@f.Nombre</td>
+                        <td>@f.Apellidos</td>
+                        <td><button class="btn btn-sm btn-success" @onclick="() => Ingresar(f)" disabled="@string.IsNullOrEmpty(turno)">Ingresar &raquo;</button></td>
+                    </tr>
+                }
+                @if (fueraDeServicio.Count == 0)
+                {
+                    <tr><td colspan="4" class="text-center text-muted">Sin unidades fuera de servicio.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="col-md-6">
+        <h5>En Servicio</h5>
+        <table class="table table-bordered table-hover">
+            <thead class="table-dark">
+                <tr><th></th><th>Unidad</th><th>Nombres</th><th>Apellidos</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var f in enServicio)
+                {
+                    <tr>
+                        <td><button class="btn btn-sm btn-danger" @onclick="() => Sacar(f)" disabled="@string.IsNullOrEmpty(turno)">&laquo; Sacar</button></td>
+                        <td>@f.Fkunidad</td>
+                        <td>@f.Nombre</td>
+                        <td>@f.Apellidos</td>
+                    </tr>
+                }
+                @if (enServicio.Count == 0)
+                {
+                    <tr><td colspan="4" class="text-center text-muted">Sin unidades en servicio.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    private List<UnidadServicioDTO> fueraDeServicio = new();
+    private List<UnidadServicioDTO> enServicio = new();
+    private string turno = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarListas();
+    }
+
+    private async Task CargarListas()
+    {
+        fueraDeServicio = await controlUnidadRepo.GetFichaPersonalPorServicio("p");
+        enServicio = await controlUnidadRepo.GetFichaPersonalPorServicio("a");
+    }
+
+    private async Task Ingresar(UnidadServicioDTO f)
+    {
+        if (string.IsNullOrEmpty(turno))
+        {
+            await displayMessage.DisplayErrorMessage("Seleccione un turno primero.");
+            return;
+        }
+
+        try
+        {
+            await controlUnidadRepo.MoverUnidad(new MoverUnidadRequestDTO
+                {
+                    Unidad = f.Fkunidad,
+                    Cedula = f.Cedula,
+                    Turno = turno,
+                    Direccion = "INGRESO"
+                });
+            await CargarListas();
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al registrar el ingreso: " + ex.Message);
+        }
+    }
+
+    private async Task Sacar(UnidadServicioDTO f)
+    {
+        if (string.IsNullOrEmpty(turno))
+        {
+            await displayMessage.DisplayErrorMessage("Seleccione un turno primero.");
+            return;
+        }
+
+        try
+        {
+            await controlUnidadRepo.MoverUnidad(new MoverUnidadRequestDTO
+                {
+                    Unidad = f.Fkunidad,
+                    Cedula = f.Cedula,
+                    Turno = turno,
+                    Direccion = "SALIDA"
+                });
+            await CargarListas();
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al registrar la salida: " + ex.Message);
+        }
+    }
+}
