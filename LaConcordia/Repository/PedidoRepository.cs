@@ -83,5 +83,10 @@ namespace LaConcordia.Repository
             var url = $"api/Pedido/GetPrecioKmHistorico?celular={Uri.EscapeDataString(celular)}&origenLat={origenLat}&origenLog={origenLog}&destinoLat={destinoLat}&destinoLog={destinoLog}";
             return await _httpClient.GetFromJsonAsync<PrecioKmDTO?>(url);
         }
+
+        public async Task<List<PedidoDTO>> GetPedidosConDestinoPendiente()
+        {
+            return await _httpClient.GetFromJsonAsync<List<PedidoDTO>>("api/Pedido/GetPedidosConDestinoPendiente") ?? new List<PedidoDTO>();
+        }
     }
 }

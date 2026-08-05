@@ -20,5 +20,7 @@ namespace LaConcordia.Interface
         Task<ConductorInfoDTO?> GetConductorPorUnidad(string unidad);
 
         Task<PrecioKmDTO?> GetPrecioKmHistorico(string celular, decimal origenLat, decimal origenLog, decimal destinoLat, decimal destinoLog);
+
+        Task<List<PedidoDTO>> GetPedidosConDestinoPendiente();
     }
 }
