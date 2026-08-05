@@ -12,6 +12,8 @@
     <link rel="stylesheet" href="css/AdminCommon.css" />
     <link rel="stylesheet" href="css/UsersNavegation.css" />
     <link rel="stylesheet" href="css/AdminNavegation.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <!-- O si prefieres Open Iconic (que viene con Blazor)
     <link href="_content/Blazored.Toast/blazored-toast.min.css" rel="stylesheet"  -->
     <link rel="icon" type="image/png" href="favicon.png" />
@@ -39,6 +41,11 @@
 
     <!-- Prueba para pdf y para excel-->
     <script src="js/download.js"></script>
+
+    <!-- Mapa (seleccion de coordenadas origen/destino en Pedido) -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="js/leaflet-interop.js"></script>
 
     <!--para que cuando den nuevo se vaya a un lugar del formulario como el setfocus-->
     <script>

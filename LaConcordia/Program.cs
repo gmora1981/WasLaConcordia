@@ -56,6 +56,7 @@ builder.Services.AddScoped<IGenerarPlanAyuda, GenerarPlanAyudaRepository>();
 builder.Services.AddScoped<IGenerarPlanChoque, GenerarPlanChoqueRepository>();
 builder.Services.AddScoped<IPagos, PagosRepository>();
 builder.Services.AddScoped<IBalance, BalanceRepository>();
+builder.Services.AddScoped<IGeocoding, GeocodingRepository>();
 
 configureservices(builder.Services);
 

@@ -1,0 +1,123 @@
+@using LaConcordia.DTO
+@using LaConcordia.Interface
+@inject IGeocoding geocodingRepo
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<div class="mapa-selector">
+    <div class="input-group input-group-sm mb-2">
+        <input class="form-control" placeholder="Buscar dirección..." @bind="textoBusqueda" @bind:event="oninput" @onkeydown="OnKeyDown" />
+        <button class="btn btn-outline-secondary" type="button" @onclick="Buscar">Buscar</button>
+    </div>
+
+    @if (resultados.Count > 0)
+    {
+        <ul class="list-group mb-2" style="max-height: 150px; overflow-y: auto;">
+            @foreach (var r in resultados)
+            {
+                <li class="list-group-item list-group-item-action" style="cursor:pointer; font-size: 0.85rem;" @onclick="() => SeleccionarResultado(r)">
+                    @r.DisplayName
+                </li>
+            }
+        </ul>
+    }
+
+    <div id="@mapaId" style="height:@Height; border-radius: 4px; border: 1px solid #ccc;"></div>
+
+    <p class="text-muted mt-1 mb-0" style="font-size: 0.8rem;">
+        Lat: @Lat.ToString("0.000000") — Lng: @Lng.ToString("0.000000")
+        (haga clic en el mapa o arrastre el marcador para fijar el punto)
+    </p>
+</div>
+
+@code {
+    [Parameter] public decimal Lat { get; set; }
+    [Parameter] public EventCallback<decimal> LatChanged { get; set; }
+
+    [Parameter] public decimal Lng { get; set; }
+    [Parameter] public EventCallback<decimal> LngChanged { get; set; }
+
+    [Parameter] public EventCallback OnCoordenadasChanged { get; set; }
+
+    [Parameter] public string Height { get; set; } = "300px";
+
+    private readonly string mapaId = "mapa_" + Guid.NewGuid().ToString("N");
+    private DotNetObjectReference<MapaSelector>? dotNetRef;
+    private bool mapaIniciado = false;
+
+    private string textoBusqueda = string.Empty;
+    private List<GeocodingResultDTO> resultados = new();
+
+    // Coordenada por defecto: La Concordia, Santo Domingo de los Tsáchilas, Ecuador.
+    private const decimal LatPorDefecto = -0.0167m;
+    private const decimal LngPorDefecto = -79.3667m;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            dotNetRef = DotNetObjectReference.Create(this);
+            var latInicial = Lat != 0 ? Lat : LatPorDefecto;
+            var lngInicial = Lng != 0 ? Lng : LngPorDefecto;
+            var zoomInicial = (Lat != 0 && Lng != 0) ? 16 : 13;
+
+            await JS.InvokeVoidAsync("leafletInterop.iniciar", mapaId, dotNetRef, latInicial, lngInicial, zoomInicial);
+            mapaIniciado = true;
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnCoordenadasSeleccionadas(double lat, double lng)
+    {
+        Lat = (decimal)lat;
+        Lng = (decimal)lng;
+        await LatChanged.InvokeAsync(Lat);
+        await LngChanged.InvokeAsync(Lng);
+        await OnCoordenadasChanged.InvokeAsync();
+        StateHasChanged();
+    }
+
+    private async Task Buscar()
+    {
+        resultados = await geocodingRepo.Buscar(textoBusqueda);
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await Buscar();
+    }
+
+    private async Task SeleccionarResultado(GeocodingResultDTO r)
+    {
+        Lat = r.Lat;
+        Lng = r.Lon;
+        resultados.Clear();
+        textoBusqueda = r.DisplayName;
+
+        await LatChanged.InvokeAsync(Lat);
+        await LngChanged.InvokeAsync(Lng);
+        await OnCoordenadasChanged.InvokeAsync();
+
+        if (mapaIniciado)
+        {
+            await JS.InvokeVoidAsync("leafletInterop.moverMarcador", mapaId, (double)Lat, (double)Lng, 17);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (mapaIniciado)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("leafletInterop.destruir", mapaId);
+            }
+            catch (JSDisconnectedException)
+            {
+                // La conexion de circuito ya se cerro (navegacion fuera de la pagina); nada que limpiar.
+            }
+        }
+        dotNetRef?.Dispose();
+    }
+}
