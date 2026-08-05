@@ -43,5 +43,10 @@ namespace LaConcordia.Repository
             }
             return await response.Content.ReadFromJsonAsync<OrdenPagoResultadoDTO>() ?? new OrdenPagoResultadoDTO();
         }
+
+        public async Task<List<OrdenPagoResumenDTO>> GetOrdenPagoPorEmpresa(string ruc)
+        {
+            return await _httpClient.GetFromJsonAsync<List<OrdenPagoResumenDTO>>($"api/OrdenPago/GetOrdenPagoPorEmpresa/{ruc}") ?? new List<OrdenPagoResumenDTO>();
+        }
     }
 }

@@ -8,5 +8,7 @@ namespace LaConcordia.Interface
         Task<string?> GetDireccionTexto(string celular, decimal lat, decimal lng);
         Task<decimal> GetSaldoCajaActual();
         Task<OrdenPagoResultadoDTO> GenerarOrdenPago(GenerarOrdenPagoRequestDTO request);
+
+        Task<List<OrdenPagoResumenDTO>> GetOrdenPagoPorEmpresa(string ruc);
     }
 }

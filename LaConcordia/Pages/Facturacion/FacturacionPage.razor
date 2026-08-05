@@ -1,0 +1,92 @@
+@page "/facturacion"
+@using LaConcordia.DTO
+@using LaConcordia.Interface
+@inject IOrdenPago ordenPagoRepo
+@inject IEmpresa empresaRepo
+@inject IDisplayMessage displayMessage
+
+<h3>Facturación</h3>
+<p class="text-muted">Listado de vouchers generados por empresa.</p>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <label class="form-label">Empresa</label>
+        <select class="form-select" @bind="rucSeleccionado" @bind:after="Buscar">
+            <option value="">-- Seleccione --</option>
+            @foreach (var e in empresas)
+            {
+                <option value="@e.Ruc">@e.Razonsocial</option>
+            }
+        </select>
+    </div>
+</div>
+
+<table class="table table-bordered table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>N° Voucher</th>
+            <th>Fecha</th>
+            <th>Unidad</th>
+            <th>Conductor</th>
+            <th>Precio</th>
+            <th>Monto Pagado</th>
+            <th>Estado Proceso</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (lista.Count > 0)
+        {
+            @foreach (var o in lista)
+            {
+                <tr>
+                    <td>@o.Numvoucher</td>
+                    <td>@o.Fechayhora?.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td>@o.Unidad</td>
+                    <td>@o.Conductor</td>
+                    <td>@o.Precio?.ToString("0.00")</td>
+                    <td>@o.Preciodesc?.ToString("0.00")</td>
+                    <td>@o.Estadoproceso</td>
+                </tr>
+            }
+            <tr class="table-secondary fw-bold">
+                <td colspan="4">Total</td>
+                <td>@lista.Sum(x => x.Precio ?? 0).ToString("0.00")</td>
+                <td>@lista.Sum(x => x.Preciodesc ?? 0).ToString("0.00")</td>
+                <td></td>
+            </tr>
+        }
+        else
+        {
+            <tr><td colspan="7" class="text-center">Seleccione una empresa para ver sus vouchers.</td></tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<EmpresaDTO> empresas = new();
+    private string rucSeleccionado = string.Empty;
+    private List<OrdenPagoResumenDTO> lista = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        empresas = await empresaRepo.GetEmpresaInfoAll();
+    }
+
+    private async Task Buscar()
+    {
+        if (string.IsNullOrEmpty(rucSeleccionado))
+        {
+            lista = new();
+            return;
+        }
+
+        try
+        {
+            lista = await ordenPagoRepo.GetOrdenPagoPorEmpresa(rucSeleccionado);
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al cargar la facturación: " + ex.Message);
+        }
+    }
+}
