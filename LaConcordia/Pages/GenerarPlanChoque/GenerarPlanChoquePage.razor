@@ -1,0 +1,101 @@
+@page "/generar-plan-choque"
+@using LaConcordia.DTO
+@using LaConcordia.Interface
+@inject IGenerarPlanChoque planChoqueRepo
+@inject IUnidad unidadRepo
+@inject IDisplayMessage displayMessage
+
+<h3>Generar Plan de Choque</h3>
+<p class="text-muted">Cobra un valor a todos los socios activos a favor de una unidad accidentada.</p>
+
+<div class="d-flex gap-2 align-items-end mb-3" style="max-width: 700px;">
+    <div class="flex-grow-1">
+        <label>Número de unidad</label>
+        <input class="form-control" @bind="numeroUnidad" />
+    </div>
+    <button class="btn btn-secondary" @onclick="BuscarUnidad">Buscar</button>
+</div>
+
+@if (unidad != null)
+{
+    <p>
+        <strong>Unidad @unidad.Unidad1</strong> — Placa @unidad.Placa —
+        @unidad.Marca @unidad.Modelo (@unidad.Anio) — Propietario: @unidad.Propietario
+    </p>
+
+    <div class="border rounded p-3" style="max-width: 500px;">
+        <div class="mb-2">
+            <label>Valor a cobrar a cada socio</label>
+            <input class="form-control" type="number" step="0.01" min="0" @bind="valor" />
+        </div>
+        <div class="mb-2">
+            <label>Observación</label>
+            <textarea class="form-control" @bind="observacion"></textarea>
+        </div>
+        <button class="btn btn-primary mt-2" @onclick="Generar" disabled="@(!PuedeGenerar)">Generar</button>
+    </div>
+}
+
+@code {
+    private string numeroUnidad = string.Empty;
+    private UnidadDTO? unidad;
+    private decimal? valor;
+    private string observacion = string.Empty;
+
+    private bool PuedeGenerar => valor.HasValue && valor.Value > 0;
+
+    private async Task BuscarUnidad()
+    {
+        if (string.IsNullOrWhiteSpace(numeroUnidad))
+            return;
+
+        try
+        {
+            unidad = await unidadRepo.GetUnidadById(numeroUnidad);
+            if (unidad == null)
+            {
+                await displayMessage.DisplayErrorMessage("No se encontró una unidad con ese número.");
+                return;
+            }
+            observacion = $"Choque unidad {unidad.Unidad1}, placa {unidad.Placa}";
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al buscar la unidad: " + ex.Message);
+        }
+    }
+
+    private async Task Generar()
+    {
+        if (unidad == null) return;
+
+        try
+        {
+            var yaGenerado = await planChoqueRepo.YaFueGenerado(unidad.Unidad1);
+            if (yaGenerado)
+            {
+                await displayMessage.DisplayErrorMessage("Ya se generó el plan de choque para esta unidad.");
+                return;
+            }
+
+            var request = new GenerarPlanChoqueRequestDTO
+                {
+                    Unidad = unidad.Unidad1,
+                    Observacion = observacion,
+                    Valor = valor!.Value
+                };
+
+            var resultado = await planChoqueRepo.GenerarPlanChoque(request);
+            await displayMessage.DisplaySuccessMessage($"Período generado con éxito. Se cobró a {resultado.TotalGenerados} socios.");
+
+            unidad = null;
+            numeroUnidad = string.Empty;
+            valor = null;
+            observacion = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al generar el plan de choque: " + ex.Message);
+        }
+    }
+}

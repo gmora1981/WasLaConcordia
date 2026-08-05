@@ -53,6 +53,7 @@ builder.Services.AddScoped<IFlujoCaja, FlujoCajaRepository>();
 builder.Services.AddScoped<IGenerarCuota, GenerarCuotaRepository>();
 builder.Services.AddScoped<IGenerarMulta, GenerarMultaRepository>();
 builder.Services.AddScoped<IGenerarPlanAyuda, GenerarPlanAyudaRepository>();
+builder.Services.AddScoped<IGenerarPlanChoque, GenerarPlanChoqueRepository>();
 
 configureservices(builder.Services);
 
