@@ -1,0 +1,12 @@
+using LaConcordia.DTO;
+
+namespace LaConcordia.Interface
+{
+    public interface IOrdenPago
+    {
+        Task<List<PedidoVoucherDTO>> GetPedidosPendientesVoucher(string? ruc = null);
+        Task<string?> GetDireccionTexto(string celular, decimal lat, decimal lng);
+        Task<decimal> GetSaldoCajaActual();
+        Task<OrdenPagoResultadoDTO> GenerarOrdenPago(GenerarOrdenPagoRequestDTO request);
+    }
+}

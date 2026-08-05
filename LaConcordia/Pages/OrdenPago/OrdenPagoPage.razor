@@ -1,0 +1,275 @@
+@page "/orden-pago"
+@using LaConcordia.DTO
+@using LaConcordia.Interface
+@inject IOrdenPago ordenPagoRepo
+@inject IEmpresa empresaRepo
+@inject IPasajero pasajeroRepo
+@inject IDisplayMessage displayMessage
+
+<h3>Orden de Pago (Voucher)</h3>
+<p class="text-muted">Liquida el pago a las unidades por carreras facturadas a empresas con convenio.</p>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <label class="form-label">Filtrar por Empresa</label>
+        <select class="form-select" @bind="filtroRuc" @bind:after="Buscar">
+            <option value="">-- Todas --</option>
+            @foreach (var e in empresas)
+            {
+                <option value="@e.Ruc">@e.Razonsocial</option>
+            }
+        </select>
+    </div>
+</div>
+
+<table class="table table-bordered table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>RUC</th>
+            <th>Empresa</th>
+            <th>Fecha</th>
+            <th>Unidad</th>
+            <th>Conductor</th>
+            <th>Precio</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (lista.Count > 0)
+        {
+            @foreach (var p in lista)
+            {
+                <tr @onclick="() => Seleccionar(p)" class="@(EsSeleccionado(p) ? "table-primary" : "")" style="cursor:pointer;">
+                    <td>@p.Ruc</td>
+                    <td>@p.RazonSocial</td>
+                    <td>@p.Fecharegistro.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td>@p.Unidad</td>
+                    <td>@p.Conductor</td>
+                    <td>@p.Precio?.ToString("0.00")</td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr><td colspan="6" class="text-center">No hay pedidos pendientes de voucher.</td></tr>
+        }
+    </tbody>
+</table>
+
+@if (seleccionado != null)
+{
+    <div class="border rounded p-3 mt-3">
+        <h5>Generar Voucher — @seleccionado.RazonSocial</h5>
+
+        <div class="row mb-2">
+            <div class="col-md-3">
+                <label class="form-label">N° Voucher</label>
+                <input class="form-control" @bind="numVoucher" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Cliente</label>
+                <input class="form-control" value="@cliente" disabled />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Tiempo de Espera</label>
+                <input class="form-control" @bind="tiempoEspera" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Empleado</label>
+                <input class="form-control" @bind="empleado" />
+            </div>
+        </div>
+
+        <div class="row mb-2">
+            <div class="col-md-6">
+                <label class="form-label">Punto de Partida</label>
+                <input class="form-control" value="@puntoPartida" disabled />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Punto Final</label>
+                <input class="form-control" value="@puntoFinal" disabled />
+            </div>
+        </div>
+
+        <div class="row mb-2">
+            <div class="col-md-6">
+                <label class="form-label">Recorrido</label>
+                <input class="form-control" @bind="recorrido" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Observación</label>
+                <input class="form-control" @bind="observacion" />
+            </div>
+        </div>
+
+        <div class="row mb-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Precio</label>
+                <input class="form-control" value="@precio.ToString("0.00")" disabled />
+            </div>
+            <div class="col-md-3">
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="chkSinDesc" @bind="sinDescuento" @bind:after="RecalcularMonto" />
+                    <label class="form-check-label" for="chkSinDesc">Sin Descuento (paga 100%)</label>
+                </div>
+            </div>
+            @if (sinDescuento)
+            {
+                <div class="col-md-3">
+                    <label class="form-label">Bono</label>
+                    <div class="input-group">
+                        <input type="number" step="0.01" class="form-control" @bind="bono" />
+                        <button class="btn btn-outline-secondary" type="button" @onclick="AplicarBono">Aplicar</button>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="row mb-2">
+            <div class="col-md-3">
+                <label class="form-label">@(sinDescuento ? "Monto a Pagar" : "Monto a Pagar (-10%)")</label>
+                <input class="form-control fw-bold" value="@monto.ToString("0.00")" disabled />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Saldo Caja</label>
+                <input class="form-control" value="@saldoCaja.ToString("0.00")" disabled />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Saldo Final</label>
+                <input class="form-control @(saldoFinal <= 0 ? "text-danger fw-bold" : "")" value="@saldoFinal.ToString("0.00")" disabled />
+            </div>
+        </div>
+
+        @if (saldoFinal <= 0)
+        {
+            <p class="text-danger">Saldo negativo, no se puede generar la orden de pago.</p>
+        }
+
+        <div class="d-flex gap-2 mt-2">
+            <button class="btn btn-warning" @onclick="Guardar" disabled="@(!PuedeGuardar)">Generar Voucher</button>
+            <button class="btn btn-secondary" @onclick="() => seleccionado = null">Cancelar</button>
+        </div>
+    </div>
+}
+
+@code {
+    private List<EmpresaDTO> empresas = new();
+    private string filtroRuc = string.Empty;
+    private List<PedidoVoucherDTO> lista = new();
+    private PedidoVoucherDTO? seleccionado;
+
+    private string numVoucher = string.Empty;
+    private string cliente = string.Empty;
+    private string tiempoEspera = string.Empty;
+    private string empleado = string.Empty;
+    private string puntoPartida = string.Empty;
+    private string puntoFinal = string.Empty;
+    private string recorrido = string.Empty;
+    private string observacion = string.Empty;
+
+    private decimal precio;
+    private bool sinDescuento = false;
+    private decimal bono;
+    private decimal monto;
+    private decimal saldoCaja;
+    private decimal saldoFinal;
+
+    protected override async Task OnInitializedAsync()
+    {
+        empresas = await empresaRepo.GetEmpresaInfoAll();
+        await Buscar();
+    }
+
+    private async Task Buscar()
+    {
+        lista = await ordenPagoRepo.GetPedidosPendientesVoucher(string.IsNullOrEmpty(filtroRuc) ? null : filtroRuc);
+    }
+
+    private bool EsSeleccionado(PedidoVoucherDTO p) =>
+        seleccionado != null && p.Celular == seleccionado.Celular && p.Fecharegistro == seleccionado.Fecharegistro;
+
+    private async Task Seleccionar(PedidoVoucherDTO p)
+    {
+        seleccionado = p;
+        numVoucher = string.Empty;
+        empleado = p.Empleado ?? string.Empty;
+        recorrido = p.Recorrido ?? string.Empty;
+        observacion = string.Empty;
+        tiempoEspera = string.Empty;
+        precio = p.Precio ?? 0;
+        sinDescuento = false;
+        bono = 0;
+
+        cliente = string.Empty;
+        try
+        {
+            var pasajero = await pasajeroRepo.GetPasajeroByCelular(p.Celular);
+            cliente = pasajero?.Nombres ?? string.Empty;
+        }
+        catch { /* sin pasajero registrado, se deja en blanco */ }
+
+        puntoPartida = await ordenPagoRepo.GetDireccionTexto(p.Celular, p.Origenlat, p.Origenlog) ?? string.Empty;
+        puntoFinal = await ordenPagoRepo.GetDireccionTexto(p.Celular, p.Destinolat, p.Destinolog) ?? string.Empty;
+
+        saldoCaja = await ordenPagoRepo.GetSaldoCajaActual();
+        RecalcularMonto();
+    }
+
+    private void RecalcularMonto()
+    {
+        monto = sinDescuento ? precio : precio - (precio * 0.10m);
+        saldoFinal = saldoCaja - monto;
+    }
+
+    private void AplicarBono()
+    {
+        monto += bono;
+        saldoFinal = saldoCaja - monto;
+    }
+
+    private bool PuedeGuardar => seleccionado != null && !string.IsNullOrWhiteSpace(numVoucher) && saldoFinal > 0;
+
+    private async Task Guardar()
+    {
+        if (seleccionado == null) return;
+
+        try
+        {
+            var request = new GenerarOrdenPagoRequestDTO
+                {
+                    Celular = seleccionado.Celular,
+                    Origenlat = seleccionado.Origenlat,
+                    Origenlog = seleccionado.Origenlog,
+                    Destinolat = seleccionado.Destinolat,
+                    Destinolog = seleccionado.Destinolog,
+                    FechaRegistroPedido = seleccionado.Fecharegistro,
+                    NumVoucher = numVoucher.ToUpper(),
+                    FechaYHora = seleccionado.Fecharegistro,
+                    Ruc = seleccionado.Ruc!,
+                    Empresa = seleccionado.RazonSocial ?? "",
+                    Empleado = empleado,
+                    TiempoEspera = tiempoEspera,
+                    PuntoPartida = puntoPartida,
+                    Recorrido = recorrido,
+                    PuntoFinal = puntoFinal,
+                    Unidad = seleccionado.Unidad!,
+                    Ciconductor = seleccionado.Ciconductor,
+                    Conductor = seleccionado.Conductor,
+                    Precio = precio,
+                    Observacion = observacion,
+                    Valija = seleccionado.Valija,
+                    Cliente = cliente,
+                    MontoAPagar = monto
+                };
+
+            await ordenPagoRepo.GenerarOrdenPago(request);
+            await displayMessage.DisplaySuccessMessage("El registro se guardó con éxito.");
+
+            seleccionado = null;
+            await Buscar();
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al guardar: " + ex.Message);
+        }
+    }
+}
