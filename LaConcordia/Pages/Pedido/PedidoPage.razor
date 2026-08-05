@@ -4,6 +4,9 @@
 @using LaConcordia.Pagination
 @using Modelo.laconcordia.Modelo.Database
 @inject IPedido pedidoRepo
+@inject IPasajero pasajeroRepo
+@inject IEmpresa empresaRepo
+@inject IFichapersonal fichaRepo
 @inject IJSRuntime JS
 @inject IDisplayMessage displayMessage
 
@@ -59,8 +62,7 @@
                     CurrentPage="@PaginaActual"
                     OnPageChanged="OnPageChangedAsync" />
     </div>
-    <div class="flex-grow-1 text-end">
-    </div>
+    <div class="flex-grow-1 text-end"></div>
 </div>
 
 <!-- Tabla de Pedidos -->
@@ -106,104 +108,166 @@
 <!-- Formulario de detalle -->
 <div class="border rounded p-3 mt-3">
     <h5>Detalle Pedido</h5>
-    <EditForm Model="pedidoSeleccionado">
-        <div class="row">
-            <div class="col-md-4 mb-2">
-                <label class="form-label">Celular Pasajero</label>
-                <InputText class="form-control" @bind-Value="pedidoSeleccionado.Celular" disabled="@(!esNuevo)" placeholder="Celular" />
+
+    <div class="row">
+        <div class="col-md-3 mb-2">
+            <label class="form-label">Celular Pasajero</label>
+            <div class="input-group">
+                <input class="form-control" @bind="pedidoSeleccionado.Celular" disabled="@(!esNuevo)" />
+                <button class="btn btn-outline-secondary" type="button" @onclick="BuscarPasajero" disabled="@(!esNuevo)">Buscar</button>
             </div>
-            <div class="col-md-4 mb-2">
-                <label class="form-label">Fecha Registro</label>
-                <input type="datetime-local" class="form-control" value="@pedidoSeleccionado.Fecharegistro.ToString("yyyy-MM-ddTHH:mm")" disabled />
+        </div>
+        <div class="col-md-3 mb-2">
+            <label class="form-label">Nombre Pasajero</label>
+            <input class="form-control" @bind="pasajeroActual.Nombres" />
+        </div>
+        <div class="col-md-3 mb-2">
+            <label class="form-label">Observación Pasajero</label>
+            <input class="form-control" @bind="pasajeroActual.Observacion" />
+        </div>
+        <div class="col-md-3 mb-2 d-flex align-items-end">
+            <button class="btn btn-outline-primary w-100" @onclick="GuardarPasajero">@(pasajeroExiste ? "Actualizar Pasajero" : "Crear Pasajero")</button>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-3 mb-2">
+            <label class="form-label">Tiempo de Espera</label>
+            <select class="form-select" @bind="pedidoSeleccionado.Tiempodemora">
+                <option value="">-- Seleccione --</option>
+                <option value="4">4 minutos</option>
+                <option value="9">9 minutos</option>
+                <option value="12">12 minutos</option>
+                <option value="15">15 minutos</option>
+            </select>
+        </div>
+        <div class="col-md-3 mb-2">
+            <label class="form-label">Estado</label>
+            <select class="form-select" @bind="pedidoSeleccionado.Estado">
+                <option value="">-- Seleccione --</option>
+                <option value="ACTIVO">ACTIVO</option>
+                <option value="PROCESO">PROCESO</option>
+                <option value="FINALIZADO">FINALIZADO</option>
+                <option value="CANCELADO">CANCELADO</option>
+            </select>
+        </div>
+        <div class="col-md-3 mb-2 d-flex align-items-end">
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="chkFactura" @bind="facturarAEmpresa" />
+                <label class="form-check-label" for="chkFactura">Facturar a Empresa (Voucher)</label>
             </div>
+        </div>
+        <div class="col-md-3 mb-2 d-flex align-items-end">
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="chkDestino" @bind="tieneDestino" @bind:after="OnTieneDestinoChanged" />
+                <label class="form-check-label" for="chkDestino">Tiene destino definido</label>
+            </div>
+        </div>
+    </div>
+
+    @if (facturarAEmpresa)
+    {
+        <div class="row bg-light border rounded p-2 mb-2">
             <div class="col-md-4 mb-2">
-                <label class="form-label">Estado</label>
-                <InputSelect class="form-select" @bind-Value="pedidoSeleccionado.Estado">
+                <label class="form-label">Empresa</label>
+                <select class="form-select" value="@pedidoSeleccionado.Ruc" @onchange="OnEmpresaChanged">
                     <option value="">-- Seleccione --</option>
-                    <option value="ACTIVO">ACTIVO</option>
-                    <option value="PROCESO">PROCESO</option>
-                    <option value="FINALIZADO">FINALIZADO</option>
-                    <option value="CANCELADO">CANCELADO</option>
-                </InputSelect>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-md-3 mb-2">
-                <label class="form-label">Unidad Asignada</label>
-                <InputText class="form-control" @bind-Value="pedidoSeleccionado.Unidad" placeholder="Unidad" />
-            </div>
-            <div class="col-md-3 mb-2">
-                <label class="form-label">CI Conductor</label>
-                <InputText class="form-control" @bind-Value="pedidoSeleccionado.Ciconductor" placeholder="C.I. Conductor" />
-            </div>
-            <div class="col-md-6 mb-2">
-                <label class="form-label">Conductor</label>
-                <InputText class="form-control" @bind-Value="pedidoSeleccionado.Conductor" placeholder="Nombre Conductor" />
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-md-3 mb-2">
-                <label class="form-label">Precio ($)</label>
-                <InputNumber class="form-control" @bind-Value="pedidoSeleccionado.Precio" placeholder="0.00" />
-            </div>
-            <div class="col-md-3 mb-2">
-                <label class="form-label">Km</label>
-                <InputNumber class="form-control" @bind-Value="pedidoSeleccionado.Km" placeholder="0.00" />
-            </div>
-            <div class="col-md-3 mb-2">
-                <label class="form-label">N° Voucher</label>
-                <InputText class="form-control" @bind-Value="pedidoSeleccionado.Numvoucher" placeholder="Voucher" />
+                    @foreach (var e in empresas)
+                    {
+                        <option value="@e.Ruc">@e.Razonsocial</option>
+                    }
+                </select>
             </div>
             <div class="col-md-3 mb-2">
                 <label class="form-label">Empleado</label>
-                <InputText class="form-control" @bind-Value="pedidoSeleccionado.Empleado" placeholder="Empleado" />
+                <input class="form-control" @bind="pedidoSeleccionado.Empleado" />
             </div>
-        </div>
-
-        <div class="row">
-            <div class="col-md-3 mb-2">
-                <label class="form-label">Origen Latitud</label>
-                <InputNumber class="form-control" @bind-Value="pedidoSeleccionado.Origenlat" />
-            </div>
-            <div class="col-md-3 mb-2">
-                <label class="form-label">Origen Longitud</label>
-                <InputNumber class="form-control" @bind-Value="pedidoSeleccionado.Origenlog" />
-            </div>
-            <div class="col-md-3 mb-2">
-                <label class="form-label">Destino Latitud</label>
-                <InputNumber class="form-control" @bind-Value="pedidoSeleccionado.Destinolat" />
-            </div>
-            <div class="col-md-3 mb-2">
-                <label class="form-label">Destino Longitud</label>
-                <InputNumber class="form-control" @bind-Value="pedidoSeleccionado.Destinolog" />
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-md-3 mb-2 flex-column d-flex justify-content-end pb-2">
+            <div class="col-md-2 mb-2 d-flex align-items-end">
                 <div class="form-check">
-                    <input type="checkbox" class="form-check-input" id="chkAutorizado" 
-                           checked="@(pedidoSeleccionado.Autorizado == "s")" 
-                           @onchange="OnAutorizadoChanged" />
-                    <label class="form-check-label" for="chkAutorizado">Autorizado</label>
-                </div>
-            </div>
-            <div class="col-md-3 mb-2 flex-column d-flex justify-content-end pb-2">
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" id="chkValija" 
-                           checked="@(pedidoSeleccionado.Valija == "s")" 
-                           @onchange="OnValijaChanged" />
+                    <input type="checkbox" class="form-check-input" id="chkValija" checked="@(pedidoSeleccionado.Valija == "s")" @onchange="OnValijaChanged" />
                     <label class="form-check-label" for="chkValija">Valija</label>
                 </div>
             </div>
-            <div class="col-md-6 mb-2">
-                <label class="form-label">RUC Empresa</label>
-                <InputText class="form-control" @bind-Value="pedidoSeleccionado.Ruc" placeholder="RUC" />
+            <div class="col-md-3 mb-2 d-flex align-items-end">
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="chkAutorizado" checked="@(pedidoSeleccionado.Autorizado == "s")" @onchange="OnAutorizadoChanged" />
+                    <label class="form-check-label" for="chkAutorizado">Autorizado</label>
+                </div>
             </div>
         </div>
-    </EditForm>
+    }
+
+    <div class="row">
+        <div class="col-md-6 mb-2">
+            <label class="form-label">Origen</label>
+            <MapaSelector Lat="@origenLat" LatChanged="@((decimal v) => origenLat = v)"
+                          Lng="@origenLng" LngChanged="@((decimal v) => origenLng = v)"
+                          OnCoordenadasChanged="OnCoordenadasCambiaron" Height="250px" />
+        </div>
+        @if (tieneDestino)
+        {
+            <div class="col-md-6 mb-2">
+                <label class="form-label">Destino</label>
+                <MapaSelector Lat="@destinoLat" LatChanged="@((decimal v) => destinoLat = v)"
+                              Lng="@destinoLng" LngChanged="@((decimal v) => destinoLng = v)"
+                              OnCoordenadasChanged="OnCoordenadasCambiaron" Height="250px" />
+            </div>
+        }
+    </div>
+
+    <div class="row">
+        <div class="col-md-3 mb-2">
+            <label class="form-label">Unidad</label>
+            <input class="form-control" @bind="pedidoSeleccionado.Unidad" @bind:after="BuscarConductorUnidad" />
+        </div>
+        <div class="col-md-3 mb-2">
+            <label class="form-label">C.I. Conductor</label>
+            <input class="form-control" @bind="pedidoSeleccionado.Ciconductor" />
+        </div>
+        <div class="col-md-3 mb-2">
+            <label class="form-label">Conductor</label>
+            <input class="form-control" @bind="pedidoSeleccionado.Conductor" />
+        </div>
+        <div class="col-md-3 mb-2 d-flex align-items-end">
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="chkBase" @bind="conRelevo" />
+                <label class="form-check-label" for="chkBase">Asignar unidad de relevo</label>
+            </div>
+        </div>
+    </div>
+
+    @if (conRelevo)
+    {
+        <div class="row bg-light border rounded p-2 mb-2">
+            <div class="col-md-4 mb-2">
+                <label class="form-label">Unidad Siguiente</label>
+                <input class="form-control" @bind="pedidoSeleccionado.Unidadsiguiente" @bind:after="BuscarConductorUnidadSiguiente" />
+            </div>
+            <div class="col-md-4 mb-2">
+                <label class="form-label">C.I. Conductor Siguiente</label>
+                <input class="form-control" @bind="pedidoSeleccionado.Ciconductorsiguiente" />
+            </div>
+            <div class="col-md-4 mb-2">
+                <label class="form-label">Conductor Siguiente</label>
+                <input class="form-control" @bind="pedidoSeleccionado.Conductorsiguiente" />
+            </div>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-3 mb-2">
+            <label class="form-label">Precio ($)</label>
+            <input type="number" step="0.01" class="form-control" @bind="pedidoSeleccionado.Precio" />
+        </div>
+        <div class="col-md-3 mb-2">
+            <label class="form-label">Km</label>
+            <input type="number" step="0.01" class="form-control" @bind="pedidoSeleccionado.Km" />
+        </div>
+        <div class="col-md-6 mb-2">
+            <label class="form-label">Recorrido (referencia)</label>
+            <input class="form-control" @bind="pedidoSeleccionado.Recorrido" />
+        </div>
+    </div>
 
     <div class="d-flex gap-2 mt-3">
         <button class="btn btn-warning" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">Guardar</button>
@@ -211,9 +275,51 @@
     </div>
 </div>
 
+@if (mostrarNotificacion)
+{
+    <div class="modal d-block" style="background-color: rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Notificación del Pedido</h5>
+                    <button type="button" class="btn-close" @onclick="() => mostrarNotificacion = false"></button>
+                </div>
+                <div class="modal-body">
+                    <h6>Mensaje para el Pasajero</h6>
+                    <textarea class="form-control mb-1" rows="4" readonly>@mensajePasajero</textarea>
+                    <div class="d-flex gap-2 mb-3">
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="() => CopiarTexto(mensajePasajero)">Copiar</button>
+                        <a class="btn btn-sm btn-success" href="@EnlaceWhatsapp(pedidoSeleccionado.Celular, mensajePasajero)" target="_blank">Enviar por WhatsApp</a>
+                    </div>
+
+                    <h6>Mensaje para el Conductor</h6>
+                    <textarea class="form-control mb-1" rows="4" readonly>@mensajeConductor</textarea>
+                    <div class="d-flex gap-2 mb-3">
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="() => CopiarTexto(mensajeConductor)">Copiar</button>
+                        <a class="btn btn-sm btn-success" href="@EnlaceWhatsapp(celularConductorNotif, mensajeConductor)" target="_blank">Enviar por WhatsApp</a>
+                    </div>
+
+                    <h6>Ubicación (Google Maps)</h6>
+                    <textarea class="form-control mb-1" rows="1" readonly>@enlaceMapa</textarea>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="() => CopiarTexto(enlaceMapa)">Copiar</button>
+                        <a class="btn btn-sm btn-success" href="@EnlaceWhatsapp(celularConductorNotif, enlaceMapa)" target="_blank">Enviar por WhatsApp</a>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="() => mostrarNotificacion = false">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private List<PedidoDTO> listaPedidos = new();
     private Pedido pedidoSeleccionado = new();
+    private PasajeroDTO pasajeroActual = new();
+    private bool pasajeroExiste = false;
+
     private string filtroCelular = string.Empty;
     private string filtroUnidad = string.Empty;
     private string filtroEstado = string.Empty;
@@ -225,9 +331,27 @@
     private int PageSize = 8;
     private int TotalRegistros = 0;
 
+    private bool facturarAEmpresa = false;
+    private bool conRelevo = false;
+    private bool tieneDestino = true;
+    private List<EmpresaDTO> empresas = new();
+
+    // Coordenada placeholder para "sin destino definido todavia" (igual criterio que el sistema legado).
+    private const decimal LatSinDestino = -0.380284m;
+    private const decimal LngSinDestino = -91.5448445m;
+
+    private decimal origenLat, origenLng, destinoLat, destinoLng;
+
+    private bool mostrarNotificacion = false;
+    private string mensajePasajero = string.Empty;
+    private string mensajeConductor = string.Empty;
+    private string enlaceMapa = string.Empty;
+    private string celularConductorNotif = string.Empty;
+
     protected override async Task OnInitializedAsync()
     {
         pedidoSeleccionado.Fecharegistro = DateTime.Now;
+        empresas = await empresaRepo.GetEmpresaInfoAll();
         await CargarPedidosAsync();
     }
 
@@ -236,8 +360,8 @@
         try
         {
             var resultado = await pedidoRepo.GetPedidosPaginados(
-                PaginaActual, PageSize, 
-                filtroCelular, filtroUnidad, filtroEstado, 
+                PaginaActual, PageSize,
+                filtroCelular, filtroUnidad, filtroEstado,
                 filtroFechaDesde, filtroFechaHasta);
 
             listaPedidos = resultado.Items ?? new();
@@ -294,6 +418,12 @@
                 Estado = p.Estado,
                 Autorizado = p.Autorizado
             };
+
+        origenLat = p.Origenlat; origenLng = p.Origenlog;
+        destinoLat = p.Destinolat; destinoLng = p.Destinolog;
+        tieneDestino = !(destinoLat == LatSinDestino && destinoLng == LngSinDestino);
+        facturarAEmpresa = !string.IsNullOrEmpty(p.Ruc);
+        conRelevo = !string.IsNullOrEmpty(p.Unidadsiguiente);
         esNuevo = false;
     }
 
@@ -306,35 +436,183 @@
                 Autorizado = "n",
                 Valija = "n"
             };
+        pasajeroActual = new PasajeroDTO();
+        pasajeroExiste = false;
+        facturarAEmpresa = false;
+        conRelevo = false;
+        tieneDestino = true;
+        origenLat = 0; origenLng = 0; destinoLat = 0; destinoLng = 0;
         esNuevo = true;
     }
 
-    private void OnAutorizadoChanged(ChangeEventArgs e)
+    private async Task BuscarPasajero()
     {
-        bool isChecked = (bool)(e.Value ?? false);
-        pedidoSeleccionado.Autorizado = isChecked ? "s" : "n";
+        if (string.IsNullOrWhiteSpace(pedidoSeleccionado.Celular))
+            return;
+
+        try
+        {
+            var encontrado = await pasajeroRepo.GetPasajeroByCelular(pedidoSeleccionado.Celular);
+            if (encontrado != null)
+            {
+                pasajeroActual = encontrado;
+                pasajeroExiste = true;
+            }
+            else
+            {
+                pasajeroActual = new PasajeroDTO { Celular = pedidoSeleccionado.Celular };
+                pasajeroExiste = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al buscar el pasajero: " + ex.Message);
+        }
+    }
+
+    private async Task GuardarPasajero()
+    {
+        if (string.IsNullOrWhiteSpace(pedidoSeleccionado.Celular))
+        {
+            await displayMessage.DisplayErrorMessage("Ingrese el celular del pasajero primero.");
+            return;
+        }
+
+        try
+        {
+            pasajeroActual.Celular = pedidoSeleccionado.Celular;
+            var entidad = new Pasajero
+                {
+                    Celular = pasajeroActual.Celular,
+                    Nombres = pasajeroActual.Nombres,
+                    Observacion = pasajeroActual.Observacion,
+                    Correo = pasajeroActual.Correo,
+                    Sexo = pasajeroActual.Sexo,
+                    Whatsapp = pasajeroActual.Whatsapp,
+                    Publicidad = pasajeroActual.Publicidad
+                };
+
+            if (pasajeroExiste)
+                await pasajeroRepo.UpdatePasajero(entidad);
+            else
+                await pasajeroRepo.InsertPasajero(entidad);
+
+            pasajeroExiste = true;
+            await displayMessage.DisplaySuccessMessage("Datos del pasajero guardados.");
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al guardar el pasajero: " + ex.Message);
+        }
+    }
+
+    private void OnEmpresaChanged(ChangeEventArgs e)
+    {
+        pedidoSeleccionado.Ruc = e.Value?.ToString();
     }
 
     private void OnValijaChanged(ChangeEventArgs e)
     {
-        bool isChecked = (bool)(e.Value ?? false);
-        pedidoSeleccionado.Valija = isChecked ? "s" : "n";
+        pedidoSeleccionado.Valija = ((bool)(e.Value ?? false)) ? "s" : "n";
+    }
+
+    private void OnAutorizadoChanged(ChangeEventArgs e)
+    {
+        pedidoSeleccionado.Autorizado = ((bool)(e.Value ?? false)) ? "s" : "n";
+    }
+
+    private void OnTieneDestinoChanged()
+    {
+        if (!tieneDestino)
+        {
+            destinoLat = LatSinDestino;
+            destinoLng = LngSinDestino;
+        }
+    }
+
+    private async Task BuscarConductorUnidad()
+    {
+        if (string.IsNullOrWhiteSpace(pedidoSeleccionado.Unidad)) return;
+
+        var conductor = await pedidoRepo.GetConductorPorUnidad(pedidoSeleccionado.Unidad);
+        if (conductor != null)
+        {
+            pedidoSeleccionado.Ciconductor = conductor.Cedula;
+            pedidoSeleccionado.Conductor = conductor.NombreCompleto;
+        }
+    }
+
+    private async Task BuscarConductorUnidadSiguiente()
+    {
+        if (string.IsNullOrWhiteSpace(pedidoSeleccionado.Unidadsiguiente)) return;
+
+        var conductor = await pedidoRepo.GetConductorPorUnidad(pedidoSeleccionado.Unidadsiguiente);
+        if (conductor != null)
+        {
+            pedidoSeleccionado.Ciconductorsiguiente = conductor.Cedula;
+            pedidoSeleccionado.Conductorsiguiente = conductor.NombreCompleto;
+        }
+    }
+
+    private async Task OnCoordenadasCambiaron()
+    {
+        pedidoSeleccionado.Origenlat = origenLat;
+        pedidoSeleccionado.Origenlog = origenLng;
+        pedidoSeleccionado.Destinolat = tieneDestino ? destinoLat : LatSinDestino;
+        pedidoSeleccionado.Destinolog = tieneDestino ? destinoLng : LngSinDestino;
+
+        // Si ya hay celular + origen + destino, intenta reutilizar precio/km de un pedido anterior identico.
+        if (!string.IsNullOrWhiteSpace(pedidoSeleccionado.Celular) && tieneDestino
+            && origenLat != 0 && destinoLat != 0
+            && (pedidoSeleccionado.Precio is null or 0) && (pedidoSeleccionado.Km is null or 0))
+        {
+            try
+            {
+                var historico = await pedidoRepo.GetPrecioKmHistorico(pedidoSeleccionado.Celular, origenLat, origenLng, destinoLat, destinoLng);
+                if (historico != null)
+                {
+                    pedidoSeleccionado.Precio = historico.Precio;
+                    pedidoSeleccionado.Km = historico.Km;
+                }
+            }
+            catch
+            {
+                // Sin historico o error de red: el usuario ingresa precio/km manualmente. No es bloqueante.
+            }
+        }
+        StateHasChanged();
     }
 
     private async Task GuardarCambios()
     {
         try
         {
-            // Limpieza básica y mayúsculas
+            pedidoSeleccionado.Origenlat = origenLat;
+            pedidoSeleccionado.Origenlog = origenLng;
+            pedidoSeleccionado.Destinolat = tieneDestino ? destinoLat : LatSinDestino;
+            pedidoSeleccionado.Destinolog = tieneDestino ? destinoLng : LngSinDestino;
+
+            if (!conRelevo)
+            {
+                pedidoSeleccionado.Unidadsiguiente = null;
+                pedidoSeleccionado.Ciconductorsiguiente = null;
+                pedidoSeleccionado.Conductorsiguiente = null;
+            }
+
+            if (!facturarAEmpresa)
+            {
+                pedidoSeleccionado.Ruc = null;
+                pedidoSeleccionado.Empleado = null;
+            }
+
             if (pedidoSeleccionado.Conductor != null)
                 pedidoSeleccionado.Conductor = pedidoSeleccionado.Conductor.ToUpper();
-            if (pedidoSeleccionado.Empleado != null)
-                pedidoSeleccionado.Empleado = pedidoSeleccionado.Empleado.ToUpper();
 
             if (esNuevo)
             {
                 pedidoSeleccionado.Fecharegistro = DateTime.Now;
                 await pedidoRepo.InsertPedido(pedidoSeleccionado);
+                await MostrarNotificacion();
             }
             else
             {
@@ -342,8 +620,7 @@
             }
 
             await CargarPedidosAsync();
-            pedidoSeleccionado = new Pedido { Fecharegistro = DateTime.Now };
-            esNuevo = false;
+            NuevoRegistro();
         }
         catch (Exception ex)
         {
@@ -351,10 +628,59 @@
         }
     }
 
+    private async Task MostrarNotificacion()
+    {
+        celularConductorNotif = string.Empty;
+        if (!string.IsNullOrWhiteSpace(pedidoSeleccionado.Ciconductor))
+        {
+            try
+            {
+                var fichaConductor = await fichaRepo.GetFichaPersonalById(pedidoSeleccionado.Ciconductor);
+                celularConductorNotif = fichaConductor?.Celular ?? string.Empty;
+            }
+            catch
+            {
+                // Si no se encuentra el celular del conductor, los botones de WhatsApp del conductor
+                // quedan sin numero prellenado; el usuario puede copiar el texto igual.
+            }
+        }
+
+        var tiempo = pedidoSeleccionado.Tiempodemora ?? 0;
+
+        mensajePasajero = "RADIO CLUB DE TAXI LA CONCORDIA.\n" +
+            "DATOS DE LA UNIDAD ASIGNADA\n" +
+            $"Conductor: {pedidoSeleccionado.Conductor}\n" +
+            $"Unidad: {pedidoSeleccionado.Unidad}\n" +
+            $"Tiempo de llegada: {tiempo} min\n" +
+            $"Precio: {pedidoSeleccionado.Precio:0.00}\n" +
+            "Por su seguridad, espere la llamada del conductor.";
+
+        mensajeConductor = "RADIO CLUB DE TAXI LA CONCORDIA.\n" +
+            "DATOS DEL PASAJERO ASIGNADO\n" +
+            $"Nombre: {pasajeroActual.Nombres}\n" +
+            $"Celular: +{pedidoSeleccionado.Celular}\n" +
+            $"Precio: {pedidoSeleccionado.Precio:0.00}";
+
+        enlaceMapa = $"https://www.google.com/maps/search/{origenLat},{origenLng}";
+
+        mostrarNotificacion = true;
+    }
+
+    private string EnlaceWhatsapp(string? telefono, string mensaje)
+    {
+        var numero = (telefono ?? string.Empty).Trim();
+        return $"https://wa.me/{numero}?text={Uri.EscapeDataString(mensaje)}";
+    }
+
+    private async Task CopiarTexto(string texto)
+    {
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", texto);
+        await displayMessage.DisplaySuccessMessage("Copiado al portapapeles.");
+    }
+
     private void CancelarEdicion()
     {
-        pedidoSeleccionado = new Pedido { Fecharegistro = DateTime.Now };
-        esNuevo = false;
+        NuevoRegistro();
     }
 
     private async Task OnPageChangedAsync(int nuevaPagina)
@@ -363,5 +689,8 @@
         await CargarPedidosAsync();
     }
 
-    private bool PuedeGuardar => !string.IsNullOrWhiteSpace(pedidoSeleccionado.Celular) && !string.IsNullOrWhiteSpace(pedidoSeleccionado.Unidad);
+    private bool PuedeGuardar => !string.IsNullOrWhiteSpace(pedidoSeleccionado.Celular)
+        && !string.IsNullOrWhiteSpace(pedidoSeleccionado.Unidad)
+        && pedidoSeleccionado.Tiempodemora.HasValue
+        && origenLat != 0;
 }

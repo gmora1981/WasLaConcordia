@@ -29,4 +29,16 @@ namespace LaConcordia.DTO
         public string? Estado { get; set; }
         public string? Autorizado { get; set; }
     }
+
+    public class ConductorInfoDTO
+    {
+        public string Cedula { get; set; } = null!;
+        public string? NombreCompleto { get; set; }
+    }
+
+    public class PrecioKmDTO
+    {
+        public decimal Precio { get; set; }
+        public decimal Km { get; set; }
+    }
 }

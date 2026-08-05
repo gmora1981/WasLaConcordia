@@ -65,5 +65,23 @@ namespace LaConcordia.Repository
                 throw new Exception("Hubo un error al obtener los Pedidos paginados.", ex);
             }
         }
+
+        public async Task<ConductorInfoDTO?> GetConductorPorUnidad(string unidad)
+        {
+            try
+            {
+                return await _httpClient.GetFromJsonAsync<ConductorInfoDTO>($"api/Pedido/GetConductorPorUnidad/{unidad}");
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return null;
+            }
+        }
+
+        public async Task<PrecioKmDTO?> GetPrecioKmHistorico(string celular, decimal origenLat, decimal origenLog, decimal destinoLat, decimal destinoLog)
+        {
+            var url = $"api/Pedido/GetPrecioKmHistorico?celular={Uri.EscapeDataString(celular)}&origenLat={origenLat}&origenLog={origenLog}&destinoLat={destinoLat}&destinoLog={destinoLog}";
+            return await _httpClient.GetFromJsonAsync<PrecioKmDTO?>(url);
+        }
     }
 }

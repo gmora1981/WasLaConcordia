@@ -16,5 +16,9 @@ namespace LaConcordia.Interface
             string? estado = null,
             DateTime? fechaDesde = null,
             DateTime? fechaHasta = null);
+
+        Task<ConductorInfoDTO?> GetConductorPorUnidad(string unidad);
+
+        Task<PrecioKmDTO?> GetPrecioKmHistorico(string celular, decimal origenLat, decimal origenLog, decimal destinoLat, decimal destinoLog);
     }
 }
