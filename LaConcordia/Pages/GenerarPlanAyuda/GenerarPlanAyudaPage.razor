@@ -1,0 +1,149 @@
+@page "/generar-plan-ayuda"
+@using LaConcordia.DTO
+@using LaConcordia.Interface
+@inject IGenerarPlanAyuda planAyudaRepo
+@inject IFichapersonal fichaRepo
+@inject IDisplayMessage displayMessage
+
+<h3>Generar Plan de Ayuda</h3>
+<p class="text-muted">Cobra un valor a todos los socios activos a favor de un beneficiario registrado del afiliado.</p>
+
+<div class="d-flex gap-2 align-items-end mb-3" style="max-width: 700px;">
+    <div class="flex-grow-1">
+        <label>Cédula del afiliado</label>
+        <input class="form-control" @bind="cedulaBuscar" />
+    </div>
+    <button class="btn btn-secondary" @onclick="BuscarAfiliado">Buscar</button>
+</div>
+
+@if (afiliado != null)
+{
+    <p><strong>@afiliado.Apellidos @afiliado.Nombre</strong> — C.I. @afiliado.Cedula</p>
+
+    <h5>Beneficiarios registrados</h5>
+    <table class="table table-bordered table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th></th>
+                <th>C.I.</th>
+                <th>Nombres</th>
+                <th>Apellidos</th>
+                <th>Teléfono</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (beneficiarios.Count > 0)
+            {
+                @foreach (var b in beneficiarios)
+                {
+                    <tr @onclick="() => SeleccionarBeneficiario(b)"
+                        class="@(beneficiarioSeleccionado?.CiBeneficiario == b.CiBeneficiario ? "table-primary" : "")"
+                        style="cursor:pointer;">
+                        <td><input type="radio" checked="@(beneficiarioSeleccionado?.CiBeneficiario == b.CiBeneficiario)" /></td>
+                        <td>@b.CiBeneficiario</td>
+                        <td>@b.Nombres</td>
+                        <td>@b.Apellidos</td>
+                        <td>@b.Telefono</td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="5" class="text-center">Este afiliado no tiene beneficiarios activos registrados.</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    @if (beneficiarioSeleccionado != null)
+    {
+        <div class="border rounded p-3 mt-2" style="max-width: 500px;">
+            <div class="mb-2">
+                <label>Valor a cobrar a cada socio</label>
+                <input class="form-control" type="number" step="0.01" min="0" @bind="valor" />
+            </div>
+            <div class="mb-2">
+                <label>Observación</label>
+                <textarea class="form-control" @bind="observacion"></textarea>
+            </div>
+            <button class="btn btn-primary mt-2" @onclick="Generar" disabled="@(!PuedeGenerar)">Generar</button>
+        </div>
+    }
+}
+
+@code {
+    private string cedulaBuscar = string.Empty;
+    private FichapersonalDTO? afiliado;
+    private List<BeneficiarioDTO> beneficiarios = new();
+    private BeneficiarioDTO? beneficiarioSeleccionado;
+
+    private decimal? valor;
+    private string observacion = string.Empty;
+
+    private bool PuedeGenerar => valor.HasValue && valor.Value > 0;
+
+    private async Task BuscarAfiliado()
+    {
+        if (string.IsNullOrWhiteSpace(cedulaBuscar))
+            return;
+
+        try
+        {
+            afiliado = await fichaRepo.GetFichaPersonalById(cedulaBuscar);
+            if (afiliado == null)
+            {
+                await displayMessage.DisplayErrorMessage("No se encontró un afiliado con esa cédula.");
+                return;
+            }
+            beneficiarios = await planAyudaRepo.GetBeneficiariosPorAfiliado(afiliado.Cedula);
+            beneficiarioSeleccionado = null;
+            observacion = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al buscar el afiliado: " + ex.Message);
+        }
+    }
+
+    private void SeleccionarBeneficiario(BeneficiarioDTO b)
+    {
+        beneficiarioSeleccionado = b;
+        observacion = $"Ayuda para {b.Nombres} {b.Apellidos} con C.I. {b.CiBeneficiario}";
+    }
+
+    private async Task Generar()
+    {
+        if (beneficiarioSeleccionado == null || afiliado == null) return;
+
+        try
+        {
+            var yaGenerado = await planAyudaRepo.YaFueGenerado(beneficiarioSeleccionado.CiBeneficiario);
+            if (yaGenerado)
+            {
+                await displayMessage.DisplayErrorMessage("Ya se generó el plan de ayuda para este beneficiario.");
+                return;
+            }
+
+            var request = new GenerarPlanAyudaRequestDTO
+                {
+                    Beneficiario = beneficiarioSeleccionado.CiBeneficiario,
+                    CiAfiliado = afiliado.Cedula,
+                    Observacion = observacion,
+                    Valor = valor!.Value
+                };
+
+            var resultado = await planAyudaRepo.GenerarPlanAyuda(request);
+            await displayMessage.DisplaySuccessMessage($"Período generado con éxito. Se cobró a {resultado.TotalGenerados} socios.");
+
+            beneficiarios = await planAyudaRepo.GetBeneficiariosPorAfiliado(afiliado.Cedula);
+            beneficiarioSeleccionado = null;
+            valor = null;
+            observacion = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al generar el plan de ayuda: " + ex.Message);
+        }
+    }
+}
