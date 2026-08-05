@@ -50,6 +50,7 @@ builder.Services.AddScoped<ISegurovidum, SegurovidumRepository>();
 builder.Services.AddScoped<IPasajero, PasajeroRepository>();
 builder.Services.AddScoped<IPedido, PedidoRepository>();
 builder.Services.AddScoped<IFlujoCaja, FlujoCajaRepository>();
+builder.Services.AddScoped<IGenerarCuota, GenerarCuotaRepository>();
 
 configureservices(builder.Services);
 

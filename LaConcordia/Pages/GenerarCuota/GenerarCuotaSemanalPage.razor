@@ -1,0 +1,113 @@
+@page "/generar-cuota-semanal"
+@using LaConcordia.DTO
+@using LaConcordia.Interface
+@inject IGenerarCuota generarCuotaRepo
+@inject IDisplayMessage displayMessage
+
+<h3>Generar Cuota Semanal</h3>
+
+<div class="d-flex gap-2 align-items-end mb-3">
+    <div>
+        <label>Año</label>
+        <select class="form-select" @bind="anio">
+            <option value="">--</option>
+            @for (int a = DateTime.Now.Year - 1; a <= DateTime.Now.Year + 1; a++)
+            {
+                <option value="@a">@a</option>
+            }
+        </select>
+    </div>
+    <div>
+        <label>Mes</label>
+        <select class="form-select" @bind="mes">
+            <option value="">--</option>
+            @for (int m = 1; m <= 12; m++)
+            {
+                <option value="@m.ToString("00")">@m.ToString("00")</option>
+            }
+        </select>
+    </div>
+    <div>
+        <label>Semana</label>
+        <select class="form-select" @bind="semana">
+            <option value="">--</option>
+            @for (int s = 1; s <= 5; s++)
+            {
+                <option value="@s">@s</option>
+            }
+        </select>
+    </div>
+    <button class="btn btn-secondary" @onclick="Mostrar" disabled="@(!PuedeMostrar)">Mostrar</button>
+    <button class="btn btn-primary" @onclick="Generar" disabled="@(!PuedeGenerar)">Generar</button>
+</div>
+
+<p class="text-muted">Total de socios pendientes: @pendientes.Count</p>
+
+<table class="table table-bordered table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>Cédula</th>
+            <th>Apellidos</th>
+            <th>Nombre</th>
+            <th>Cuota Semanal</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (pendientes.Count > 0)
+        {
+            @foreach (var item in pendientes)
+            {
+                <tr>
+                    <td>@item.Cedula</td>
+                    <td>@item.Apellidos</td>
+                    <td>@item.Nombre</td>
+                    <td>@item.Cuotaf?.ToString("0.00")</td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="4" class="text-center">Seleccione año, mes y semana, y presione "Mostrar".</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private string anio = string.Empty;
+    private string mes = string.Empty;
+    private string semana = string.Empty;
+    private List<PendienteCuotaDTO> pendientes = new();
+
+    private string Periodo => anio + mes;
+
+    private bool PuedeMostrar => !string.IsNullOrEmpty(anio) && !string.IsNullOrEmpty(mes) && !string.IsNullOrEmpty(semana);
+    private bool PuedeGenerar => PuedeMostrar && pendientes.Count > 0;
+
+    private async Task Mostrar()
+    {
+        try
+        {
+            pendientes = await generarCuotaRepo.GetPendientesPorPeriodo(Periodo, semana);
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al consultar pendientes: " + ex.Message);
+        }
+    }
+
+    private async Task Generar()
+    {
+        try
+        {
+            var resultado = await generarCuotaRepo.GenerarCuotaSemanal(Periodo, semana);
+            await displayMessage.DisplaySuccessMessage($"Período generado con éxito. Se generaron {resultado.TotalGenerados} cuotas.");
+            pendientes.Clear();
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al generar el período: " + ex.Message);
+        }
+    }
+}
