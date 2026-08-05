@@ -55,6 +55,7 @@ builder.Services.AddScoped<IGenerarMulta, GenerarMultaRepository>();
 builder.Services.AddScoped<IGenerarPlanAyuda, GenerarPlanAyudaRepository>();
 builder.Services.AddScoped<IGenerarPlanChoque, GenerarPlanChoqueRepository>();
 builder.Services.AddScoped<IPagos, PagosRepository>();
+builder.Services.AddScoped<IBalance, BalanceRepository>();
 
 configureservices(builder.Services);
 
