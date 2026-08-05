@@ -1,0 +1,111 @@
+@page "/flujo-caja"
+@using LaConcordia.DTO
+@using LaConcordia.Interface
+@using LaConcordia.Pagination
+@inject IFlujoCaja flujoCajaRepo
+@inject IDisplayMessage displayMessage
+
+<h3>Flujo de Caja</h3>
+
+<div class="mb-3 d-flex gap-2 align-items-end">
+    <div>
+        <label>Desde</label>
+        <input type="date" class="form-control" @bind="fechaDesde" />
+    </div>
+    <div>
+        <label>Hasta</label>
+        <input type="date" class="form-control" @bind="fechaHasta" />
+    </div>
+    <div class="flex-grow-1">
+        <label>Concepto</label>
+        <input type="text" class="form-control" placeholder="Buscar por concepto..." @bind="concepto" />
+    </div>
+    <button class="btn btn-success" @onclick="Buscar">Buscar</button>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mt-3">
+    <p class="text-muted mb-0">Total: @TotalRegistros | Página: @PaginaActual</p>
+    <Pagination TotalItems="@TotalRegistros"
+                PageSize="@PageSize"
+                CurrentPage="@PaginaActual"
+                OnPageChanged="OnPageChangedAsync" />
+</div>
+
+<table class="table table-bordered table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>Fecha</th>
+            <th>Concepto</th>
+            <th>Ingreso</th>
+            <th>Egreso</th>
+            <th>Saldo</th>
+            <th>Observación</th>
+            <th>Usuario</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (lista != null && lista.Count > 0)
+        {
+            @foreach (var item in lista)
+            {
+                <tr>
+                    <td>@item.Fecha?.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td>@item.Concepto</td>
+                    <td class="text-success">@(item.Ingreso is > 0 ? item.Ingreso?.ToString("0.00") : "")</td>
+                    <td class="text-danger">@(item.Egreso is > 0 ? item.Egreso?.ToString("0.00") : "")</td>
+                    <td>@item.Saldo?.ToString("0.00")</td>
+                    <td>@item.Observacion</td>
+                    <td>@item.Usuario</td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="7" class="text-center">No se encontraron movimientos.</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<FlujoCajaDTO> lista = new();
+    private DateTime? fechaDesde;
+    private DateTime? fechaHasta;
+    private string concepto = string.Empty;
+
+    private int PaginaActual = 1;
+    private int PageSize = 10;
+    private int TotalRegistros = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        try
+        {
+            var resultado = await flujoCajaRepo.GetFlujoCajaPaginados(PaginaActual, PageSize, fechaDesde, fechaHasta, concepto);
+            lista = resultado.Items ?? new();
+            TotalRegistros = resultado.TotalItems;
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al cargar el flujo de caja: " + ex.Message);
+        }
+    }
+
+    private async Task Buscar()
+    {
+        PaginaActual = 1;
+        await CargarAsync();
+    }
+
+    private async Task OnPageChangedAsync(int nuevaPagina)
+    {
+        PaginaActual = nuevaPagina;
+        await CargarAsync();
+    }
+}

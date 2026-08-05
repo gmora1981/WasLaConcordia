@@ -49,6 +49,7 @@ builder.Services.AddScoped<IFichaobservacione, FichaobservacioneRepository>();
 builder.Services.AddScoped<ISegurovidum, SegurovidumRepository>();
 builder.Services.AddScoped<IPasajero, PasajeroRepository>();
 builder.Services.AddScoped<IPedido, PedidoRepository>();
+builder.Services.AddScoped<IFlujoCaja, FlujoCajaRepository>();
 
 configureservices(builder.Services);
 
