@@ -1,0 +1,150 @@
+@page "/generar-multa"
+@using LaConcordia.DTO
+@using LaConcordia.Interface
+@inject IGenerarMulta generarMultaRepo
+@inject IFichapersonal fichaRepo
+@inject IDisplayMessage displayMessage
+
+<h3>Generar Multa</h3>
+
+<div class="d-flex gap-2 align-items-end mb-3" style="max-width: 700px;">
+    <div class="flex-grow-1">
+        <label>Cédula del socio</label>
+        <input class="form-control" @bind="cedulaBuscar" />
+    </div>
+    <button class="btn btn-secondary" @onclick="BuscarSocio">Buscar</button>
+</div>
+
+@if (socio != null)
+{
+    <p><strong>@socio.Apellidos @socio.Nombre</strong> — C.I. @socio.Cedula</p>
+
+    <div class="border rounded p-3" style="max-width: 500px;">
+        <div class="mb-2">
+            <label>Tipo de multa</label>
+            <select class="form-select" @bind="tipo">
+                <option value="">-- Seleccione --</option>
+                <option value="INASISTENCIA">Inasistencia</option>
+                <option value="DISCIPLINARIA">Disciplinaria</option>
+                <option value="OTRA">Otra</option>
+            </select>
+        </div>
+
+        <div class="mb-2">
+            <label>Valor</label>
+            <input class="form-control" type="number" step="0.01" min="0" @bind="valor" />
+        </div>
+
+        <div class="mb-2">
+            <label>Observación</label>
+            <textarea class="form-control" @bind="observacion"></textarea>
+        </div>
+
+        <button class="btn btn-primary mt-2" @onclick="Generar" disabled="@(!PuedeGenerar)">Generar</button>
+    </div>
+
+    <h5 class="mt-4">Multas registradas</h5>
+    <table class="table table-bordered table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Fecha</th>
+                <th>Tipo</th>
+                <th>Valor</th>
+                <th>Abono</th>
+                <th>Saldo</th>
+                <th>Observación</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (historial.Count > 0)
+            {
+                @foreach (var m in historial)
+                {
+                    <tr>
+                        <td>@m.Idmulta</td>
+                        <td>@m.Fecha.ToString("dd/MM/yyyy")</td>
+                        <td>@m.Tipo</td>
+                        <td>@m.Valor?.ToString("0.00")</td>
+                        <td>@m.Abono?.ToString("0.00")</td>
+                        <td>@((m.Valor - m.Abono)?.ToString("0.00"))</td>
+                        <td>@m.Observacion</td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="7" class="text-center">Sin multas registradas.</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private string cedulaBuscar = string.Empty;
+    private FichapersonalDTO? socio;
+    private List<GenerarMultaDTO> historial = new();
+
+    private string tipo = string.Empty;
+    private decimal? valor;
+    private string observacion = string.Empty;
+
+    private bool PuedeGenerar => !string.IsNullOrEmpty(tipo) && valor.HasValue && valor.Value > 0;
+
+    private async Task BuscarSocio()
+    {
+        if (string.IsNullOrWhiteSpace(cedulaBuscar))
+            return;
+
+        try
+        {
+            socio = await fichaRepo.GetFichaPersonalById(cedulaBuscar);
+            if (socio == null)
+            {
+                await displayMessage.DisplayErrorMessage("No se encontró un socio con esa cédula.");
+                return;
+            }
+            await CargarHistorial();
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al buscar el socio: " + ex.Message);
+        }
+    }
+
+    private async Task CargarHistorial()
+    {
+        if (socio == null) return;
+        historial = await generarMultaRepo.GetMultasPorSocio(socio.Cedula);
+    }
+
+    private async Task Generar()
+    {
+        if (socio == null) return;
+
+        try
+        {
+            var nueva = new GenerarMultaDTO
+                {
+                    Cidentidad = socio.Cedula,
+                    Tipo = tipo,
+                    Valor = valor,
+                    Observacion = observacion
+                };
+
+            await generarMultaRepo.InsertGenerarMulta(nueva);
+            await displayMessage.DisplaySuccessMessage("El registro se guardó con éxito.");
+
+            tipo = string.Empty;
+            valor = null;
+            observacion = string.Empty;
+            await CargarHistorial();
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al generar la multa: " + ex.Message);
+        }
+    }
+}
