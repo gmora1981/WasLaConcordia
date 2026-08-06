@@ -577,7 +577,22 @@
 
     private void ToggleRole(string roleName, bool isChecked)
     {
-        pendingRoleChanges[roleName] = isChecked;
+        // El checkbox recalcula su estado en cada render y en Blazor eso a veces dispara
+        // un "onchange" con el MISMO valor que ya tenia el usuario (sin que nadie lo haya
+        // tocado). Si el valor deseado coincide con el rol actual, no es un cambio real:
+        // se descarta para no reintentar asignar/quitar algo que ya esta asi.
+        var yaLoTiene = selectedUser != null
+            && userRoles.ContainsKey(selectedUser.UserId)
+            && userRoles[selectedUser.UserId].Contains(roleName);
+
+        if (isChecked == yaLoTiene)
+        {
+            pendingRoleChanges.Remove(roleName);
+        }
+        else
+        {
+            pendingRoleChanges[roleName] = isChecked;
+        }
     }
 
     private async Task SaveRoles()
