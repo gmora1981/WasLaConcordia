@@ -140,9 +140,10 @@ code {
     margin-left: 0.5rem;
 }
 
-/* Contenedor del submenu: linea guia vertical que lo conecta con el padre */
+/* Contenedor del submenu: linea guia vertical que lo conecta con el padre,
+   con espacio a la derecha para que los items no lleguen hasta el borde del sidebar */
 .dropdown-wrapper-blazor {
-    padding: 0.15rem 0 0.15rem 0;
+    padding: 0.15rem 1.25rem 0.15rem 0;
     margin-left: 1.1rem;
     border-left: 2px solid rgba(255, 255, 255, 0.15);
     background: transparent;
@@ -165,7 +166,7 @@ code {
        usando los mismos colores que el resto del menu (sidebar oscuro) */
     .dropdown-blazor .dropdown-item {
         display: block;
-        padding: 0.35rem 0.75rem 0.35rem 1rem;
+        padding: 0.35rem 0.5rem 0.35rem 1rem;
         color: #d7d7d7;
         text-decoration: none;
         border-radius: 0.25rem;
