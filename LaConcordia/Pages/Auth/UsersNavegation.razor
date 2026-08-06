@@ -22,10 +22,11 @@
             <div style="display: flex; gap: 1rem; align-items: center;">
                 <div class="search-box">
                     <i class="fas fa-search"></i>
-                    <input type="text" 
-                           placeholder="Buscar usuarios..." 
-                           @bind="searchTerm" 
+                    <input type="text"
+                           placeholder="Buscar usuarios..."
+                           @bind="searchTerm"
                            @bind:event="oninput"
+                           @onkeyup="OnSearchTermChanged"
                            @onkeypress="@(async (e) => { if (e.Key == "Enter") await SearchUsers(); })" />
                     @if (!string.IsNullOrEmpty(searchTerm))
                     {
@@ -319,15 +320,18 @@
     private PaginationDTO paginationDTO = new() { RecordsPerPage = 10 };
     private int totalAmountOfPages;
 
-    // Propiedad para searchTerm con filtrado automático
+    // El filtrado ya no es local: cada cambio dispara una busqueda al servidor
+    // (ver OnSearchTermChanged) contra TODOS los usuarios, no solo la pagina cargada.
     private string searchTerm
     {
         get => _searchTerm;
-        set
-        {
-            _searchTerm = value;
-            FilterUsers();
-        }
+        set => _searchTerm = value;
+    }
+
+    private async Task OnSearchTermChanged()
+    {
+        paginationDTO.Page = 1;
+        await LoadUsers();
     }
 
     protected override async Task OnInitializedAsync()
@@ -427,7 +431,9 @@
 
     private async Task LoadUsers()
     {
-        var paginatedResponse = await usersRepository.GetUsers(paginationDTO);
+        // Se usa SIEMPRE el endpoint de busqueda paginada (con termino vacio cuando no hay
+        // filtro): asi la busqueda alcanza a TODOS los usuarios, no solo a los ya cargados.
+        var paginatedResponse = await usersRepository.SearchUsersPaginated(_searchTerm, paginationDTO);
         users = paginatedResponse.Response;
         totalAmountOfPages = paginatedResponse.TotalAmountPages;
         FilterUsers();
@@ -456,22 +462,10 @@
         }
     }
 
+    // La lista que trae LoadUsers() ya viene filtrada (y paginada) desde el servidor.
     private void FilterUsers()
     {
-        if (string.IsNullOrWhiteSpace(_searchTerm))
-        {
-            filteredUsers = new List<UserDTO>(users);
-        }
-        else
-        {
-            var searchLower = _searchTerm.ToLower();
-            filteredUsers = users.Where(u => 
-                u.Email.ToLower().Contains(searchLower) ||
-                u.FirstName.ToLower().Contains(searchLower) ||
-                u.LastName.ToLower().Contains(searchLower) ||
-                $"{u.FirstName} {u.LastName}".ToLower().Contains(searchLower)
-            ).ToList();
-        }
+        filteredUsers = new List<UserDTO>(users);
         StateHasChanged();
     }
 
@@ -680,14 +674,13 @@
 
     private async Task SearchUsers()
     {
-        FilterUsers();
-        await Task.CompletedTask;
+        await OnSearchTermChanged();
     }
 
-    private void ClearSearch()
+    private async Task ClearSearch()
     {
         searchTerm = "";
-        FilterUsers();
+        await OnSearchTermChanged();
     }
 
     private string GetRoleClass(string role)
