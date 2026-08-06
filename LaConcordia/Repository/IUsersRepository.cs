@@ -19,6 +19,7 @@ namespace LaConcordia.Repository
         // Gestión de roles
         Task<List<RoleDTO>> GetRoles();
         Task<List<string>> GetUserRoles(string userId);
+        Task<Dictionary<string, List<string>>> GetAllUserRoles();
         Task AssignRole(EditRoleDTO editRole);
         Task RemoveRole(EditRoleDTO editRole);
         Task<List<RoleInfoDTO>> GetRolesInfo();

@@ -64,6 +64,11 @@ namespace LaConcordia.Repository
             return await httpService.GetHelper<List<string>>($"{baseURL}/users/{userId}/roles");
         }
 
+        public async Task<Dictionary<string, List<string>>> GetAllUserRoles()
+        {
+            return await httpService.GetHelper<Dictionary<string, List<string>>>($"{baseURL}/users/roles-bulk");
+        }
+
         public async Task UpdateUser(UserEditDTO user)
         {
             var response = await httpService.Put<UserEditDTO, object>($"{baseURL}/users/{user.UserId}", user);

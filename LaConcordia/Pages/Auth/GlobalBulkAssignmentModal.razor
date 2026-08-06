@@ -337,18 +337,22 @@
             // Cargar roles
             roles = await usersRepository.GetRoles();
 
-            // Cargar roles de usuarios
-            foreach (var user in users)
+            // Cargar roles de TODOS los usuarios en una sola llamada (antes era una llamada
+            // HTTP por usuario: hasta 200 idas y vueltas al servidor cada vez que se abria
+            // este modal, lo cual lo volvia muy lento).
+            try
             {
-                try
+                userRoles = await usersRepository.GetAllUserRoles();
+                foreach (var user in users)
                 {
-                    var userRolesList = await usersRepository.GetUserRoles(user.UserId);
-                    userRoles[user.UserId] = userRolesList;
+                    if (!userRoles.ContainsKey(user.UserId))
+                        userRoles[user.UserId] = new List<string>();
                 }
-                catch
-                {
+            }
+            catch
+            {
+                foreach (var user in users)
                     userRoles[user.UserId] = new List<string>();
-                }
             }
 
             // Cargar conteo de usuarios por rol
