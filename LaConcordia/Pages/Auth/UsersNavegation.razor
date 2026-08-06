@@ -436,18 +436,23 @@
     private async Task LoadUserRoles()
     {
         userRoles.Clear();
-        
-        foreach (var user in users)
+
+        // Antes: una llamada HTTP por usuario (lenta con muchos usuarios). Ahora: una sola
+        // llamada que trae los roles de todos los usuarios de una vez.
+        try
         {
-            try
+            var todosLosRoles = await usersRepository.GetAllUserRoles();
+            foreach (var user in users)
             {
-                var roles = await usersRepository.GetUserRoles(user.UserId);
-                userRoles[user.UserId] = roles;
+                userRoles[user.UserId] = todosLosRoles.TryGetValue(user.UserId, out var roles)
+                    ? roles
+                    : new List<string>();
             }
-            catch
-            {
+        }
+        catch
+        {
+            foreach (var user in users)
                 userRoles[user.UserId] = new List<string>();
-            }
         }
     }
 
