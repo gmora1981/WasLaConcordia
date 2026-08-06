@@ -527,18 +527,22 @@
             }
 
             userRoles.Clear();
-            foreach (var user in users)
+            // Antes: una llamada HTTP por usuario. Ahora: una sola llamada para todos.
+            try
             {
-                try
+                var todosLosRoles = await usersRepository.GetAllUserRoles();
+                foreach (var user in users)
                 {
-                    var userRolesList = await usersRepository.GetUserRoles(user.UserId);
-                    userRoles[user.UserId] = userRolesList ?? new List<string>();
+                    userRoles[user.UserId] = todosLosRoles.TryGetValue(user.UserId, out var roles)
+                        ? roles
+                        : new List<string>();
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"⚠️ Error cargando roles para usuario {user.UserId}: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️ Error cargando roles de usuarios: {ex.Message}");
+                foreach (var user in users)
                     userRoles[user.UserId] = new List<string>();
-                }
             }
 
             FilterUsers();
