@@ -35,11 +35,17 @@ namespace LaConcordia.Helpers
 
             var totalAmountPages = int.Parse(httpResponse.HttpResponseMessage.Headers.GetValues("totalAmountPages").FirstOrDefault());
 
+            var totalAmountRecords = totalAmountPages * paginationDTO.RecordsPerPage;
+            if (httpResponse.HttpResponseMessage.Headers.TryGetValues("totalAmountRecords", out var recordsValues))
+            {
+                totalAmountRecords = int.Parse(recordsValues.FirstOrDefault());
+            }
 
             var paginatedResponse = new PaginatedResponse<T>
             {
                 Response = httpResponse.Response,
-                TotalAmountPages = totalAmountPages
+                TotalAmountPages = totalAmountPages,
+                TotalAmountRecords = totalAmountRecords
             };
             return paginatedResponse;
         }

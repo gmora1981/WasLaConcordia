@@ -4,5 +4,6 @@
     {
         public T Response { get; set; }
         public int TotalAmountPages { get; set; }
+        public int TotalAmountRecords { get; set; }
     }
 }

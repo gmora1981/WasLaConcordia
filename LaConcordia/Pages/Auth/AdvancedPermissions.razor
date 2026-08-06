@@ -57,7 +57,7 @@
         <div class="tab-container">
             <div class="tab-headers">
                 <button class="tab-header @(activeTab == "users" ? "active" : "")" @onclick="@(() => SetActiveTab("users"))">
-                    <i class="fas fa-users"></i> Permisos por Usuario (@users.Count)
+                    <i class="fas fa-users"></i> Permisos por Usuario (@TotalUsuarios)
                 </button>
                 <button class="tab-header @(activeTab == "roles" ? "active" : "")" @onclick="@(() => SetActiveTab("roles"))">
                     <i class="fas fa-user-tag"></i> Permisos por Rol (@roles.Count)
@@ -83,7 +83,7 @@
         <Pagination TotalItems="@TotalUsuarios"
                     PageSize="@PageSize"
                     CurrentPage="@PaginaActual"
-                    />
+                    OnPageChanged="OnPageChanged" />
     </div>
     <div class="flex-grow-1 text-end"></div>
 </div>
@@ -112,7 +112,7 @@
                             @if (filteredUsers != null && filteredUsers.Any())
                             {
                                 <div class="user-permissions-grid">
-                                    @foreach (var user in filteredUsers.Take(20))
+                                    @foreach (var user in filteredUsers)
                                     {
                                         <div class="user-permission-card">
                                             <div class="user-info">
@@ -469,8 +469,14 @@
 
     // Paginación
     private int PaginaActual = 1;
-    private int PageSize = 8;
+    private int PageSize = 20;
     private int TotalUsuarios = 0;
+
+    private async Task OnPageChanged(int nuevaPagina)
+    {
+        PaginaActual = nuevaPagina;
+        await LoadUsers();
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -512,17 +518,19 @@
             isLoadingUsers = true;
             StateHasChanged();
 
-            var paginationDTO = new PaginationDTO { Page = 1, RecordsPerPage = 20 };
+            var paginationDTO = new PaginationDTO { Page = PaginaActual, RecordsPerPage = PageSize };
             var response = await usersRepository.GetUsers(paginationDTO);
 
             if (response?.Response != null)
             {
                 users = response.Response.ToList();
-                Console.WriteLine($"👤 LoadUsers - Usuarios obtenidos: {users.Count}");
+                TotalUsuarios = response.TotalAmountRecords;
+                Console.WriteLine($"👤 LoadUsers - Usuarios obtenidos: {users.Count} (total: {TotalUsuarios})");
             }
             else
             {
                 users = new List<UserDTO>();
+                TotalUsuarios = 0;
                 Console.WriteLine("⚠️ LoadUsers - Response nulo o vacío");
             }
 
