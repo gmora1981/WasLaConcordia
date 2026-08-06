@@ -140,18 +140,7 @@ code {
     margin-left: 0.5rem;
 }
 
-/* Contenedor flotante */
-/*.dropdown-wrapper-blazor {
-    position: absolute;
-    top: 100%;*/ /* justo debajo del botón */
-/*left: 50%;
-    transform: translateX(-50%);
-    z-index: 1000;
-    background: white;
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
-    box-shadow: 0 4px 8px rgba(106, 173, 191);
-}*/
+/* Contenedor del submenu */
 .dropdown-wrapper-blazor {
     padding: 0.25rem 0.5rem;
     background: transparent;
@@ -159,56 +148,27 @@ code {
     box-shadow: none;
 }
 
-
-
-/* Centrado interno */
-/*.dropdown-blazor {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    text-align: center;
-}*/
+/* Lista de items del submenu, alineada a la izquierda */
 .dropdown-blazor {
     list-style: none;
     padding: 0;
     margin: 0.2rem 0 0 0;
     display: flex;
     flex-direction: column;
-    align-items: center; /*  centra horizontalmente */
+    align-items: stretch;
     gap: 0.1rem;
 }
 
-    /* Item individual */
-    /*.dropdown-blazor .dropdown-item {
-        display: block;
-        width: 100%;
-        padding: 0.25rem 1rem;
-        color: #0d6efd;
-        text-decoration: none;
-        border-radius: 0.25rem;
-        white-space: nowrap;
-
-
-    }*/
-
+    /* Item individual: alineado a la izquierda, con una pequeÃ±a sangria respecto al padre */
     .dropdown-blazor .dropdown-item {
         display: block;
-        padding: 0.25rem 1rem;
+        padding: 0.35rem 0.75rem 0.35rem 1.5rem;
         color: #0d6efd;
         text-decoration: none;
         border-radius: 0.25rem;
         white-space: nowrap;
-        text-align: center; /*  centra texto */
+        text-align: left;
     }
-
-
-
-        /*.dropdown-blazor .dropdown-item:hover,
-        .dropdown-blazor .dropdown-item.active {
-            background-color: rgba(13, 110, 253, 0.1);
-            text-decoration: none;
-            color: #0a58ca;
-        }*/
 
         .dropdown-blazor .dropdown-item:hover,
         .dropdown-blazor .dropdown-item.active {
