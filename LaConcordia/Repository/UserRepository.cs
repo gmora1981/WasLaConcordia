@@ -106,5 +106,11 @@ namespace LaConcordia.Repository
             return await httpService.GetHelper<List<UserDTO>>($"{baseURL}/users/search?term={searchTerm}");
         }
 
+        public async Task<PaginatedResponse<List<UserDTO>>> SearchUsersPaginated(string? searchTerm, PaginationDTO paginationDTO)
+        {
+            var term = Uri.EscapeDataString(searchTerm ?? "");
+            return await httpService.GetHelper<List<UserDTO>>($"{baseURL}/users/search-paginated?term={term}", paginationDTO);
+        }
+
     }
 }

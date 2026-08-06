@@ -93,7 +93,7 @@
                         <div class="filter-section">
                             <div class="search-box">
                                 <i class="fas fa-search"></i>
-                                <input type="text" placeholder="Buscar usuario..." @bind="userSearchTerm" @bind:event="oninput" @onkeyup="FilterUsers" />
+                                <input type="text" placeholder="Buscar usuario..." @bind="userSearchTerm" @bind:event="oninput" @onkeyup="OnSearchTermChanged" />
                             </div>
                             <button class="btn-modern btn-primary-modern" @onclick="LoadUserPermissions">
                                 <i class="fas fa-sync"></i> Actualizar
@@ -518,8 +518,12 @@
             isLoadingUsers = true;
             StateHasChanged();
 
+            // Se usa SIEMPRE el endpoint de busqueda paginada (con termino vacio cuando no hay
+            // filtro): asi la paginacion y el conteo total son correctos tanto al listar todo
+            // como al buscar, y la busqueda alcanza a TODOS los usuarios, no solo a los ya
+            // cargados en el cliente.
             var paginationDTO = new PaginationDTO { Page = PaginaActual, RecordsPerPage = PageSize };
-            var response = await usersRepository.GetUsers(paginationDTO);
+            var response = await usersRepository.SearchUsersPaginated(userSearchTerm, paginationDTO);
 
             if (response?.Response != null)
             {
@@ -665,22 +669,20 @@
         }
     }
 
+    // La lista que llega de LoadUsers() ya viene filtrada (y paginada) desde el servidor
+    // segun userSearchTerm, asi que aqui solo se refleja tal cual.
     private void FilterUsers()
     {
-        if (string.IsNullOrWhiteSpace(userSearchTerm))
-        {
-            filteredUsers = new List<UserDTO>(users);
-        }
-        else
-        {
-            var searchLower = userSearchTerm.ToLower();
-            filteredUsers = users.Where(u =>
-                (u.Email?.ToLower().Contains(searchLower) == true) ||
-                (u.FirstName?.ToLower().Contains(searchLower) == true) ||
-                (u.LastName?.ToLower().Contains(searchLower) == true)
-            ).ToList();
-        }
+        filteredUsers = new List<UserDTO>(users);
         StateHasChanged();
+    }
+
+    // Se dispara al escribir en el buscador: vuelve a la pagina 1 y consulta al servidor
+    // contra TODOS los usuarios (no solo los ya cargados en el cliente).
+    private async Task OnSearchTermChanged()
+    {
+        PaginaActual = 1;
+        await LoadUsers();
     }
 
     private void SetActiveTab(string tab)

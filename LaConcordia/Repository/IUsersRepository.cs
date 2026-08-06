@@ -15,6 +15,7 @@ namespace LaConcordia.Repository
         Task DeleteUser(string userId);
         Task<bool> CheckEmailExists(string email);
         Task<List<UserDTO>> SearchUsers(string searchTerm);
+        Task<PaginatedResponse<List<UserDTO>>> SearchUsersPaginated(string? searchTerm, PaginationDTO paginationDTO);
 
         // Gestión de roles
         Task<List<RoleDTO>> GetRoles();
