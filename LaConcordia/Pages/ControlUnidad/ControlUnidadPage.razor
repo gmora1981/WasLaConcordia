@@ -66,7 +66,7 @@
             <div style="flex: 1 1 400px; min-width: 320px; max-width: 100%;">
                 <div class="d-flex justify-content-between align-items-center">
                     <h5>Fuera de Servicio</h5>
-                    <span class="text-muted" style="font-size: 0.85rem;">Total: @fueraDeServicio.Count</span>
+                    <span class="text-muted" style="font-size: 0.85rem;">Total: @FueraDeServicioFiltrada.Count</span>
                 </div>
                 <div style="overflow-x: auto; max-width: 100%;">
                     <table class="admin-table">
@@ -87,7 +87,7 @@
                                     </td>
                                 </tr>
                             }
-                            @if (fueraDeServicio.Count == 0)
+                            @if (FueraDeServicioFiltrada.Count == 0)
                             {
                                 <tr><td colspan="4" class="empty-state"><p>Sin unidades fuera de servicio.</p></td></tr>
                             }
@@ -95,7 +95,7 @@
                     </table>
                 </div>
                 <div class="d-flex justify-content-center mt-2">
-                    <Pagination TotalItems="@fueraDeServicio.Count"
+                    <Pagination TotalItems="@FueraDeServicioFiltrada.Count"
                                 PageSize="@PageSizeControl"
                                 CurrentPage="@PaginaFueraServicio"
                                 OnPageChanged="@(p => PaginaFueraServicio = p)" />
@@ -105,7 +105,7 @@
             <div style="flex: 1 1 400px; min-width: 320px; max-width: 100%;">
                 <div class="d-flex justify-content-between align-items-center">
                     <h5>En Servicio</h5>
-                    <span class="text-muted" style="font-size: 0.85rem;">Total: @enServicio.Count</span>
+                    <span class="text-muted" style="font-size: 0.85rem;">Total: @EnServicioFiltrada.Count</span>
                 </div>
                 <div style="overflow-x: auto; max-width: 100%;">
                     <table class="admin-table">
@@ -126,7 +126,7 @@
                                     <td>@f.Apellidos</td>
                                 </tr>
                             }
-                            @if (enServicio.Count == 0)
+                            @if (EnServicioFiltrada.Count == 0)
                             {
                                 <tr><td colspan="4" class="empty-state"><p>Sin unidades en servicio.</p></td></tr>
                             }
@@ -134,7 +134,7 @@
                     </table>
                 </div>
                 <div class="d-flex justify-content-center mt-2">
-                    <Pagination TotalItems="@enServicio.Count"
+                    <Pagination TotalItems="@EnServicioFiltrada.Count"
                                 PageSize="@PageSizeControl"
                                 CurrentPage="@PaginaEnServicio"
                                 OnPageChanged="@(p => PaginaEnServicio = p)" />
@@ -156,20 +156,34 @@
     private int PaginaFueraServicio = 1;
     private int PaginaEnServicio = 1;
 
+    // Si hay texto en "Verificar Estado de la Unidad", filtra ambas tablas por numero de unidad.
+    private List<UnidadServicioDTO> FueraDeServicioFiltrada =>
+        string.IsNullOrWhiteSpace(unidadVerificar)
+            ? fueraDeServicio
+            : fueraDeServicio.Where(f => f.Fkunidad != null && f.Fkunidad.Contains(unidadVerificar, StringComparison.OrdinalIgnoreCase)).ToList();
+
+    private List<UnidadServicioDTO> EnServicioFiltrada =>
+        string.IsNullOrWhiteSpace(unidadVerificar)
+            ? enServicio
+            : enServicio.Where(f => f.Fkunidad != null && f.Fkunidad.Contains(unidadVerificar, StringComparison.OrdinalIgnoreCase)).ToList();
+
     private IEnumerable<UnidadServicioDTO> FueraDeServicioPagina =>
-        fueraDeServicio.Skip((PaginaFueraServicio - 1) * PageSizeControl).Take(PageSizeControl);
+        FueraDeServicioFiltrada.Skip((PaginaFueraServicio - 1) * PageSizeControl).Take(PageSizeControl);
 
     private IEnumerable<UnidadServicioDTO> EnServicioPagina =>
-        enServicio.Skip((PaginaEnServicio - 1) * PageSizeControl).Take(PageSizeControl);
+        EnServicioFiltrada.Skip((PaginaEnServicio - 1) * PageSizeControl).Take(PageSizeControl);
 
     protected override async Task OnInitializedAsync()
     {
         await CargarListas();
     }
 
-    // Busca la unidad en las listas ya cargadas (sin volver a golpear la API/BD).
+    // Filtra ambas tablas y calcula el badge de estado, todo en memoria (sin volver a golpear la API/BD).
     private void VerEstado()
     {
+        PaginaFueraServicio = 1;
+        PaginaEnServicio = 1;
+
         if (string.IsNullOrWhiteSpace(unidadVerificar))
         {
             estadoVerificado = null;
