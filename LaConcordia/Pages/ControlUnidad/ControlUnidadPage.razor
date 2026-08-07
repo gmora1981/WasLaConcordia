@@ -76,9 +76,9 @@
                                     <td>@f.Fkunidad</td>
                                     <td>@f.Nombre</td>
                                     <td>@f.Apellidos</td>
-                                    <td style="white-space: nowrap;">
-                                        <button class="btn-modern btn-primary-modern" @onclick="() => Ingresar(f)" disabled="@string.IsNullOrEmpty(turno)">
-                                            Ingresar <i class="fas fa-arrow-right"></i>
+                                    <td style="white-space: nowrap; width: 1%;">
+                                        <button class="btn-icon btn-edit" title="Ingresar" @onclick="() => Ingresar(f)" disabled="@string.IsNullOrEmpty(turno)">
+                                            <i class="fas fa-arrow-right"></i>
                                         </button>
                                     </td>
                                 </tr>
@@ -103,9 +103,9 @@
                             @foreach (var f in enServicio)
                             {
                                 <tr>
-                                    <td style="white-space: nowrap;">
-                                        <button class="btn-modern" style="background:#fee2e2;color:#dc2626;" @onclick="() => Sacar(f)" disabled="@string.IsNullOrEmpty(turno)">
-                                            <i class="fas fa-arrow-left"></i> Sacar
+                                    <td style="white-space: nowrap; width: 1%;">
+                                        <button class="btn-icon btn-delete" title="Sacar" @onclick="() => Sacar(f)" disabled="@string.IsNullOrEmpty(turno)">
+                                            <i class="fas fa-arrow-left"></i>
                                         </button>
                                     </td>
                                     <td>@f.Fkunidad</td>
