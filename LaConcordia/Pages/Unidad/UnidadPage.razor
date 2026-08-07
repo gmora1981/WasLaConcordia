@@ -171,7 +171,13 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label">Color</label>
-                            <input class="form-control" @bind="unidadSeleccionada.Color" placeholder="Color" />
+                            <select class="form-control" @bind="unidadSeleccionada.Color">
+                                <option value="">-- Seleccione Color --</option>
+                                @foreach (var color in ColoresDisponibles)
+                                {
+                                    <option value="@color">@color</option>
+                                }
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -200,6 +206,12 @@
         .Range(1980, DateTime.Now.Year - 1980 + 2)
         .OrderByDescending(a => a)
         .ToList();
+
+    private static readonly List<string> ColoresDisponibles = new()
+    {
+        "BLANCO", "NEGRO", "GRIS", "PLATA", "ROJO", "AZUL", "VERDE",
+        "AMARILLO", "NARANJA", "CAFÉ", "BEIGE", "DORADO", "VINO", "CELESTE", "MORADO"
+    };
 
     private string filtroPlaca = "";
     private string filtroPropietario = "";
