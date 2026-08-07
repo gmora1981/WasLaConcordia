@@ -166,28 +166,10 @@
         }
     }
 
-    private CancellationTokenSource? filtroCts;
-
     private async Task OnFiltroChanged()
     {
-        filtroCts?.Cancel();
-        filtroCts = new CancellationTokenSource();
-        var token = filtroCts.Token;
-
-        try
-        {
-            await Task.Delay(300, token);
-        }
-        catch (TaskCanceledException)
-        {
-            return;
-        }
-
-        if (token.IsCancellationRequested) return;
-
         PaginaActual = 1;
         await CargarCargosAsync();
-        StateHasChanged();
     }
 
     private async Task BuscarCargos()
