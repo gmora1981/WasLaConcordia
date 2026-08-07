@@ -4,67 +4,83 @@
 @inject IControlUnidad controlUnidadRepo
 @inject IDisplayMessage displayMessage
 
-<h3>Control de Unidades</h3>
+<link href="css/AdminCommon.css" rel="stylesheet" />
 
-<div class="row mb-3">
-    <div class="col-md-4">
-        <label class="form-label">Turno</label>
-        <select class="form-select" @bind="turno">
-            <option value="">-- Seleccione --</option>
-            <option value="MAÑANA">Mañana</option>
-            <option value="TARDE">Tarde</option>
-            <option value="NOCHE">Noche</option>
-        </select>
-    </div>
-</div>
+<div class="page-container">
+    <div class="content-card">
+        <div class="header-section">
+            <h1 class="page-title">
+                <i class="fas fa-truck-loading"></i> Control de Unidades
+            </h1>
+        </div>
 
-<div class="row">
-    <div class="col-md-6">
-        <h5>Fuera de Servicio</h5>
-        <table class="table table-bordered table-hover">
-            <thead class="table-dark">
-                <tr><th>Unidad</th><th>Nombres</th><th>Apellidos</th><th></th></tr>
-            </thead>
-            <tbody>
-                @foreach (var f in fueraDeServicio)
-                {
-                    <tr>
-                        <td>@f.Fkunidad</td>
-                        <td>@f.Nombre</td>
-                        <td>@f.Apellidos</td>
-                        <td><button class="btn btn-sm btn-success" @onclick="() => Ingresar(f)" disabled="@string.IsNullOrEmpty(turno)">Ingresar &raquo;</button></td>
-                    </tr>
-                }
-                @if (fueraDeServicio.Count == 0)
-                {
-                    <tr><td colspan="4" class="text-center text-muted">Sin unidades fuera de servicio.</td></tr>
-                }
-            </tbody>
-        </table>
-    </div>
+        <div class="form-group" style="max-width: 300px;">
+            <label class="form-label">Turno</label>
+            <select class="form-control" @bind="turno">
+                <option value="">-- Seleccione --</option>
+                <option value="MAÑANA">Mañana</option>
+                <option value="TARDE">Tarde</option>
+                <option value="NOCHE">Noche</option>
+            </select>
+        </div>
 
-    <div class="col-md-6">
-        <h5>En Servicio</h5>
-        <table class="table table-bordered table-hover">
-            <thead class="table-dark">
-                <tr><th></th><th>Unidad</th><th>Nombres</th><th>Apellidos</th></tr>
-            </thead>
-            <tbody>
-                @foreach (var f in enServicio)
-                {
-                    <tr>
-                        <td><button class="btn btn-sm btn-danger" @onclick="() => Sacar(f)" disabled="@string.IsNullOrEmpty(turno)">&laquo; Sacar</button></td>
-                        <td>@f.Fkunidad</td>
-                        <td>@f.Nombre</td>
-                        <td>@f.Apellidos</td>
-                    </tr>
-                }
-                @if (enServicio.Count == 0)
-                {
-                    <tr><td colspan="4" class="text-center text-muted">Sin unidades en servicio.</td></tr>
-                }
-            </tbody>
-        </table>
+        <div class="row">
+            <div class="col-md-6">
+                <h5>Fuera de Servicio</h5>
+                <table class="admin-table">
+                    <thead>
+                        <tr><th>Unidad</th><th>Nombres</th><th>Apellidos</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var f in fueraDeServicio)
+                        {
+                            <tr>
+                                <td>@f.Fkunidad</td>
+                                <td>@f.Nombre</td>
+                                <td>@f.Apellidos</td>
+                                <td>
+                                    <button class="btn-modern btn-primary-modern" @onclick="() => Ingresar(f)" disabled="@string.IsNullOrEmpty(turno)">
+                                        Ingresar <i class="fas fa-arrow-right"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                        @if (fueraDeServicio.Count == 0)
+                        {
+                            <tr><td colspan="4" class="empty-state"><p>Sin unidades fuera de servicio.</p></td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="col-md-6">
+                <h5>En Servicio</h5>
+                <table class="admin-table">
+                    <thead>
+                        <tr><th></th><th>Unidad</th><th>Nombres</th><th>Apellidos</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var f in enServicio)
+                        {
+                            <tr>
+                                <td>
+                                    <button class="btn-modern" style="background:#fee2e2;color:#dc2626;" @onclick="() => Sacar(f)" disabled="@string.IsNullOrEmpty(turno)">
+                                        <i class="fas fa-arrow-left"></i> Sacar
+                                    </button>
+                                </td>
+                                <td>@f.Fkunidad</td>
+                                <td>@f.Nombre</td>
+                                <td>@f.Apellidos</td>
+                            </tr>
+                        }
+                        @if (enServicio.Count == 0)
+                        {
+                            <tr><td colspan="4" class="empty-state"><p>Sin unidades en servicio.</p></td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 

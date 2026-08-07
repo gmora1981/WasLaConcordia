@@ -5,106 +5,134 @@
 @inject IPedido pedidoRepo
 @inject IDisplayMessage displayMessage
 
-<h3>Modificación de Pedido</h3>
-<p class="text-muted">Corrige el destino, precio, kilometraje o estado de un pedido ya registrado.</p>
+<link href="css/AdminCommon.css" rel="stylesheet" />
 
-<div class="d-flex gap-2 mb-3">
-    <button class="btn @(modo == "estado" ? "btn-primary" : "btn-outline-primary")" @onclick="VerPorEstado">Por Estado</button>
-    <button class="btn @(modo == "destino" ? "btn-primary" : "btn-outline-primary")" @onclick="VerDestinoPendiente">Destino Pendiente</button>
-
-    @if (modo == "estado")
-    {
-        <select class="form-select w-auto" @bind="filtroEstado" @bind:after="VerPorEstado">
-            <option value="">-- Todos --</option>
-            <option value="ACTIVO">ACTIVO</option>
-            <option value="PROCESO">PROCESO</option>
-            <option value="FINALIZADO">FINALIZADO</option>
-            <option value="CANCELADO">CANCELADO</option>
-        </select>
-    }
-</div>
-
-<table class="table table-bordered table-hover">
-    <thead class="table-dark">
-        <tr>
-            <th>Fecha</th>
-            <th>Celular</th>
-            <th>Unidad</th>
-            <th>Conductor</th>
-            <th>Precio</th>
-            <th>Estado</th>
-        </tr>
-    </thead>
-    <tbody>
-        @if (lista.Count > 0)
-        {
-            @foreach (var p in lista)
-            {
-                <tr @onclick="() => Seleccionar(p)" class="@(EsSeleccionado(p) ? "table-primary" : "")" style="cursor:pointer;">
-                    <td>@p.Fecharegistro.ToString("dd/MM/yyyy HH:mm")</td>
-                    <td>@p.Celular</td>
-                    <td>@p.Unidad</td>
-                    <td>@p.Conductor</td>
-                    <td>@p.Precio?.ToString("0.00")</td>
-                    <td>@p.Estado</td>
-                </tr>
-            }
-        }
-        else
-        {
-            <tr><td colspan="6" class="text-center">No hay pedidos para mostrar.</td></tr>
-        }
-    </tbody>
-</table>
-
-@if (seleccionado != null)
-{
-    <div class="border rounded p-3 mt-3">
-        <h5>Editar Pedido — Celular @seleccionado.Celular</h5>
-
-        <div class="row mb-2">
-            <div class="col-md-3">
-                <label class="form-label">Unidad</label>
-                <input class="form-control" value="@seleccionado.Unidad" disabled />
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Conductor</label>
-                <input class="form-control" value="@seleccionado.Conductor" disabled />
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Precio ($)</label>
-                <input type="number" step="0.01" class="form-control" @bind="precioEditado" />
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">Km</label>
-                <input type="number" step="0.01" class="form-control" @bind="kmEditado" />
-            </div>
+<div class="page-container">
+    <div class="content-card">
+        <div class="header-section">
+            <h1 class="page-title">
+                <i class="fas fa-edit"></i> Modificación de Pedido
+            </h1>
         </div>
+        <p class="text-muted">Corrige el destino, precio, kilometraje o estado de un pedido ya registrado.</p>
 
-        <div class="row mb-2">
-            <div class="col-md-4">
-                <label class="form-label">Estado</label>
-                <select class="form-select" @bind="estadoEditado">
-                    <option value="">-- Seleccione --</option>
+        <div class="d-flex gap-2 mb-3" style="flex-wrap: wrap; align-items: center;">
+            <button class="btn-modern @(modo == "estado" ? "btn-primary-modern" : "btn-secondary-modern")" @onclick="VerPorEstado">Por Estado</button>
+            <button class="btn-modern @(modo == "destino" ? "btn-primary-modern" : "btn-secondary-modern")" @onclick="VerDestinoPendiente">Destino Pendiente</button>
+
+            @if (modo == "estado")
+            {
+                <select class="form-control" style="width: 180px;" @bind="filtroEstado" @bind:after="VerPorEstado">
+                    <option value="">-- Todos --</option>
                     <option value="ACTIVO">ACTIVO</option>
                     <option value="PROCESO">PROCESO</option>
                     <option value="FINALIZADO">FINALIZADO</option>
                     <option value="CANCELADO">CANCELADO</option>
                 </select>
+            }
+        </div>
+
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Celular</th>
+                    <th>Unidad</th>
+                    <th>Conductor</th>
+                    <th>Precio</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (lista.Count > 0)
+                {
+                    @foreach (var p in lista)
+                    {
+                        <tr @onclick="() => Seleccionar(p)" class="@(EsSeleccionado(p) ? "table-primary" : "")" style="cursor:pointer;">
+                            <td>@p.Fecharegistro.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@p.Celular</td>
+                            <td>@p.Unidad</td>
+                            <td>@p.Conductor</td>
+                            <td>@p.Precio?.ToString("0.00")</td>
+                            <td>@p.Estado</td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="6" class="empty-state">
+                            <p>No hay pedidos para mostrar.</p>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        @if (seleccionado != null)
+        {
+            <div class="content-card" style="margin: 1rem 0 0 0; box-shadow: none; border: 1px solid #e5e7eb;">
+                <h5>Editar Pedido — Celular @seleccionado.Celular</h5>
+
+                <div class="row mb-2">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">Unidad</label>
+                            <input class="form-control" value="@seleccionado.Unidad" disabled />
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">Conductor</label>
+                            <input class="form-control" value="@seleccionado.Conductor" disabled />
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">Precio ($)</label>
+                            <input type="number" step="0.01" class="form-control" @bind="precioEditado" />
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">Km</label>
+                            <input type="number" step="0.01" class="form-control" @bind="kmEditado" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-2">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label class="form-label">Estado</label>
+                            <select class="form-control" @bind="estadoEditado">
+                                <option value="">-- Seleccione --</option>
+                                <option value="ACTIVO">ACTIVO</option>
+                                <option value="PROCESO">PROCESO</option>
+                                <option value="FINALIZADO">FINALIZADO</option>
+                                <option value="CANCELADO">CANCELADO</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <label class="form-label">Destino</label>
+                <MapaSelector Lat="@destinoLat" LatChanged="@((decimal v) => destinoLat = v)"
+                              Lng="@destinoLng" LngChanged="@((decimal v) => destinoLng = v)"
+                              Height="280px" />
+
+                <div class="action-buttons mt-3">
+                    <button class="btn-modern btn-primary-modern" @onclick="Guardar">
+                        <i class="fas fa-save"></i> Guardar
+                    </button>
+                    <button class="btn-modern btn-secondary-modern" @onclick="() => seleccionado = null">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                </div>
             </div>
-        </div>
-
-        <label class="form-label">Destino</label>
-        <MapaSelector Lat="@destinoLat" LatChanged="@((decimal v) => destinoLat = v)"
-                      Lng="@destinoLng" LngChanged="@((decimal v) => destinoLng = v)"
-                      Height="280px" />
-
-        <div class="d-flex gap-2 mt-3">
-            <button class="btn btn-warning" @onclick="Guardar">Guardar</button>
-            <button class="btn btn-secondary" @onclick="() => seleccionado = null">Cancelar</button>
-        </div>
+        }
     </div>
-}
+</div>
 
 @code {
     private string modo = "estado";

@@ -10,305 +10,366 @@
 @inject IJSRuntime JS
 @inject IDisplayMessage displayMessage
 
-<h3>Gestión de Pedidos</h3>
+<link href="css/AdminCommon.css" rel="stylesheet" />
 
-<!-- Filtros de búsqueda -->
-<div class="border rounded p-3 mb-3 bg-light">
-    <h5>Filtros de Búsqueda</h5>
-    <div class="row">
-        <div class="col-md-3 mb-2">
-            <label class="form-label">Celular</label>
-            <input type="text" class="form-control" placeholder="Buscar por celular..." @bind="filtroCelular" />
+<div class="page-container">
+    <div class="content-card">
+        <div class="header-section">
+            <h1 class="page-title">
+                <i class="fas fa-taxi"></i> Gestión de Pedidos
+            </h1>
         </div>
-        <div class="col-md-3 mb-2">
-            <label class="form-label">Unidad</label>
-            <input type="text" class="form-control" placeholder="Buscar por unidad..." @bind="filtroUnidad" />
-        </div>
-        <div class="col-md-3 mb-2">
-            <label class="form-label">Estado</label>
-            <select class="form-select" @bind="filtroEstado">
-                <option value="">-- Todos --</option>
-                <option value="ACTIVO">ACTIVO</option>
-                <option value="PROCESO">PROCESO</option>
-                <option value="FINALIZADO">FINALIZADO</option>
-                <option value="CANCELADO">CANCELADO</option>
-            </select>
-        </div>
-    </div>
-    <div class="row mt-2">
-        <div class="col-md-3 mb-2">
-            <label class="form-label">Fecha Desde</label>
-            <input type="date" class="form-control" @bind="filtroFechaDesde" />
-        </div>
-        <div class="col-md-3 mb-2">
-            <label class="form-label">Fecha Hasta</label>
-            <input type="date" class="form-control" @bind="filtroFechaHasta" />
-        </div>
-        <div class="col-md-6 mb-2 d-flex align-items-end gap-2">
-            <button class="btn btn-success flex-grow-1" @onclick="BuscarPedidos">Buscar</button>
-            <button class="btn btn-secondary flex-grow-1" @onclick="LimpiarFiltros">Limpiar Filtros</button>
-            <button class="btn btn-primary flex-grow-1" @onclick="NuevoRegistro">Nuevo Pedido</button>
-        </div>
-    </div>
-</div>
 
-<div class="d-flex justify-content-between align-items-center mt-3">
-    <div class="flex-grow-1">
-        <p class="text-muted mb-0">Total: @TotalRegistros | Página: @PaginaActual</p>
-    </div>
-    <div class="d-flex justify-content-center flex-grow-1">
-        <Pagination TotalItems="@TotalRegistros"
-                    PageSize="@PageSize"
-                    CurrentPage="@PaginaActual"
-                    OnPageChanged="OnPageChangedAsync" />
-    </div>
-    <div class="flex-grow-1 text-end"></div>
-</div>
+        <!-- Filtros de búsqueda -->
+        <div class="content-card" style="margin: 0 0 1.5rem 0; box-shadow: none; border: 1px solid #e5e7eb;">
+            <h5>Filtros de Búsqueda</h5>
+            <div class="row">
+                <div class="col-md-3 mb-2">
+                    <div class="form-group">
+                        <label class="form-label">Celular</label>
+                        <input type="text" class="form-control" placeholder="Buscar por celular..." @bind="filtroCelular" />
+                    </div>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <div class="form-group">
+                        <label class="form-label">Unidad</label>
+                        <input type="text" class="form-control" placeholder="Buscar por unidad..." @bind="filtroUnidad" />
+                    </div>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <div class="form-group">
+                        <label class="form-label">Estado</label>
+                        <select class="form-control" @bind="filtroEstado">
+                            <option value="">-- Todos --</option>
+                            <option value="ACTIVO">ACTIVO</option>
+                            <option value="PROCESO">PROCESO</option>
+                            <option value="FINALIZADO">FINALIZADO</option>
+                            <option value="CANCELADO">CANCELADO</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-md-3 mb-2">
+                    <div class="form-group">
+                        <label class="form-label">Fecha Desde</label>
+                        <input type="date" class="form-control" @bind="filtroFechaDesde" />
+                    </div>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <div class="form-group">
+                        <label class="form-label">Fecha Hasta</label>
+                        <input type="date" class="form-control" @bind="filtroFechaHasta" />
+                    </div>
+                </div>
+                <div class="col-md-6 mb-2 d-flex align-items-end">
+                    <div class="action-buttons">
+                        <button class="btn-modern btn-primary-modern" @onclick="BuscarPedidos">
+                            <i class="fas fa-search"></i> Buscar
+                        </button>
+                        <button class="btn-modern btn-secondary-modern" @onclick="LimpiarFiltros">
+                            <i class="fas fa-eraser"></i> Limpiar Filtros
+                        </button>
+                        <button class="btn-modern btn-primary-modern" @onclick="NuevoRegistro">
+                            <i class="fas fa-plus"></i> Nuevo Pedido
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-<!-- Tabla de Pedidos -->
-<table class="table table-bordered table-hover mt-2">
-    <thead class="table-dark">
-        <tr>
-            <th>Fecha Registro</th>
-            <th>Celular</th>
-            <th>Unidad</th>
-            <th>Conductor</th>
-            <th>Precio</th>
-            <th>Km</th>
-            <th>Estado</th>
-            <th>Autorizado</th>
-        </tr>
-    </thead>
-    <tbody>
-        @if (listaPedidos != null && listaPedidos.Count > 0)
-        {
-            @foreach (var pedido in listaPedidos)
-            {
-                <tr @onclick="() => SeleccionarPedido(pedido)" class="@(pedido.Celular == pedidoSeleccionado?.Celular && pedido.Fecharegistro == pedidoSeleccionado?.Fecharegistro ? "table-primary" : "")" style="cursor: pointer;">
-                    <td>@pedido.Fecharegistro.ToString("dd/MM/yyyy HH:mm")</td>
-                    <td>@pedido.Celular</td>
-                    <td>@pedido.Unidad</td>
-                    <td>@pedido.Conductor</td>
-                    <td>@pedido.Precio?.ToString("C")</td>
-                    <td>@pedido.Km</td>
-                    <td>@pedido.Estado</td>
-                    <td>@pedido.Autorizado</td>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <p class="text-muted mb-0">Total: @TotalRegistros | Página: @PaginaActual</p>
+            <Pagination TotalItems="@TotalRegistros"
+                        PageSize="@PageSize"
+                        CurrentPage="@PaginaActual"
+                        OnPageChanged="OnPageChangedAsync" />
+        </div>
+
+        <!-- Tabla de Pedidos -->
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Fecha Registro</th>
+                    <th>Celular</th>
+                    <th>Unidad</th>
+                    <th>Conductor</th>
+                    <th>Precio</th>
+                    <th>Km</th>
+                    <th>Estado</th>
+                    <th>Autorizado</th>
                 </tr>
-            }
-        }
-        else
-        {
-            <tr>
-                <td colspan="8" class="text-center">No se encontraron pedidos.</td>
-            </tr>
-        }
-    </tbody>
-</table>
-
-<!-- Formulario de detalle -->
-<div class="border rounded p-3 mt-3">
-    <h5>Detalle Pedido</h5>
-
-    <div class="row">
-        <div class="col-md-3 mb-2">
-            <label class="form-label">Celular Pasajero</label>
-            <div class="input-group">
-                <input class="form-control" @bind="pedidoSeleccionado.Celular" disabled="@(!esNuevo)" />
-                <button class="btn btn-outline-secondary" type="button" @onclick="BuscarPasajero" disabled="@(!esNuevo)">Buscar</button>
-            </div>
-        </div>
-        <div class="col-md-3 mb-2">
-            <label class="form-label">Nombre Pasajero</label>
-            <input class="form-control" @bind="pasajeroActual.Nombres" />
-        </div>
-        <div class="col-md-3 mb-2">
-            <label class="form-label">Observación Pasajero</label>
-            <input class="form-control" @bind="pasajeroActual.Observacion" />
-        </div>
-        <div class="col-md-3 mb-2 d-flex align-items-end">
-            <button class="btn btn-outline-primary w-100" @onclick="GuardarPasajero">@(pasajeroExiste ? "Actualizar Pasajero" : "Crear Pasajero")</button>
-        </div>
-    </div>
-
-    <div class="row">
-        <div class="col-md-3 mb-2">
-            <label class="form-label">Tiempo de Espera</label>
-            <select class="form-select" @bind="pedidoSeleccionado.Tiempodemora">
-                <option value="">-- Seleccione --</option>
-                <option value="4">4 minutos</option>
-                <option value="9">9 minutos</option>
-                <option value="12">12 minutos</option>
-                <option value="15">15 minutos</option>
-            </select>
-        </div>
-        <div class="col-md-3 mb-2">
-            <label class="form-label">Estado</label>
-            <select class="form-select" @bind="pedidoSeleccionado.Estado">
-                <option value="">-- Seleccione --</option>
-                <option value="ACTIVO">ACTIVO</option>
-                <option value="PROCESO">PROCESO</option>
-                <option value="FINALIZADO">FINALIZADO</option>
-                <option value="CANCELADO">CANCELADO</option>
-            </select>
-        </div>
-        <div class="col-md-3 mb-2 d-flex align-items-end">
-            <div class="form-check">
-                <input type="checkbox" class="form-check-input" id="chkFactura" @bind="facturarAEmpresa" />
-                <label class="form-check-label" for="chkFactura">Facturar a Empresa (Voucher)</label>
-            </div>
-        </div>
-        <div class="col-md-3 mb-2 d-flex align-items-end">
-            <div class="form-check">
-                <input type="checkbox" class="form-check-input" id="chkDestino" @bind="tieneDestino" @bind:after="OnTieneDestinoChanged" />
-                <label class="form-check-label" for="chkDestino">Tiene destino definido</label>
-            </div>
-        </div>
-    </div>
-
-    @if (facturarAEmpresa)
-    {
-        <div class="row bg-light border rounded p-2 mb-2">
-            <div class="col-md-4 mb-2">
-                <label class="form-label">Empresa</label>
-                <select class="form-select" value="@pedidoSeleccionado.Ruc" @onchange="OnEmpresaChanged">
-                    <option value="">-- Seleccione --</option>
-                    @foreach (var e in empresas)
+            </thead>
+            <tbody>
+                @if (listaPedidos != null && listaPedidos.Count > 0)
+                {
+                    @foreach (var pedido in listaPedidos)
                     {
-                        <option value="@e.Ruc">@e.Razonsocial</option>
+                        <tr @onclick="() => SeleccionarPedido(pedido)" class="@(pedido.Celular == pedidoSeleccionado?.Celular && pedido.Fecharegistro == pedidoSeleccionado?.Fecharegistro ? "table-primary" : "")" style="cursor: pointer;">
+                            <td>@pedido.Fecharegistro.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@pedido.Celular</td>
+                            <td>@pedido.Unidad</td>
+                            <td>@pedido.Conductor</td>
+                            <td>@pedido.Precio?.ToString("C")</td>
+                            <td>@pedido.Km</td>
+                            <td>@pedido.Estado</td>
+                            <td>@pedido.Autorizado</td>
+                        </tr>
                     }
-                </select>
-            </div>
-            <div class="col-md-3 mb-2">
-                <label class="form-label">Empleado</label>
-                <input class="form-control" @bind="pedidoSeleccionado.Empleado" />
-            </div>
-            <div class="col-md-2 mb-2 d-flex align-items-end">
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" id="chkValija" checked="@(pedidoSeleccionado.Valija == "s")" @onchange="OnValijaChanged" />
-                    <label class="form-check-label" for="chkValija">Valija</label>
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="8" class="empty-state">
+                            <p>No se encontraron pedidos.</p>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <!-- Formulario de detalle -->
+        <div class="content-card" style="margin: 1.5rem 0 0 0; box-shadow: none; border: 1px solid #e5e7eb;">
+            <h5>Detalle Pedido</h5>
+
+            <div class="row">
+                <div class="col-md-3 mb-2">
+                    <div class="form-group">
+                        <label class="form-label">Celular Pasajero</label>
+                        <div class="input-group">
+                            <input class="form-control" @bind="pedidoSeleccionado.Celular" disabled="@(!esNuevo)" />
+                            <button class="btn-modern btn-secondary-modern" type="button" @onclick="BuscarPasajero" disabled="@(!esNuevo)">Buscar</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <div class="form-group">
+                        <label class="form-label">Nombre Pasajero</label>
+                        <input class="form-control" @bind="pasajeroActual.Nombres" />
+                    </div>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <div class="form-group">
+                        <label class="form-label">Observación Pasajero</label>
+                        <input class="form-control" @bind="pasajeroActual.Observacion" />
+                    </div>
+                </div>
+                <div class="col-md-3 mb-2 d-flex align-items-end">
+                    <button class="btn-modern btn-secondary-modern w-100" @onclick="GuardarPasajero">@(pasajeroExiste ? "Actualizar Pasajero" : "Crear Pasajero")</button>
                 </div>
             </div>
-            <div class="col-md-3 mb-2 d-flex align-items-end">
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" id="chkAutorizado" checked="@(pedidoSeleccionado.Autorizado == "s")" @onchange="OnAutorizadoChanged" />
-                    <label class="form-check-label" for="chkAutorizado">Autorizado</label>
+
+            <div class="row">
+                <div class="col-md-3 mb-2">
+                    <div class="form-group">
+                        <label class="form-label">Tiempo de Espera</label>
+                        <select class="form-control" @bind="pedidoSeleccionado.Tiempodemora">
+                            <option value="">-- Seleccione --</option>
+                            <option value="4">4 minutos</option>
+                            <option value="9">9 minutos</option>
+                            <option value="12">12 minutos</option>
+                            <option value="15">15 minutos</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <div class="form-group">
+                        <label class="form-label">Estado</label>
+                        <select class="form-control" @bind="pedidoSeleccionado.Estado">
+                            <option value="">-- Seleccione --</option>
+                            <option value="ACTIVO">ACTIVO</option>
+                            <option value="PROCESO">PROCESO</option>
+                            <option value="FINALIZADO">FINALIZADO</option>
+                            <option value="CANCELADO">CANCELADO</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-2 d-flex align-items-end">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="chkFactura" @bind="facturarAEmpresa" />
+                        <label class="form-check-label" for="chkFactura">Facturar a Empresa (Voucher)</label>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-2 d-flex align-items-end">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="chkDestino" @bind="tieneDestino" @bind:after="OnTieneDestinoChanged" />
+                        <label class="form-check-label" for="chkDestino">Tiene destino definido</label>
+                    </div>
                 </div>
             </div>
-        </div>
-    }
 
-    <div class="row">
-        <div class="col-md-6 mb-2">
-            <label class="form-label">Origen</label>
-            <MapaSelector Lat="@origenLat" LatChanged="@((decimal v) => origenLat = v)"
-                          Lng="@origenLng" LngChanged="@((decimal v) => origenLng = v)"
-                          OnCoordenadasChanged="OnCoordenadasCambiaron" Height="250px" />
-        </div>
-        @if (tieneDestino)
-        {
-            <div class="col-md-6 mb-2">
-                <label class="form-label">Destino</label>
-                <MapaSelector Lat="@destinoLat" LatChanged="@((decimal v) => destinoLat = v)"
-                              Lng="@destinoLng" LngChanged="@((decimal v) => destinoLng = v)"
-                              OnCoordenadasChanged="OnCoordenadasCambiaron" Height="250px" />
-            </div>
-        }
-    </div>
+            @if (facturarAEmpresa)
+            {
+                <div class="row" style="background: #f8f9fb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0.75rem; margin: 0 0 0.5rem 0;">
+                    <div class="col-md-4 mb-2">
+                        <div class="form-group">
+                            <label class="form-label">Empresa</label>
+                            <select class="form-control" value="@pedidoSeleccionado.Ruc" @onchange="OnEmpresaChanged">
+                                <option value="">-- Seleccione --</option>
+                                @foreach (var e in empresas)
+                                {
+                                    <option value="@e.Ruc">@e.Razonsocial</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <div class="form-group">
+                            <label class="form-label">Empleado</label>
+                            <input class="form-control" @bind="pedidoSeleccionado.Empleado" />
+                        </div>
+                    </div>
+                    <div class="col-md-2 mb-2 d-flex align-items-end">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="chkValija" checked="@(pedidoSeleccionado.Valija == "s")" @onchange="OnValijaChanged" />
+                            <label class="form-check-label" for="chkValija">Valija</label>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-2 d-flex align-items-end">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="chkAutorizado" checked="@(pedidoSeleccionado.Autorizado == "s")" @onchange="OnAutorizadoChanged" />
+                            <label class="form-check-label" for="chkAutorizado">Autorizado</label>
+                        </div>
+                    </div>
+                </div>
+            }
 
-    <div class="row">
-        <div class="col-md-3 mb-2">
-            <label class="form-label">Unidad</label>
-            <input class="form-control" @bind="pedidoSeleccionado.Unidad" @bind:after="BuscarConductorUnidad" />
-        </div>
-        <div class="col-md-3 mb-2">
-            <label class="form-label">C.I. Conductor</label>
-            <input class="form-control" @bind="pedidoSeleccionado.Ciconductor" />
-        </div>
-        <div class="col-md-3 mb-2">
-            <label class="form-label">Conductor</label>
-            <input class="form-control" @bind="pedidoSeleccionado.Conductor" />
-        </div>
-        <div class="col-md-3 mb-2 d-flex align-items-end">
-            <div class="form-check">
-                <input type="checkbox" class="form-check-input" id="chkBase" @bind="conRelevo" />
-                <label class="form-check-label" for="chkBase">Asignar unidad de relevo</label>
+            <div class="row">
+                <div class="col-md-6 mb-2">
+                    <label class="form-label">Origen</label>
+                    <MapaSelector Lat="@origenLat" LatChanged="@((decimal v) => origenLat = v)"
+                                  Lng="@origenLng" LngChanged="@((decimal v) => origenLng = v)"
+                                  OnCoordenadasChanged="OnCoordenadasCambiaron" Height="250px" />
+                </div>
+                @if (tieneDestino)
+                {
+                    <div class="col-md-6 mb-2">
+                        <label class="form-label">Destino</label>
+                        <MapaSelector Lat="@destinoLat" LatChanged="@((decimal v) => destinoLat = v)"
+                                      Lng="@destinoLng" LngChanged="@((decimal v) => destinoLng = v)"
+                                      OnCoordenadasChanged="OnCoordenadasCambiaron" Height="250px" />
+                    </div>
+                }
             </div>
-        </div>
-    </div>
 
-    @if (conRelevo)
-    {
-        <div class="row bg-light border rounded p-2 mb-2">
-            <div class="col-md-4 mb-2">
-                <label class="form-label">Unidad Siguiente</label>
-                <input class="form-control" @bind="pedidoSeleccionado.Unidadsiguiente" @bind:after="BuscarConductorUnidadSiguiente" />
+            <div class="row">
+                <div class="col-md-3 mb-2">
+                    <div class="form-group">
+                        <label class="form-label">Unidad</label>
+                        <input class="form-control" @bind="pedidoSeleccionado.Unidad" @bind:after="BuscarConductorUnidad" />
+                    </div>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <div class="form-group">
+                        <label class="form-label">C.I. Conductor</label>
+                        <input class="form-control" @bind="pedidoSeleccionado.Ciconductor" />
+                    </div>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <div class="form-group">
+                        <label class="form-label">Conductor</label>
+                        <input class="form-control" @bind="pedidoSeleccionado.Conductor" />
+                    </div>
+                </div>
+                <div class="col-md-3 mb-2 d-flex align-items-end">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="chkBase" @bind="conRelevo" />
+                        <label class="form-check-label" for="chkBase">Asignar unidad de relevo</label>
+                    </div>
+                </div>
             </div>
-            <div class="col-md-4 mb-2">
-                <label class="form-label">C.I. Conductor Siguiente</label>
-                <input class="form-control" @bind="pedidoSeleccionado.Ciconductorsiguiente" />
-            </div>
-            <div class="col-md-4 mb-2">
-                <label class="form-label">Conductor Siguiente</label>
-                <input class="form-control" @bind="pedidoSeleccionado.Conductorsiguiente" />
-            </div>
-        </div>
-    }
 
-    <div class="row">
-        <div class="col-md-3 mb-2">
-            <label class="form-label">Precio ($)</label>
-            <input type="number" step="0.01" class="form-control" @bind="pedidoSeleccionado.Precio" />
-        </div>
-        <div class="col-md-3 mb-2">
-            <label class="form-label">Km</label>
-            <input type="number" step="0.01" class="form-control" @bind="pedidoSeleccionado.Km" />
-        </div>
-        <div class="col-md-6 mb-2">
-            <label class="form-label">Recorrido (referencia)</label>
-            <input class="form-control" @bind="pedidoSeleccionado.Recorrido" />
-        </div>
-    </div>
+            @if (conRelevo)
+            {
+                <div class="row" style="background: #f8f9fb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0.75rem; margin: 0 0 0.5rem 0;">
+                    <div class="col-md-4 mb-2">
+                        <div class="form-group">
+                            <label class="form-label">Unidad Siguiente</label>
+                            <input class="form-control" @bind="pedidoSeleccionado.Unidadsiguiente" @bind:after="BuscarConductorUnidadSiguiente" />
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <div class="form-group">
+                            <label class="form-label">C.I. Conductor Siguiente</label>
+                            <input class="form-control" @bind="pedidoSeleccionado.Ciconductorsiguiente" />
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-2">
+                        <div class="form-group">
+                            <label class="form-label">Conductor Siguiente</label>
+                            <input class="form-control" @bind="pedidoSeleccionado.Conductorsiguiente" />
+                        </div>
+                    </div>
+                </div>
+            }
 
-    <div class="d-flex gap-2 mt-3">
-        <button class="btn btn-warning" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">Guardar</button>
-        <button class="btn btn-secondary" @onclick="CancelarEdicion">Cancelar</button>
+            <div class="row">
+                <div class="col-md-3 mb-2">
+                    <div class="form-group">
+                        <label class="form-label">Precio ($)</label>
+                        <input type="number" step="0.01" class="form-control" @bind="pedidoSeleccionado.Precio" />
+                    </div>
+                </div>
+                <div class="col-md-3 mb-2">
+                    <div class="form-group">
+                        <label class="form-label">Km</label>
+                        <input type="number" step="0.01" class="form-control" @bind="pedidoSeleccionado.Km" />
+                    </div>
+                </div>
+                <div class="col-md-6 mb-2">
+                    <div class="form-group">
+                        <label class="form-label">Recorrido (referencia)</label>
+                        <input class="form-control" @bind="pedidoSeleccionado.Recorrido" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-buttons mt-3">
+                <button class="btn-modern btn-primary-modern" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+                <button class="btn-modern btn-secondary-modern" @onclick="CancelarEdicion">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
 @if (mostrarNotificacion)
 {
-    <div class="modal d-block" style="background-color: rgba(0,0,0,0.5);" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Notificación del Pedido</h5>
-                    <button type="button" class="btn-close" @onclick="() => mostrarNotificacion = false"></button>
+    <div class="modal-modern" @onclick="() => mostrarNotificacion = false">
+        <div class="modal-content-modern" style="max-width: 640px;" @onclick:stopPropagation="true">
+            <div class="modal-header-modern">
+                <h2 class="modal-title-modern"><i class="fas fa-bell"></i> Notificación del Pedido</h2>
+                <button type="button" class="btn-close-modern" @onclick="() => mostrarNotificacion = false">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body-modern">
+                <h6>Mensaje para el Pasajero</h6>
+                <textarea class="form-control mb-1" rows="4" readonly>@mensajePasajero</textarea>
+                <div class="action-buttons mb-3">
+                    <button class="btn-modern btn-secondary-modern" @onclick="() => CopiarTexto(mensajePasajero)">Copiar</button>
+                    <a class="btn-modern btn-primary-modern" href="@EnlaceWhatsapp(pedidoSeleccionado.Celular, mensajePasajero)" target="_blank">Enviar por WhatsApp</a>
                 </div>
-                <div class="modal-body">
-                    <h6>Mensaje para el Pasajero</h6>
-                    <textarea class="form-control mb-1" rows="4" readonly>@mensajePasajero</textarea>
-                    <div class="d-flex gap-2 mb-3">
-                        <button class="btn btn-sm btn-outline-secondary" @onclick="() => CopiarTexto(mensajePasajero)">Copiar</button>
-                        <a class="btn btn-sm btn-success" href="@EnlaceWhatsapp(pedidoSeleccionado.Celular, mensajePasajero)" target="_blank">Enviar por WhatsApp</a>
-                    </div>
 
-                    <h6>Mensaje para el Conductor</h6>
-                    <textarea class="form-control mb-1" rows="4" readonly>@mensajeConductor</textarea>
-                    <div class="d-flex gap-2 mb-3">
-                        <button class="btn btn-sm btn-outline-secondary" @onclick="() => CopiarTexto(mensajeConductor)">Copiar</button>
-                        <a class="btn btn-sm btn-success" href="@EnlaceWhatsapp(celularConductorNotif, mensajeConductor)" target="_blank">Enviar por WhatsApp</a>
-                    </div>
+                <h6>Mensaje para el Conductor</h6>
+                <textarea class="form-control mb-1" rows="4" readonly>@mensajeConductor</textarea>
+                <div class="action-buttons mb-3">
+                    <button class="btn-modern btn-secondary-modern" @onclick="() => CopiarTexto(mensajeConductor)">Copiar</button>
+                    <a class="btn-modern btn-primary-modern" href="@EnlaceWhatsapp(celularConductorNotif, mensajeConductor)" target="_blank">Enviar por WhatsApp</a>
+                </div>
 
-                    <h6>Ubicación (Google Maps)</h6>
-                    <textarea class="form-control mb-1" rows="1" readonly>@enlaceMapa</textarea>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-sm btn-outline-secondary" @onclick="() => CopiarTexto(enlaceMapa)">Copiar</button>
-                        <a class="btn btn-sm btn-success" href="@EnlaceWhatsapp(celularConductorNotif, enlaceMapa)" target="_blank">Enviar por WhatsApp</a>
-                    </div>
+                <h6>Ubicación (Google Maps)</h6>
+                <textarea class="form-control mb-1" rows="1" readonly>@enlaceMapa</textarea>
+                <div class="action-buttons">
+                    <button class="btn-modern btn-secondary-modern" @onclick="() => CopiarTexto(enlaceMapa)">Copiar</button>
+                    <a class="btn-modern btn-primary-modern" href="@EnlaceWhatsapp(celularConductorNotif, enlaceMapa)" target="_blank">Enviar por WhatsApp</a>
                 </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" @onclick="() => mostrarNotificacion = false">Cerrar</button>
-                </div>
+            </div>
+            <div class="modal-footer-modern">
+                <button class="btn-modern btn-secondary-modern" @onclick="() => mostrarNotificacion = false">Cerrar</button>
             </div>
         </div>
     </div>
