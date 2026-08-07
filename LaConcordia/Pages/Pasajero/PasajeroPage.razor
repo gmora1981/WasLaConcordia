@@ -7,122 +7,164 @@
 @inject IJSRuntime JS
 @inject IDisplayMessage displayMessage
 
-<h3>Gestión de Pasajeros</h3>
+<link href="css/AdminCommon.css" rel="stylesheet" />
 
-<!-- Controles de búsqueda -->
-<div class="mb-3 d-flex gap-2">
-    <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo Pasajero</button>
-    <input type="text" class="form-control" placeholder="Buscar por celular..." @bind="filtroCelular" />
-    <input type="text" class="form-control" placeholder="Buscar por nombre..." @bind="filtroNombres" />
-    <button class="btn btn-success" @onclick="BuscarPasajeros">Buscar</button>
-</div>
+<div class="page-container">
+    <div class="content-card">
+        <div class="header-section">
+            <h1 class="page-title">
+                <i class="fas fa-user-friends"></i> Gestión de Pasajeros
+            </h1>
+            <button class="btn-modern btn-primary-modern" @onclick="NuevoRegistro">
+                <i class="fas fa-plus"></i> Nuevo Pasajero
+            </button>
+        </div>
 
-<div class="d-flex justify-content-between align-items-center mt-3">
-    <div class="flex-grow-1">
-        <p class="text-muted mb-0">Total: @TotalRegistros | Página: @PaginaActual</p>
-    </div>
-    <div class="d-flex justify-content-center flex-grow-1">
-        <Pagination TotalItems="@TotalRegistros"
-                    PageSize="@PageSize"
-                    CurrentPage="@PaginaActual"
-                    OnPageChanged="OnPageChangedAsync" />
-    </div>
-    <div class="flex-grow-1 text-end">
-    </div>
-</div>
+        <div class="d-flex gap-2 mb-3" style="flex-wrap: wrap; align-items: center;">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Buscar por celular..." @bind="filtroCelular" />
+            </div>
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Buscar por nombre..." @bind="filtroNombres" />
+            </div>
+            <button class="btn-modern btn-secondary-modern" @onclick="BuscarPasajeros">
+                <i class="fas fa-search"></i> Buscar
+            </button>
+        </div>
 
-<!-- Tabla de Pasajeros -->
-<table class="table table-bordered table-hover mt-2">
-    <thead class="table-dark">
-        <tr>
-            <th>Celular</th>
-            <th>Nombres</th>
-            <th>Sexo</th>
-            <th>Correo</th>
-            <th>Whatsapp</th>
-            <th>Publicidad</th>
-            <th>Observación</th>
-        </tr>
-    </thead>
-    <tbody>
-        @if (listaPasajeros != null && listaPasajeros.Count > 0)
-        {
-            @foreach (var pasajero in listaPasajeros)
-            {
-                <tr @onclick="() => SeleccionarPasajero(pasajero)" class="@(pasajero.Celular == pasajeroSeleccionado?.Celular ? "table-primary" : "")" style="cursor: pointer;">
-                    <td>@pasajero.Celular</td>
-                    <td>@pasajero.Nombres</td>
-                    <td>@(pasajero.Sexo == "F" ? "Femenino" : "Masculino")</td>
-                    <td>@pasajero.Correo</td>
-                    <td>@pasajero.Whatsapp</td>
-                    <td>@(pasajero.Publicidad == 1 ? "Sí" : "No")</td>
-                    <td>@pasajero.Observacion</td>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <p class="text-muted mb-0">Total: @TotalRegistros | Página: @PaginaActual</p>
+            <Pagination TotalItems="@TotalRegistros"
+                        PageSize="@PageSize"
+                        CurrentPage="@PaginaActual"
+                        OnPageChanged="OnPageChangedAsync" />
+        </div>
+
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Celular</th>
+                    <th>Nombres</th>
+                    <th>Sexo</th>
+                    <th>Correo</th>
+                    <th>Whatsapp</th>
+                    <th>Publicidad</th>
+                    <th>Observación</th>
                 </tr>
-            }
-        }
-        else
-        {
-            <tr>
-                <td colspan="7" class="text-center">No se encontraron pasajeros.</td>
-            </tr>
-        }
-    </tbody>
-</table>
+            </thead>
+            <tbody>
+                @if (listaPasajeros != null && listaPasajeros.Count > 0)
+                {
+                    @foreach (var pasajero in listaPasajeros)
+                    {
+                        <tr @onclick="() => SeleccionarPasajero(pasajero)" class="@(pasajero.Celular == pasajeroSeleccionado?.Celular ? "table-primary" : "")" style="cursor: pointer;">
+                            <td>@pasajero.Celular</td>
+                            <td><strong>@pasajero.Nombres</strong></td>
+                            <td>@(pasajero.Sexo == "F" ? "Femenino" : "Masculino")</td>
+                            <td>@pasajero.Correo</td>
+                            <td>@pasajero.Whatsapp</td>
+                            <td>
+                                @if (pasajero.Publicidad == 1)
+                                {
+                                    <span class="badge-modern badge-success"><i class="fas fa-check-circle"></i> Sí</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-modern badge-secondary">No</span>
+                                }
+                            </td>
+                            <td>@pasajero.Observacion</td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="7" class="empty-state">
+                            <i class="fas fa-user-friends"></i>
+                            <p>No se encontraron pasajeros.</p>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
 
-<!-- Formulario de detalle -->
-<div class="border rounded p-3 mt-3">
-    <h5>Detalle Pasajero</h5>
-    <EditForm Model="pasajeroSeleccionado">
-        <div class="row">
-            <div class="col-md-6 mb-2">
-                <label class="form-label">Celular</label>
-                <InputText class="form-control" @bind-Value="pasajeroSeleccionado.Celular" disabled="@(!esNuevo)" placeholder="Celular (ej. 0999999999)" />
-            </div>
-            <div class="col-md-6 mb-2">
-                <label class="form-label">Nombres</label>
-                <InputText class="form-control" @bind-Value="pasajeroSeleccionado.Nombres" placeholder="Nombres Completos" />
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-md-6 mb-2">
-                <label class="form-label">Sexo</label>
-                <InputSelect class="form-select" @bind-Value="pasajeroSeleccionado.Sexo">
-                    <option value="">-- Seleccione --</option>
-                    <option value="M">Masculino</option>
-                    <option value="F">Femenino</option>
-                </InputSelect>
-            </div>
-            <div class="col-md-6 mb-2">
-                <label class="form-label">Correo</label>
-                <InputText type="email" class="form-control" @bind-Value="pasajeroSeleccionado.Correo" placeholder="correo@ejemplo.com" />
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-md-6 mb-2">
-                <label class="form-label">Whatsapp</label>
-                <InputText class="form-control" @bind-Value="pasajeroSeleccionado.Whatsapp" placeholder="Whatsapp" />
-            </div>
-            <div class="col-md-6 mb-2 flex-column d-flex justify-content-end pb-2">
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input" id="chkPublicidad" 
-                           checked="@(pasajeroSeleccionado.Publicidad == 1)" 
-                           @onchange="OnPublicidadChanged" />
-                    <label class="form-check-label" for="chkPublicidad">Recibir Publicidad</label>
+        <!-- Formulario de detalle -->
+        <div class="content-card" style="margin: 1.5rem 0 0 0; box-shadow: none; border: 1px solid #e5e7eb;">
+            <h5>Detalle Pasajero</h5>
+            <EditForm Model="pasajeroSeleccionado">
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <div class="form-group">
+                            <label class="form-label">Celular</label>
+                            <InputText class="form-control" @bind-Value="pasajeroSeleccionado.Celular" disabled="@(!esNuevo)" placeholder="Celular (ej. 0999999999)" />
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <div class="form-group">
+                            <label class="form-label">Nombres</label>
+                            <InputText class="form-control" @bind-Value="pasajeroSeleccionado.Nombres" placeholder="Nombres Completos" />
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-md-12 mb-2">
-                <label class="form-label">Observación</label>
-                <InputTextArea class="form-control" @bind-Value="pasajeroSeleccionado.Observacion" placeholder="Observaciones adicionales..." rows="2" />
-            </div>
-        </div>
-    </EditForm>
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <div class="form-group">
+                            <label class="form-label">Sexo</label>
+                            <InputSelect class="form-control" @bind-Value="pasajeroSeleccionado.Sexo">
+                                <option value="">-- Seleccione --</option>
+                                <option value="M">Masculino</option>
+                                <option value="F">Femenino</option>
+                            </InputSelect>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <div class="form-group">
+                            <label class="form-label">Correo</label>
+                            <InputText type="email" class="form-control" @bind-Value="pasajeroSeleccionado.Correo" placeholder="correo@ejemplo.com" />
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <div class="form-group">
+                            <label class="form-label">Whatsapp</label>
+                            <InputText class="form-control" @bind-Value="pasajeroSeleccionado.Whatsapp" placeholder="Whatsapp" />
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-2 flex-column d-flex justify-content-end pb-2">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="chkPublicidad"
+                                   checked="@(pasajeroSeleccionado.Publicidad == 1)"
+                                   @onchange="OnPublicidadChanged" />
+                            <label class="form-check-label" for="chkPublicidad">Recibir Publicidad</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12 mb-2">
+                        <div class="form-group">
+                            <label class="form-label">Observación</label>
+                            <InputTextArea class="form-control" @bind-Value="pasajeroSeleccionado.Observacion" placeholder="Observaciones adicionales..." rows="2" />
+                        </div>
+                    </div>
+                </div>
+            </EditForm>
 
-    <div class="d-flex gap-2 mt-3">
-        <button class="btn btn-warning" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">Guardar</button>
-        <button class="btn btn-danger" @onclick="EliminarPasajero" disabled="@(!PuedeEliminar)">Eliminar</button>
-        <button class="btn btn-secondary" @onclick="CancelarEdicion">Cancelar</button>
+            <div class="action-buttons mt-3">
+                <button class="btn-modern btn-primary-modern" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+                <button class="btn-modern" style="background:#fee2e2;color:#dc2626;" @onclick="EliminarPasajero" disabled="@(!PuedeEliminar)">
+                    <i class="fas fa-trash"></i> Eliminar
+                </button>
+                <button class="btn-modern btn-secondary-modern" @onclick="CancelarEdicion">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
