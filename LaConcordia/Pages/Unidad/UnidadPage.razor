@@ -10,10 +10,10 @@
 
 <div class="mb-3 d-flex gap-2">
     <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo</button>
-    <input type="text" class="form-control" placeholder="Buscar por placa..." @bind="filtroPlaca" />
-    <input type="text" class="form-control" placeholder="Buscar por propietario..." @bind="filtroPropietario" />
+    <input type="text" class="form-control" placeholder="Buscar por placa..." @bind="filtroPlaca" @bind:event="oninput" @bind:after="OnFiltroChanged" />
+    <input type="text" class="form-control" placeholder="Buscar por propietario..." @bind="filtroPropietario" @bind:event="oninput" @bind:after="OnFiltroChanged" />
 
-    <select class="form-select" @bind="estadoFiltro">
+    <select class="form-select" @bind="estadoFiltro" @bind:after="OnFiltroChanged">
         <option value="">-- Todos --</option>
         <option value="a">Activo</option>
         <option value="p">Pasivo</option>
@@ -114,6 +114,7 @@
 
 
 @code {
+    private List<UnidadDTO> todasLasUnidades = new();
     private List<UnidadDTO> unidades = new();
     private UnidadDTO unidadSeleccionada = new();
     private bool esNuevo = false;
@@ -131,19 +132,48 @@
         await CargarAsync();
     }
 
+    // Trae todas las unidades del servidor una sola vez; el filtro y la
+    // paginacion se resuelven despues en memoria, sin volver a golpear la API/BD.
     private async Task CargarAsync()
     {
-        var result = await unidadRepo.GetUnidadPaginados(
-            PaginaActual, PageSize, filtroPlaca, null, null, filtroPropietario, estadoFiltro);
-
-        unidades = result.Items;
-        TotalRegistros = result.TotalItems;
+        todasLasUnidades = await unidadRepo.GetUnidadInfoAll() ?? new();
+        AplicarFiltro();
     }
 
-    private async Task Buscar()
+    private void AplicarFiltro()
+    {
+        IEnumerable<UnidadDTO> query = todasLasUnidades;
+
+        if (!string.IsNullOrWhiteSpace(filtroPlaca))
+            query = query.Where(u => u.Placa != null &&
+                u.Placa.Contains(filtroPlaca, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrWhiteSpace(filtroPropietario))
+            query = query.Where(u => u.Propietario != null &&
+                u.Propietario.Contains(filtroPropietario, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrEmpty(estadoFiltro))
+            query = query.Where(u => u.Estado == estadoFiltro);
+
+        var filtradas = query.ToList();
+        TotalRegistros = filtradas.Count;
+
+        unidades = filtradas
+            .Skip((PaginaActual - 1) * PageSize)
+            .Take(PageSize)
+            .ToList();
+    }
+
+    private void OnFiltroChanged()
     {
         PaginaActual = 1;
-        await CargarAsync();
+        AplicarFiltro();
+    }
+
+    private void Buscar()
+    {
+        PaginaActual = 1;
+        AplicarFiltro();
     }
 
     private void Seleccionar(UnidadDTO u)
@@ -205,10 +235,10 @@
         esNuevo = false;
     }
 
-    private async Task OnPageChangedAsync(int nuevaPagina)
+    private void OnPageChangedAsync(int nuevaPagina)
     {
         PaginaActual = nuevaPagina;
-        await CargarAsync();
+        AplicarFiltro();
     }
 
     private string MostrarEstado(string? estado) => estado switch

@@ -14,9 +14,9 @@
     <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo</button>
 
 
-    <input type="text" class="form-control w-auto" placeholder="Buscar por Descripción..." @bind="filtroBusqueda" />
+    <input type="text" class="form-control w-auto" placeholder="Buscar por Descripción..." @bind="filtroBusqueda" @bind:event="oninput" @bind:after="OnFiltroChanged" />
 
-    <select class="form-select w-auto" @bind="estadoFiltro">
+    <select class="form-select w-auto" @bind="estadoFiltro" @bind:after="OnFiltroChanged">
         <option value="">-- Todos --</option>
         <option value="a">Activo</option>
         <option value="p">Pasivo</option>
@@ -104,6 +104,7 @@
     //para focus al dar nuevo
     private ElementReference inputTipoLicenciaRef;
 
+    private List<TipolicenciumDTO> todosLosTipos = new();
     private List<TipolicenciumDTO> lista = new();
     private TipolicenciumDTO seleccionado = new();
     private string filtroBusqueda = string.Empty;
@@ -119,17 +120,44 @@
         await CargarAsync();
     }
 
+    // Trae todos los tipos de licencia del servidor una sola vez; el filtro y la
+    // paginacion se resuelven despues en memoria, sin volver a golpear la API/BD.
     private async Task CargarAsync()
     {
-        var resultado = await empresaRepo.GetTipoLicenciumPaginados(PaginaActual, PageSize, filtroBusqueda, estadoFiltro);
-        lista = resultado.Items;
-        TotalItems = resultado.TotalItems;
+        todosLosTipos = await empresaRepo.GetTipolicenciaInfoAll() ?? new();
+        AplicarFiltro();
     }
 
-    private async Task Buscar()
+    private void AplicarFiltro()
+    {
+        IEnumerable<TipolicenciumDTO> query = todosLosTipos;
+
+        if (!string.IsNullOrWhiteSpace(filtroBusqueda))
+            query = query.Where(t => t.Tipolicencia != null &&
+                t.Tipolicencia.Contains(filtroBusqueda, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrEmpty(estadoFiltro))
+            query = query.Where(t => t.Estado == estadoFiltro);
+
+        var filtrados = query.ToList();
+        TotalItems = filtrados.Count;
+
+        lista = filtrados
+            .Skip((PaginaActual - 1) * PageSize)
+            .Take(PageSize)
+            .ToList();
+    }
+
+    private void OnFiltroChanged()
     {
         PaginaActual = 1;
-        await CargarAsync();
+        AplicarFiltro();
+    }
+
+    private void Buscar()
+    {
+        PaginaActual = 1;
+        AplicarFiltro();
     }
 
     private void Seleccionar(TipolicenciumDTO dto)
@@ -202,10 +230,10 @@
         esNuevo = false;
     }
 
-    private async Task OnPageChangedAsync(int nuevaPagina)
+    private void OnPageChangedAsync(int nuevaPagina)
     {
         PaginaActual = nuevaPagina;
-        await CargarAsync();
+        AplicarFiltro();
     }
 
     private bool PuedeGuardar => !string.IsNullOrWhiteSpace(seleccionado.Tipolicencia);

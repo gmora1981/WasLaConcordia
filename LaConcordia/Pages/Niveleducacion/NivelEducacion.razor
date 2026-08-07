@@ -11,8 +11,8 @@
 <!-- Controles de búsqueda y nuevo registro -->
 <div class="mb-3 d-flex gap-2">
     <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo</button>
-    <input type="text" class="form-control" placeholder="Buscar por descripción..." @bind="filtroBusqueda" />
-    <select class="form-select" @bind="estadoFiltro">
+    <input type="text" class="form-control" placeholder="Buscar por descripción..." @bind="filtroBusqueda" @bind:event="oninput" @bind:after="OnFiltroChanged" />
+    <select class="form-select" @bind="estadoFiltro" @bind:after="OnFiltroChanged">
         <option value="">-- Todos --</option>
         <option value="a">Activo</option>
         <option value="p">Pasivo</option>
@@ -93,6 +93,7 @@
 @code {
     private ElementReference inputDescripcionRef;
 
+    private List<NiveleducacionDTO> todosLosNiveles = new();
     private List<NiveleducacionDTO> niveles = new();
     private NiveleducacionDTO nivelSeleccionado = new();
 
@@ -110,13 +111,14 @@
         await CargarNivelesAsync();
     }
 
+    // Trae todos los niveles de educacion del servidor una sola vez; el filtro y la
+    // paginacion se resuelven despues en memoria, sin volver a golpear la API/BD.
     private async Task CargarNivelesAsync()
     {
         try
         {
-            var resultado = await niveleducacionRepo.GetNiveleducacionPaginados(PaginaActual, PageSize, filtroBusqueda, estadoFiltro);
-            niveles = resultado.Items;
-            TotalRegistros = resultado.TotalItems;
+            todosLosNiveles = await niveleducacionRepo.GetNiveleducacionAll() ?? new();
+            AplicarFiltro();
         }
         catch (Exception ex)
         {
@@ -124,10 +126,36 @@
         }
     }
 
-    private async void BuscarNivelEducacion()
+    private void AplicarFiltro()
+    {
+        IEnumerable<NiveleducacionDTO> query = todosLosNiveles;
+
+        if (!string.IsNullOrWhiteSpace(filtroBusqueda))
+            query = query.Where(n => n.Descripcion != null &&
+                n.Descripcion.Contains(filtroBusqueda, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrEmpty(estadoFiltro))
+            query = query.Where(n => n.Estado == estadoFiltro);
+
+        var filtrados = query.ToList();
+        TotalRegistros = filtrados.Count;
+
+        niveles = filtrados
+            .Skip((PaginaActual - 1) * PageSize)
+            .Take(PageSize)
+            .ToList();
+    }
+
+    private void OnFiltroChanged()
     {
         PaginaActual = 1;
-        await CargarNivelesAsync();
+        AplicarFiltro();
+    }
+
+    private void BuscarNivelEducacion()
+    {
+        PaginaActual = 1;
+        AplicarFiltro();
     }
 
     private string ObtenerNombreEstado(string? estado)
@@ -202,10 +230,10 @@
         esNuevo = false;
     }
 
-    private async Task OnPageChangedAsync(int nuevaPagina)
+    private void OnPageChangedAsync(int nuevaPagina)
     {
         PaginaActual = nuevaPagina;
-        await CargarNivelesAsync();
+        AplicarFiltro();
     }
 
     private bool PuedeGuardar => !string.IsNullOrWhiteSpace(nivelSeleccionado.Descripcion);

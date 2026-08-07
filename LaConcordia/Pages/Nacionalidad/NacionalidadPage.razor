@@ -9,8 +9,8 @@
 
 <div class="mb-3 d-flex gap-2">
     <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo</button>
-    <input type="text" class="form-control" placeholder="Buscar nacionalidad..." @bind="razonBusqueda" />
-    <select class="form-select" @bind="estadoFiltro">
+    <input type="text" class="form-control" placeholder="Buscar nacionalidad..." @bind="razonBusqueda" @bind:event="oninput" @bind:after="OnFiltroChanged" />
+    <select class="form-select" @bind="estadoFiltro" @bind:after="OnFiltroChanged">
         <option value="">-- Todos --</option>
         <option value="a">Activo</option>
         <option value="p">Pasivo</option>
@@ -102,6 +102,7 @@
 </div>
 
 @code {
+    private List<NacionalidadDTO> todasLasNacionalidades = new();
     private List<NacionalidadDTO> nacionalidades = new();
     private NacionalidadDTO nacionalidadSeleccionada = new();
     private string razonBusqueda = string.Empty;
@@ -118,24 +119,51 @@
         await CargarNacionalidadesAsync();
     }
 
-    private async Task BuscarNacionalidades()
+    private void BuscarNacionalidades()
     {
         PaginaActual = 1;
-        await CargarNacionalidadesAsync();
+        AplicarFiltro();
     }
 
+    // Trae todas las nacionalidades del servidor una sola vez; el filtro y la
+    // paginacion se resuelven despues en memoria, sin volver a golpear la API/BD.
     private async Task CargarNacionalidadesAsync()
     {
         try
         {
-            var result = await nacionalidadRepo.GetNacionalidadesPaginados(PaginaActual, PageSize, razonBusqueda, estadoFiltro);
-            nacionalidades = result.Items ?? new();
-            TotalItems = result.TotalItems;
+            todasLasNacionalidades = await nacionalidadRepo.GetNacionalidadesAll() ?? new();
+            AplicarFiltro();
         }
         catch (Exception ex)
         {
             mensajeError = $"Error al cargar: {ex.Message}";
         }
+    }
+
+    private void AplicarFiltro()
+    {
+        IEnumerable<NacionalidadDTO> query = todasLasNacionalidades;
+
+        if (!string.IsNullOrWhiteSpace(razonBusqueda))
+            query = query.Where(n => n.Nacionalidad1 != null &&
+                n.Nacionalidad1.Contains(razonBusqueda, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrEmpty(estadoFiltro))
+            query = query.Where(n => n.Estado == estadoFiltro);
+
+        var filtradas = query.ToList();
+        TotalItems = filtradas.Count;
+
+        nacionalidades = filtradas
+            .Skip((PaginaActual - 1) * PageSize)
+            .Take(PageSize)
+            .ToList();
+    }
+
+    private void OnFiltroChanged()
+    {
+        PaginaActual = 1;
+        AplicarFiltro();
     }
 
     private string ObtenerNombreEstado(string? estado)
@@ -208,9 +236,9 @@
         mensajeError = string.Empty;
     }
 
-    private async Task OnPageChangedAsync(int nuevaPagina)
+    private void OnPageChangedAsync(int nuevaPagina)
     {
         PaginaActual = nuevaPagina;
-        await CargarNacionalidadesAsync();
+        AplicarFiltro();
     }
 }

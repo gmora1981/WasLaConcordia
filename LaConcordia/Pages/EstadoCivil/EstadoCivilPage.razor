@@ -11,8 +11,8 @@
 <!-- Controles de búsqueda y nuevo registro -->
 <div class="mb-3 d-flex gap-2">
     <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo</button>
-    <input type="text" class="form-control" placeholder="Buscar por descripción..." @bind="razonBusqueda" />
-    <select class="form-select" @bind="estadoFiltro">
+    <input type="text" class="form-control" placeholder="Buscar por descripción..." @bind="razonBusqueda" @bind:event="oninput" @bind:after="OnFiltroChanged" />
+    <select class="form-select" @bind="estadoFiltro" @bind:after="OnFiltroChanged">
         <option value="">-- Todos --</option>
         <option value="a">Activo</option>
         <option value="p">Pasivo</option>
@@ -96,6 +96,7 @@
     // Referencia para dar focus al primer input
     private ElementReference inputDescripcionRef;
 
+    private List<EstadoCivilDTO> todosLosEstadoCivil = new();
     private List<EstadoCivilDTO> estadocivil = new();
     private EstadoCivilDTO estadoCivilSeleccionado = new();
 
@@ -113,13 +114,14 @@
         await CargarEstadoCivilAsync();
     }
 
+    // Trae todos los estados civiles del servidor una sola vez; el filtro y la
+    // paginacion se resuelven despues en memoria, sin volver a golpear la API/BD.
     private async Task CargarEstadoCivilAsync()
     {
         try
         {
-            var resultado = await estadoCivilRepo.GetEstadoCivilPaginados(PaginaActual, PageSize, razonBusqueda, estadoFiltro);
-            estadocivil = resultado.Items;
-            TotalRegistros = resultado.TotalItems;
+            todosLosEstadoCivil = await estadoCivilRepo.GetEstadoCivilAll() ?? new();
+            AplicarFiltro();
         }
         catch (Exception ex)
         {
@@ -127,10 +129,36 @@
         }
     }
 
-    private async void BuscarEstadoCivil()
+    private void AplicarFiltro()
+    {
+        IEnumerable<EstadoCivilDTO> query = todosLosEstadoCivil;
+
+        if (!string.IsNullOrWhiteSpace(razonBusqueda))
+            query = query.Where(e => e.Descripcion != null &&
+                e.Descripcion.Contains(razonBusqueda, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrEmpty(estadoFiltro))
+            query = query.Where(e => e.Estado == estadoFiltro);
+
+        var filtrados = query.ToList();
+        TotalRegistros = filtrados.Count;
+
+        estadocivil = filtrados
+            .Skip((PaginaActual - 1) * PageSize)
+            .Take(PageSize)
+            .ToList();
+    }
+
+    private void OnFiltroChanged()
     {
         PaginaActual = 1;
-        await CargarEstadoCivilAsync();
+        AplicarFiltro();
+    }
+
+    private void BuscarEstadoCivil()
+    {
+        PaginaActual = 1;
+        AplicarFiltro();
     }
 
     private string ObtenerNombreEstado(string? estado)
@@ -200,13 +228,12 @@
         esNuevo = false;
     }
 
-    private async Task OnPageChangedAsync(int nuevaPagina)
+    private void OnPageChangedAsync(int nuevaPagina)
     {
         PaginaActual = nuevaPagina;
-        await CargarEstadoCivilAsync();
+        AplicarFiltro();
     }
 
     private bool PuedeGuardar => !string.IsNullOrWhiteSpace(estadoCivilSeleccionado.Descripcion);
     private bool PuedeEliminar => !esNuevo && estadoCivilSeleccionado.Idestadocivil > 0;
 }
-este es el modelo como quieroi NivelEduacion

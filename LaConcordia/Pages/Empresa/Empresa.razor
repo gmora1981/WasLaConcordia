@@ -11,8 +11,8 @@
 <!-- Encabezado: Nuevo, Buscar -->
 <div class="mb-3 d-flex gap-2">
     <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo</button>
-    <input type="text" class="form-control" placeholder="Buscar por Razón Social..." @bind="razonBusqueda" />
-    <select class="form-select" @bind="estadoFiltro">
+    <input type="text" class="form-control" placeholder="Buscar por Razón Social..." @bind="razonBusqueda" @bind:event="oninput" @bind:after="OnFiltroChanged" />
+    <select class="form-select" @bind="estadoFiltro" @bind:after="OnFiltroChanged">
         <option value="">-- Todos --</option>
         <option value="a">Activo</option>
         <option value="p">Pasivo</option>
@@ -130,6 +130,7 @@
 @code {
     //para focus al dar nuevo
     private ElementReference inputTipoLicenciaRef;
+    private List<EmpresaDTO> todasLasEmpresas = new();
     private List<EmpresaDTO> empresas = new();
     private EmpresaDTO empresaSeleccionada = new();
     private string razonBusqueda = string.Empty;
@@ -145,13 +146,14 @@
         await CargarEmpresasAsync();
     }
 
+    // Trae todas las empresas del servidor una sola vez; el filtro y la
+    // paginacion se resuelven despues en memoria, sin volver a golpear la API/BD.
     private async Task CargarEmpresasAsync()
     {
         try
         {
-            var resultado = await empresaRepo.GetEmpresasPaginados(PaginaActual, PageSize, razonBusqueda, estadoFiltro);
-            empresas = resultado.Items;
-            TotalUsuarios = resultado.TotalItems;
+            todasLasEmpresas = await empresaRepo.GetEmpresaInfoAll() ?? new();
+            AplicarFiltro();
         }
         catch (Exception ex)
         {
@@ -159,10 +161,36 @@
         }
     }
 
-    private async void BuscarEmpresas()
+    private void AplicarFiltro()
     {
-        PaginaActual = 1; // reinicia a la primera página
-        await CargarEmpresasAsync();
+        IEnumerable<EmpresaDTO> query = todasLasEmpresas;
+
+        if (!string.IsNullOrWhiteSpace(razonBusqueda))
+            query = query.Where(e => e.Razonsocial != null &&
+                e.Razonsocial.Contains(razonBusqueda, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrEmpty(estadoFiltro))
+            query = query.Where(e => e.Estado == estadoFiltro);
+
+        var filtradas = query.ToList();
+        TotalUsuarios = filtradas.Count;
+
+        empresas = filtradas
+            .Skip((PaginaActual - 1) * PageSize)
+            .Take(PageSize)
+            .ToList();
+    }
+
+    private void OnFiltroChanged()
+    {
+        PaginaActual = 1;
+        AplicarFiltro();
+    }
+
+    private void BuscarEmpresas()
+    {
+        PaginaActual = 1;
+        AplicarFiltro();
     }
 
     private string ObtenerNombreEstado(string? estado)
@@ -233,10 +261,10 @@
         esNuevo = false;
     }
 
-    private async Task OnPageChangedAsync(int nuevaPagina)
+    private void OnPageChangedAsync(int nuevaPagina)
     {
         PaginaActual = nuevaPagina;
-        await CargarEmpresasAsync();
+        AplicarFiltro();
     }
 
     //exportar pdf

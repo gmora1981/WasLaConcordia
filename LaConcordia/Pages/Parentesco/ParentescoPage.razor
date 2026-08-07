@@ -11,8 +11,8 @@
 <!-- Encabezado -->
 <div class="mb-3 d-flex gap-2">
     <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo</button>
-    <input type="text" class="form-control" placeholder="Buscar por nombre..." @bind="filtroBusqueda" />
-    <select class="form-select" @bind="estadoFiltro">
+    <input type="text" class="form-control" placeholder="Buscar por nombre..." @bind="filtroBusqueda" @bind:event="oninput" @bind:after="OnFiltroChanged" />
+    <select class="form-select" @bind="estadoFiltro" @bind:after="OnFiltroChanged">
 
         <option value="ACTIVO">Activo</option>
         <option value="INACTIVO">Inactivo</option>
@@ -92,6 +92,7 @@
 
 
 @code {
+    private List<ParentescoDTO> todosLosParentescos = new();
     private List<ParentescoDTO> parentescos = new();
     private ParentescoDTO parentescoSeleccionado = new();
     private string filtroBusqueda = string.Empty;
@@ -107,18 +108,45 @@
         await CargarParentescosAsync();
     }
 
+    // Trae todos los parentescos del servidor una sola vez; el filtro y la
+    // paginacion se resuelven despues en memoria, sin volver a golpear la API/BD.
     private async Task CargarParentescosAsync()
     {
         try
         {
-            var resultado = await parentescoRepo.GetParentescosPaginados(PaginaActual, PageSize, filtroBusqueda, estadoFiltro);
-            parentescos = resultado.Items ?? new();
-            TotalItems = resultado.TotalItems;
+            todosLosParentescos = await parentescoRepo.ParentescoInfoAll() ?? new();
+            AplicarFiltro();
         }
         catch (Exception ex)
         {
             await displayMessage.DisplayErrorMessage("Error al cargar los registros: " + ex.Message);
         }
+    }
+
+    private void AplicarFiltro()
+    {
+        IEnumerable<ParentescoDTO> query = todosLosParentescos;
+
+        if (!string.IsNullOrWhiteSpace(filtroBusqueda))
+            query = query.Where(p => p.Parentesco1 != null &&
+                p.Parentesco1.Contains(filtroBusqueda, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrEmpty(estadoFiltro))
+            query = query.Where(p => p.Estado == estadoFiltro);
+
+        var filtrados = query.ToList();
+        TotalItems = filtrados.Count;
+
+        parentescos = filtrados
+            .Skip((PaginaActual - 1) * PageSize)
+            .Take(PageSize)
+            .ToList();
+    }
+
+    private void OnFiltroChanged()
+    {
+        PaginaActual = 1;
+        AplicarFiltro();
     }
 
     private void NuevoRegistro()
@@ -194,16 +222,16 @@
         esNuevo = false;
     }
 
-    private async Task OnPageChangedAsync(int nuevaPagina)
+    private void OnPageChangedAsync(int nuevaPagina)
     {
         PaginaActual = nuevaPagina;
-        await CargarParentescosAsync();
+        AplicarFiltro();
     }
 
     private void BuscarParentescos()
     {
         PaginaActual = 1;
-        _ = CargarParentescosAsync();
+        AplicarFiltro();
     }
 
     private bool PuedeGuardar => !string.IsNullOrWhiteSpace(parentescoSeleccionado?.Parentesco1);

@@ -11,10 +11,10 @@
 
 <div class="mb-3 d-flex gap-2">
     <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo</button>
-    <input type="text" class="form-control" placeholder="Buscar por cédula..." @bind="filtroCedula" />
-    <input type="text" class="form-control" placeholder="Buscar por nombre..." @bind="filtroNombre" />
-    <input type="text" class="form-control" placeholder="Buscar por apellidos..." @bind="filtroApellidos" />
-    <select class="form-select" @bind="estadoFiltro">
+    <input type="text" class="form-control" placeholder="Buscar por cédula..." @bind="filtroCedula" @bind:event="oninput" @bind:after="OnFiltroChanged" />
+    <input type="text" class="form-control" placeholder="Buscar por nombre..." @bind="filtroNombre" @bind:event="oninput" @bind:after="OnFiltroChanged" />
+    <input type="text" class="form-control" placeholder="Buscar por apellidos..." @bind="filtroApellidos" @bind:event="oninput" @bind:after="OnFiltroChanged" />
+    <select class="form-select" @bind="estadoFiltro" @bind:after="OnFiltroChanged">
         <option value="">-- Todos --</option>
         <option value="a">Activo</option>
         <option value="p">Pasivo</option>
@@ -98,6 +98,7 @@
 
 
 @code {
+    private List<DuenopuestoDTO> todosLosDuenopuestos = new();
     private List<DuenopuestoDTO> duenopuestos = new();
     private DuenopuestoDTO duenopuestoSeleccionado = new();
     private bool esNuevo = false;
@@ -116,15 +117,14 @@
         await CargarAsync();
     }
 
+    // Trae todos los dueños de puesto del servidor una sola vez; el filtro y la
+    // paginacion se resuelven despues en memoria, sin volver a golpear la API/BD.
     private async Task CargarAsync()
     {
         try
         {
-            var result = await duenopuestoRepo.GetDuenopuestosPaginados(
-                PaginaActual, PageSize, filtroCedula, filtroNombre, filtroApellidos, estadoFiltro);
-
-            duenopuestos = result.Items;
-            TotalRegistros = result.TotalItems;
+            todosLosDuenopuestos = await duenopuestoRepo.DuenopuestoInfoAll() ?? new();
+            AplicarFiltro();
         }
         catch (Exception ex)
         {
@@ -132,10 +132,44 @@
         }
     }
 
-    private async Task Buscar()
+    private void AplicarFiltro()
+    {
+        IEnumerable<DuenopuestoDTO> query = todosLosDuenopuestos;
+
+        if (!string.IsNullOrWhiteSpace(filtroCedula))
+            query = query.Where(d => d.Cedula != null &&
+                d.Cedula.Contains(filtroCedula, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrWhiteSpace(filtroNombre))
+            query = query.Where(d => d.Nombres != null &&
+                d.Nombres.Contains(filtroNombre, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrWhiteSpace(filtroApellidos))
+            query = query.Where(d => d.Apellidos != null &&
+                d.Apellidos.Contains(filtroApellidos, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrEmpty(estadoFiltro))
+            query = query.Where(d => d.Estado == estadoFiltro);
+
+        var filtrados = query.ToList();
+        TotalRegistros = filtrados.Count;
+
+        duenopuestos = filtrados
+            .Skip((PaginaActual - 1) * PageSize)
+            .Take(PageSize)
+            .ToList();
+    }
+
+    private void OnFiltroChanged()
     {
         PaginaActual = 1;
-        await CargarAsync();
+        AplicarFiltro();
+    }
+
+    private void Buscar()
+    {
+        PaginaActual = 1;
+        AplicarFiltro();
     }
 
     private void Seleccionar(DuenopuestoDTO dp)
@@ -192,10 +226,10 @@
         esNuevo = false;
     }
 
-    private async Task OnPageChangedAsync(int nuevaPagina)
+    private void OnPageChangedAsync(int nuevaPagina)
     {
         PaginaActual = nuevaPagina;
-        await CargarAsync();
+        AplicarFiltro();
     }
 
     private string MostrarEstado(string? estado) => estado switch
