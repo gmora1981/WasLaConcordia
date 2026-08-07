@@ -140,18 +140,17 @@ code {
     margin-left: 0.5rem;
 }
 
-/* Contenedor del submenu: linea guia vertical que lo conecta con el padre,
-   con espacio a la derecha para que los items no lleguen hasta el borde del sidebar */
+/* Contenedor del submenu: espacio a la derecha para que los items no lleguen
+   hasta el borde del sidebar. La linea guia ahora se dibuja por item (ver .dropdown-blazor li). */
 .dropdown-wrapper-blazor {
     padding: 0.15rem 1.25rem 0.15rem 0;
     margin-left: 1.1rem;
-    border-left: 2px solid rgba(255, 255, 255, 0.15);
     background: transparent;
     border-radius: 0;
     box-shadow: none;
 }
 
-/* Lista de items del submenu, alineada a la izquierda */
+/* Lista de items del submenu, alineada a la izquierda, con espacio generoso entre items */
 .dropdown-blazor {
     list-style: none;
     padding: 0;
@@ -159,14 +158,47 @@ code {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 0.1rem;
+    gap: 0.45rem;
 }
 
-    /* Item individual: alineado a la izquierda, con sangria de un tab respecto a la linea guia,
-       usando los mismos colores que el resto del menu (sidebar oscuro) */
+    /* Cada item dibuja su propio conector en forma de "L" redondeada hacia la linea guia:
+       ::before = el codo (mitad vertical + horizontal, con esquina redondeada)
+       ::after  = el tramo recto que sigue hacia el siguiente item (se corta en el ultimo) */
+    .dropdown-blazor li {
+        position: relative;
+        padding-left: 1.25rem;
+    }
+
+        .dropdown-blazor li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: -0.35rem;
+            width: 0.85rem;
+            height: 1.15rem;
+            border-left: 2px solid rgba(255, 255, 255, 0.2);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+            border-bottom-left-radius: 8px;
+        }
+
+        .dropdown-blazor li::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: -0.35rem;
+            bottom: -0.35rem;
+            border-left: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .dropdown-blazor li:last-child::after {
+            bottom: 50%;
+        }
+
+    /* Item individual: alineado a la izquierda, usando los mismos colores
+       que el resto del menu (sidebar oscuro) */
     .dropdown-blazor .dropdown-item {
         display: block;
-        padding: 0.35rem 0.5rem 0.35rem 1rem;
+        padding: 0.35rem 0.5rem 0.35rem 0.5rem;
         color: #d7d7d7;
         text-decoration: none;
         border-radius: 0.25rem;
