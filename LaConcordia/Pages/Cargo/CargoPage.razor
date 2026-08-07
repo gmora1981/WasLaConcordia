@@ -136,6 +136,7 @@
 }
 
 @code {
+    private List<CargoDTO> todosLosCargos = new();
     private List<CargoDTO> listaCargos = new();
     private CargoDTO cargoSeleccionado = new();
     private string filtroBusqueda = string.Empty;
@@ -149,16 +150,17 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await CargarCargosAsync();
+        await CargarTodosLosCargosAsync();
     }
 
-    private async Task CargarCargosAsync()
+    // Trae el catalogo completo del servidor una sola vez; el filtro y la
+    // paginacion se resuelven despues en memoria, sin volver a golpear la API/BD.
+    private async Task CargarTodosLosCargosAsync()
     {
         try
         {
-            var resultado = await cargoRepo.GetCargosPaginados(PaginaActual, PageSize, filtroBusqueda, estadoFiltro);
-            listaCargos = resultado.Items ?? new();
-            TotalRegistros = resultado.TotalItems;
+            todosLosCargos = await cargoRepo.GetCargoInfoAll() ?? new();
+            AplicarFiltro();
         }
         catch (Exception ex)
         {
@@ -166,16 +168,36 @@
         }
     }
 
-    private async Task OnFiltroChanged()
+    private void AplicarFiltro()
     {
-        PaginaActual = 1;
-        await CargarCargosAsync();
+        IEnumerable<CargoDTO> query = todosLosCargos;
+
+        if (!string.IsNullOrWhiteSpace(filtroBusqueda))
+            query = query.Where(c => c.Cargo1 != null &&
+                c.Cargo1.Contains(filtroBusqueda, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrEmpty(estadoFiltro))
+            query = query.Where(c => c.Estado == estadoFiltro);
+
+        var filtrados = query.ToList();
+        TotalRegistros = filtrados.Count;
+
+        listaCargos = filtrados
+            .Skip((PaginaActual - 1) * PageSize)
+            .Take(PageSize)
+            .ToList();
     }
 
-    private async Task BuscarCargos()
+    private void OnFiltroChanged()
     {
         PaginaActual = 1;
-        await CargarCargosAsync();
+        AplicarFiltro();
+    }
+
+    private void BuscarCargos()
+    {
+        PaginaActual = 1;
+        AplicarFiltro();
     }
 
     private void AbrirModalNuevo()
@@ -214,7 +236,7 @@
 
             await displayMessage.DisplaySuccessMessage(esNuevo ? "Cargo creado correctamente." : "Cargo actualizado correctamente.");
             CerrarModal();
-            await CargarCargosAsync();
+            await CargarTodosLosCargosAsync();
         }
         catch (Exception ex)
         {
@@ -231,7 +253,7 @@
             {
                 await cargoRepo.DeleteCargoById(cargo.Idcargo);
                 await displayMessage.DisplaySuccessMessage("Cargo eliminado correctamente.");
-                await CargarCargosAsync();
+                await CargarTodosLosCargosAsync();
             }
             catch (Exception ex)
             {
@@ -240,10 +262,10 @@
         }
     }
 
-    private async Task OnPageChangedAsync(int nuevaPagina)
+    private void OnPageChangedAsync(int nuevaPagina)
     {
         PaginaActual = nuevaPagina;
-        await CargarCargosAsync();
+        AplicarFiltro();
     }
 
     private bool PuedeGuardar => !string.IsNullOrWhiteSpace(cargoSeleccionado.Cargo1);
