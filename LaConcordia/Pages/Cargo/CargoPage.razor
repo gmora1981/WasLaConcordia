@@ -23,7 +23,7 @@
         <div class="d-flex gap-2 mb-3" style="flex-wrap: wrap; align-items: center;">
             <div class="search-box">
                 <i class="fas fa-search"></i>
-                <input type="text" placeholder="Buscar por nombre..." @bind="filtroBusqueda" @bind:event="oninput" @onkeyup="OnFiltroChanged" />
+                <input type="text" placeholder="Buscar por nombre..." @bind="filtroBusqueda" @bind:event="oninput" @bind:after="OnFiltroChanged" />
             </div>
             <select class="form-control" style="width: 180px;" @bind="estadoFiltro" @bind:after="BuscarCargos">
                 <option value="">Todos los Estados</option>
@@ -166,10 +166,28 @@
         }
     }
 
+    private CancellationTokenSource? filtroCts;
+
     private async Task OnFiltroChanged()
     {
+        filtroCts?.Cancel();
+        filtroCts = new CancellationTokenSource();
+        var token = filtroCts.Token;
+
+        try
+        {
+            await Task.Delay(300, token);
+        }
+        catch (TaskCanceledException)
+        {
+            return;
+        }
+
+        if (token.IsCancellationRequested) return;
+
         PaginaActual = 1;
         await CargarCargosAsync();
+        StateHasChanged();
     }
 
     private async Task BuscarCargos()
