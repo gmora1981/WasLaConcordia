@@ -443,16 +443,17 @@
     {
         userRoles.Clear();
 
-        // Antes: una llamada HTTP por usuario (lenta con muchos usuarios). Ahora: una sola
-        // llamada que trae los roles de todos los usuarios de una vez.
+        // GetAllUserRoles ya trae los roles de los 150 usuarios de una sola vez (no solo los
+        // de la pagina actual), asi que se guardan TODOS aqui. Si solo se guardaran los de
+        // 'users' (la pagina cargada en ese momento), un usuario encontrado despues por
+        // busqueda y que no estaba en esa pagina inicial quedaria sin su rol real guardado
+        // y se mostraria "Sin Roles" por error, aunque si tenga uno.
         try
         {
             var todosLosRoles = await usersRepository.GetAllUserRoles();
-            foreach (var user in users)
+            foreach (var kvp in todosLosRoles)
             {
-                userRoles[user.UserId] = todosLosRoles.TryGetValue(user.UserId, out var roles)
-                    ? roles
-                    : new List<string>();
+                userRoles[kvp.Key] = kvp.Value;
             }
         }
         catch
