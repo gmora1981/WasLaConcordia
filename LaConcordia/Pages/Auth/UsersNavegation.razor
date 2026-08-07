@@ -368,7 +368,7 @@
                         </td>
                         <td>@user.FirstName @user.LastName</td>
                         <td>
-                            @if (userRoles.ContainsKey(user.UserId))
+                            @if (userRoles.ContainsKey(user.UserId) && userRoles[user.UserId].Any())
                             {
                                 @foreach (var role in userRoles[user.UserId])
                                 {
