@@ -25,60 +25,64 @@
         </div>
 
         <div class="row">
-            <div class="col-md-6">
+            <div class="col-md-6" style="padding-right: 1rem;">
                 <h5>Fuera de Servicio</h5>
-                <table class="admin-table">
-                    <thead>
-                        <tr><th>Unidad</th><th>Nombres</th><th>Apellidos</th><th></th></tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var f in fueraDeServicio)
-                        {
-                            <tr>
-                                <td>@f.Fkunidad</td>
-                                <td>@f.Nombre</td>
-                                <td>@f.Apellidos</td>
-                                <td>
-                                    <button class="btn-modern btn-primary-modern" @onclick="() => Ingresar(f)" disabled="@string.IsNullOrEmpty(turno)">
-                                        Ingresar <i class="fas fa-arrow-right"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        }
-                        @if (fueraDeServicio.Count == 0)
-                        {
-                            <tr><td colspan="4" class="empty-state"><p>Sin unidades fuera de servicio.</p></td></tr>
-                        }
-                    </tbody>
-                </table>
+                <div style="overflow-x: auto;">
+                    <table class="admin-table">
+                        <thead>
+                            <tr><th>Unidad</th><th>Nombres</th><th>Apellidos</th><th></th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var f in fueraDeServicio)
+                            {
+                                <tr>
+                                    <td>@f.Fkunidad</td>
+                                    <td>@f.Nombre</td>
+                                    <td>@f.Apellidos</td>
+                                    <td style="white-space: nowrap;">
+                                        <button class="btn-modern btn-primary-modern" @onclick="() => Ingresar(f)" disabled="@string.IsNullOrEmpty(turno)">
+                                            Ingresar <i class="fas fa-arrow-right"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                            @if (fueraDeServicio.Count == 0)
+                            {
+                                <tr><td colspan="4" class="empty-state"><p>Sin unidades fuera de servicio.</p></td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
-            <div class="col-md-6">
+            <div class="col-md-6" style="padding-left: 1rem;">
                 <h5>En Servicio</h5>
-                <table class="admin-table">
-                    <thead>
-                        <tr><th></th><th>Unidad</th><th>Nombres</th><th>Apellidos</th></tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var f in enServicio)
-                        {
-                            <tr>
-                                <td>
-                                    <button class="btn-modern" style="background:#fee2e2;color:#dc2626;" @onclick="() => Sacar(f)" disabled="@string.IsNullOrEmpty(turno)">
-                                        <i class="fas fa-arrow-left"></i> Sacar
-                                    </button>
-                                </td>
-                                <td>@f.Fkunidad</td>
-                                <td>@f.Nombre</td>
-                                <td>@f.Apellidos</td>
-                            </tr>
-                        }
-                        @if (enServicio.Count == 0)
-                        {
-                            <tr><td colspan="4" class="empty-state"><p>Sin unidades en servicio.</p></td></tr>
-                        }
-                    </tbody>
-                </table>
+                <div style="overflow-x: auto;">
+                    <table class="admin-table">
+                        <thead>
+                            <tr><th></th><th>Unidad</th><th>Nombres</th><th>Apellidos</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var f in enServicio)
+                            {
+                                <tr>
+                                    <td style="white-space: nowrap;">
+                                        <button class="btn-modern" style="background:#fee2e2;color:#dc2626;" @onclick="() => Sacar(f)" disabled="@string.IsNullOrEmpty(turno)">
+                                            <i class="fas fa-arrow-left"></i> Sacar
+                                        </button>
+                                    </td>
+                                    <td>@f.Fkunidad</td>
+                                    <td>@f.Nombre</td>
+                                    <td>@f.Apellidos</td>
+                                </tr>
+                            }
+                            @if (enServicio.Count == 0)
+                            {
+                                <tr><td colspan="4" class="empty-state"><p>Sin unidades en servicio.</p></td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
