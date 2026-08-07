@@ -5,68 +5,83 @@
 @inject IFlujoCaja flujoCajaRepo
 @inject IDisplayMessage displayMessage
 
-<h3>Flujo de Caja</h3>
+<link href="css/AdminCommon.css" rel="stylesheet" />
 
-<div class="mb-3 d-flex gap-2 align-items-end">
-    <div>
-        <label>Desde</label>
-        <input type="date" class="form-control" @bind="fechaDesde" />
-    </div>
-    <div>
-        <label>Hasta</label>
-        <input type="date" class="form-control" @bind="fechaHasta" />
-    </div>
-    <div class="flex-grow-1">
-        <label>Concepto</label>
-        <input type="text" class="form-control" placeholder="Buscar por concepto..." @bind="concepto" />
-    </div>
-    <button class="btn btn-success" @onclick="Buscar">Buscar</button>
-</div>
+<div class="page-container">
+    <div class="content-card">
+        <div class="header-section">
+            <h1 class="page-title">
+                <i class="fas fa-exchange-alt"></i> Flujo de Caja
+            </h1>
+        </div>
 
-<div class="d-flex justify-content-between align-items-center mt-3">
-    <p class="text-muted mb-0">Total: @TotalRegistros | Página: @PaginaActual</p>
-    <Pagination TotalItems="@TotalRegistros"
-                PageSize="@PageSize"
-                CurrentPage="@PaginaActual"
-                OnPageChanged="OnPageChangedAsync" />
-</div>
+        <div class="d-flex gap-2 mb-3" style="flex-wrap: wrap; align-items: end;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Desde</label>
+                <input type="date" class="form-control" @bind="fechaDesde" />
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Hasta</label>
+                <input type="date" class="form-control" @bind="fechaHasta" />
+            </div>
+            <div class="search-box" style="flex-grow: 1;">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Buscar por concepto..." @bind="concepto" />
+            </div>
+            <button class="btn-modern btn-primary-modern" @onclick="Buscar">
+                <i class="fas fa-search"></i> Buscar
+            </button>
+        </div>
 
-<table class="table table-bordered table-hover">
-    <thead class="table-dark">
-        <tr>
-            <th>Fecha</th>
-            <th>Concepto</th>
-            <th>Ingreso</th>
-            <th>Egreso</th>
-            <th>Saldo</th>
-            <th>Observación</th>
-            <th>Usuario</th>
-        </tr>
-    </thead>
-    <tbody>
-        @if (lista != null && lista.Count > 0)
-        {
-            @foreach (var item in lista)
-            {
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <p class="text-muted mb-0">Total: @TotalRegistros | Página: @PaginaActual</p>
+            <Pagination TotalItems="@TotalRegistros"
+                        PageSize="@PageSize"
+                        CurrentPage="@PaginaActual"
+                        OnPageChanged="OnPageChangedAsync" />
+        </div>
+
+        <table class="admin-table">
+            <thead>
                 <tr>
-                    <td>@item.Fecha?.ToString("dd/MM/yyyy HH:mm")</td>
-                    <td>@item.Concepto</td>
-                    <td class="text-success">@(item.Ingreso is > 0 ? item.Ingreso?.ToString("0.00") : "")</td>
-                    <td class="text-danger">@(item.Egreso is > 0 ? item.Egreso?.ToString("0.00") : "")</td>
-                    <td>@item.Saldo?.ToString("0.00")</td>
-                    <td>@item.Observacion</td>
-                    <td>@item.Usuario</td>
+                    <th>Fecha</th>
+                    <th>Concepto</th>
+                    <th>Ingreso</th>
+                    <th>Egreso</th>
+                    <th>Saldo</th>
+                    <th>Observación</th>
+                    <th>Usuario</th>
                 </tr>
-            }
-        }
-        else
-        {
-            <tr>
-                <td colspan="7" class="text-center">No se encontraron movimientos.</td>
-            </tr>
-        }
-    </tbody>
-</table>
+            </thead>
+            <tbody>
+                @if (lista != null && lista.Count > 0)
+                {
+                    @foreach (var item in lista)
+                    {
+                        <tr>
+                            <td>@item.Fecha?.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@item.Concepto</td>
+                            <td style="color:#16a34a;">@(item.Ingreso is > 0 ? item.Ingreso?.ToString("0.00") : "")</td>
+                            <td style="color:#dc2626;">@(item.Egreso is > 0 ? item.Egreso?.ToString("0.00") : "")</td>
+                            <td><strong>@item.Saldo?.ToString("0.00")</strong></td>
+                            <td>@item.Observacion</td>
+                            <td>@item.Usuario</td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="7" class="empty-state">
+                            <i class="fas fa-exchange-alt"></i>
+                            <p>No se encontraron movimientos.</p>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
 
 @code {
     private List<FlujoCajaDTO> lista = new();

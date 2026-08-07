@@ -4,61 +4,75 @@
 @inject IBalance balanceRepo
 @inject IDisplayMessage displayMessage
 
-<h3>Reporte de Balance</h3>
+<link href="css/AdminCommon.css" rel="stylesheet" />
 
-<div class="d-flex gap-2 align-items-end mb-3">
-    <div>
-        <label>Desde</label>
-        <input type="date" class="form-control" @bind="fechaDesde" />
-    </div>
-    <div>
-        <label>Hasta</label>
-        <input type="date" class="form-control" @bind="fechaHasta" />
-    </div>
-    <button class="btn btn-primary" @onclick="Generar" disabled="@(fechaDesde == null || fechaHasta == null)">Generar</button>
-</div>
+<div class="page-container">
+    <div class="content-card">
+        <div class="header-section">
+            <h1 class="page-title">
+                <i class="fas fa-chart-pie"></i> Reporte de Balance
+            </h1>
+        </div>
 
-@if (resultado != null)
-{
-    <p class="text-muted">
-        Del @resultado.FechaDesde.ToString("dd/MM/yyyy") al @resultado.FechaHasta.ToString("dd/MM/yyyy")
-    </p>
+        <div class="d-flex gap-2 mb-3" style="flex-wrap: wrap; align-items: end;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Desde</label>
+                <input type="date" class="form-control" @bind="fechaDesde" />
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Hasta</label>
+                <input type="date" class="form-control" @bind="fechaHasta" />
+            </div>
+            <button class="btn-modern btn-primary-modern" @onclick="Generar" disabled="@(fechaDesde == null || fechaHasta == null)">
+                <i class="fas fa-play"></i> Generar
+            </button>
+        </div>
 
-    <table class="table table-bordered table-hover" style="max-width: 600px;">
-        <thead class="table-dark">
-            <tr>
-                <th>Forma de Pago</th>
-                <th>Registros</th>
-                <th>Valor</th>
-            </tr>
-        </thead>
-        <tbody>
-            @if (resultado.Items.Count > 0)
-            {
-                @foreach (var item in resultado.Items)
-                {
+        @if (resultado != null)
+        {
+            <p class="text-muted">
+                Del @resultado.FechaDesde.ToString("dd/MM/yyyy") al @resultado.FechaHasta.ToString("dd/MM/yyyy")
+            </p>
+
+            <table class="admin-table" style="max-width: 600px;">
+                <thead>
                     <tr>
-                        <td>@item.FormaDePago</td>
-                        <td>@item.Registros</td>
-                        <td>@item.Valor.ToString("0.00")</td>
+                        <th>Forma de Pago</th>
+                        <th>Registros</th>
+                        <th>Valor</th>
                     </tr>
-                }
-            }
-            else
-            {
-                <tr>
-                    <td colspan="3" class="text-center">No hay movimientos en el rango seleccionado.</td>
-                </tr>
-            }
-        </tbody>
-        <tfoot>
-            <tr class="fw-bold">
-                <td colspan="2">Total</td>
-                <td>@resultado.Total.ToString("0.00")</td>
-            </tr>
-        </tfoot>
-    </table>
-}
+                </thead>
+                <tbody>
+                    @if (resultado.Items.Count > 0)
+                    {
+                        @foreach (var item in resultado.Items)
+                        {
+                            <tr>
+                                <td>@item.FormaDePago</td>
+                                <td>@item.Registros</td>
+                                <td>@item.Valor.ToString("0.00")</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="3" class="empty-state">
+                                <p>No hay movimientos en el rango seleccionado.</p>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="fw-bold">
+                        <td colspan="2">Total</td>
+                        <td>@resultado.Total.ToString("0.00")</td>
+                    </tr>
+                </tfoot>
+            </table>
+        }
+    </div>
+</div>
 
 @code {
     private DateTime? fechaDesde;

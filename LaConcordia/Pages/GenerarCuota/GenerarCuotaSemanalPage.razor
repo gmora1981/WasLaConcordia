@@ -4,75 +4,91 @@
 @inject IGenerarCuota generarCuotaRepo
 @inject IDisplayMessage displayMessage
 
-<h3>Generar Cuota Semanal</h3>
+<link href="css/AdminCommon.css" rel="stylesheet" />
 
-<div class="d-flex gap-2 align-items-end mb-3">
-    <div>
-        <label>Año</label>
-        <select class="form-select" @bind="anio">
-            <option value="">--</option>
-            @for (int a = DateTime.Now.Year - 1; a <= DateTime.Now.Year + 1; a++)
-            {
-                <option value="@a">@a</option>
-            }
-        </select>
-    </div>
-    <div>
-        <label>Mes</label>
-        <select class="form-select" @bind="mes">
-            <option value="">--</option>
-            @for (int m = 1; m <= 12; m++)
-            {
-                <option value="@m.ToString("00")">@m.ToString("00")</option>
-            }
-        </select>
-    </div>
-    <div>
-        <label>Semana</label>
-        <select class="form-select" @bind="semana">
-            <option value="">--</option>
-            @for (int s = 1; s <= 5; s++)
-            {
-                <option value="@s">@s</option>
-            }
-        </select>
-    </div>
-    <button class="btn btn-secondary" @onclick="Mostrar" disabled="@(!PuedeMostrar)">Mostrar</button>
-    <button class="btn btn-primary" @onclick="Generar" disabled="@(!PuedeGenerar)">Generar</button>
-</div>
+<div class="page-container">
+    <div class="content-card">
+        <div class="header-section">
+            <h1 class="page-title">
+                <i class="fas fa-file-invoice-dollar"></i> Generar Cuota Semanal
+            </h1>
+        </div>
 
-<p class="text-muted">Total de socios pendientes: @pendientes.Count</p>
+        <div class="d-flex gap-2 mb-3" style="flex-wrap: wrap; align-items: end;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Año</label>
+                <select class="form-control" @bind="anio">
+                    <option value="">--</option>
+                    @for (int a = DateTime.Now.Year - 1; a <= DateTime.Now.Year + 1; a++)
+                    {
+                        <option value="@a">@a</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Mes</label>
+                <select class="form-control" @bind="mes">
+                    <option value="">--</option>
+                    @for (int m = 1; m <= 12; m++)
+                    {
+                        <option value="@m.ToString("00")">@m.ToString("00")</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Semana</label>
+                <select class="form-control" @bind="semana">
+                    <option value="">--</option>
+                    @for (int s = 1; s <= 5; s++)
+                    {
+                        <option value="@s">@s</option>
+                    }
+                </select>
+            </div>
+            <button class="btn-modern btn-secondary-modern" @onclick="Mostrar" disabled="@(!PuedeMostrar)">
+                <i class="fas fa-eye"></i> Mostrar
+            </button>
+            <button class="btn-modern btn-primary-modern" @onclick="Generar" disabled="@(!PuedeGenerar)">
+                <i class="fas fa-play"></i> Generar
+            </button>
+        </div>
 
-<table class="table table-bordered table-hover">
-    <thead class="table-dark">
-        <tr>
-            <th>Cédula</th>
-            <th>Apellidos</th>
-            <th>Nombre</th>
-            <th>Cuota Semanal</th>
-        </tr>
-    </thead>
-    <tbody>
-        @if (pendientes.Count > 0)
-        {
-            @foreach (var item in pendientes)
-            {
+        <p class="text-muted">Total de socios pendientes: <strong>@pendientes.Count</strong></p>
+
+        <table class="admin-table">
+            <thead>
                 <tr>
-                    <td>@item.Cedula</td>
-                    <td>@item.Apellidos</td>
-                    <td>@item.Nombre</td>
-                    <td>@item.Cuotaf?.ToString("0.00")</td>
+                    <th>Cédula</th>
+                    <th>Apellidos</th>
+                    <th>Nombre</th>
+                    <th>Cuota Semanal</th>
                 </tr>
-            }
-        }
-        else
-        {
-            <tr>
-                <td colspan="4" class="text-center">Seleccione año, mes y semana, y presione "Mostrar".</td>
-            </tr>
-        }
-    </tbody>
-</table>
+            </thead>
+            <tbody>
+                @if (pendientes.Count > 0)
+                {
+                    @foreach (var item in pendientes)
+                    {
+                        <tr>
+                            <td>@item.Cedula</td>
+                            <td>@item.Apellidos</td>
+                            <td><strong>@item.Nombre</strong></td>
+                            <td>@item.Cuotaf?.ToString("0.00")</td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="4" class="empty-state">
+                            <p>Seleccione año, mes y semana, y presione "Mostrar".</p>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
 
 @code {
     private string anio = string.Empty;

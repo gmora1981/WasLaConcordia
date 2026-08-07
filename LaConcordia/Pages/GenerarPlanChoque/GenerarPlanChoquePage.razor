@@ -5,36 +5,50 @@
 @inject IUnidad unidadRepo
 @inject IDisplayMessage displayMessage
 
-<h3>Generar Plan de Choque</h3>
-<p class="text-muted">Cobra un valor a todos los socios activos a favor de una unidad accidentada.</p>
+<link href="css/AdminCommon.css" rel="stylesheet" />
 
-<div class="d-flex gap-2 align-items-end mb-3" style="max-width: 700px;">
-    <div class="flex-grow-1">
-        <label>Número de unidad</label>
-        <input class="form-control" @bind="numeroUnidad" />
+<div class="page-container">
+    <div class="content-card">
+        <div class="header-section">
+            <h1 class="page-title">
+                <i class="fas fa-car-crash"></i> Generar Plan de Choque
+            </h1>
+        </div>
+        <p class="text-muted">Cobra un valor a todos los socios activos a favor de una unidad accidentada.</p>
+
+        <div class="d-flex gap-2 mb-3" style="max-width: 700px; align-items: end;">
+            <div class="search-box" style="flex-grow: 1;">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Número de unidad..." @bind="numeroUnidad" />
+            </div>
+            <button class="btn-modern btn-secondary-modern" @onclick="BuscarUnidad">
+                <i class="fas fa-search"></i> Buscar
+            </button>
+        </div>
+
+        @if (unidad != null)
+        {
+            <p>
+                <strong>Unidad @unidad.Unidad1</strong> — Placa @unidad.Placa —
+                @unidad.Marca @unidad.Modelo (@unidad.Anio) — Propietario: @unidad.Propietario
+            </p>
+
+            <div class="content-card" style="max-width: 500px; margin: 0; box-shadow: none; border: 1px solid #e5e7eb;">
+                <div class="form-group">
+                    <label class="form-label">Valor a cobrar a cada socio</label>
+                    <input class="form-control" type="number" step="0.01" min="0" @bind="valor" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Observación</label>
+                    <textarea class="form-control" @bind="observacion"></textarea>
+                </div>
+                <button class="btn-modern btn-primary-modern" @onclick="Generar" disabled="@(!PuedeGenerar)">
+                    <i class="fas fa-play"></i> Generar
+                </button>
+            </div>
+        }
     </div>
-    <button class="btn btn-secondary" @onclick="BuscarUnidad">Buscar</button>
 </div>
-
-@if (unidad != null)
-{
-    <p>
-        <strong>Unidad @unidad.Unidad1</strong> — Placa @unidad.Placa —
-        @unidad.Marca @unidad.Modelo (@unidad.Anio) — Propietario: @unidad.Propietario
-    </p>
-
-    <div class="border rounded p-3" style="max-width: 500px;">
-        <div class="mb-2">
-            <label>Valor a cobrar a cada socio</label>
-            <input class="form-control" type="number" step="0.01" min="0" @bind="valor" />
-        </div>
-        <div class="mb-2">
-            <label>Observación</label>
-            <textarea class="form-control" @bind="observacion"></textarea>
-        </div>
-        <button class="btn btn-primary mt-2" @onclick="Generar" disabled="@(!PuedeGenerar)">Generar</button>
-    </div>
-}
 
 @code {
     private string numeroUnidad = string.Empty;
