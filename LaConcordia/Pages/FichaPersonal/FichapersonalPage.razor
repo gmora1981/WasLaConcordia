@@ -16,122 +16,121 @@
 @inject ISegurovidum segurovidumRepo
 @inject IParentesco parentescoRepo
 
-<h3>Control Ficha Personal</h3>
+<link href="css/AdminCommon.css" rel="stylesheet" />
 
-<!-- Encabezado: Nuevo, Buscar -->
-
-<div class="card mb-3 p-3 shadow-sm">
-    <div class="d-flex flex-wrap align-items-center gap-2">
-        <button class="btn btn-primary d-flex align-items-center" @onclick="NuevoRegistro">
-            <i class="bi bi-plus-circle me-1"></i> Nuevo
-        </button>
-
-        <div class="flex-grow-1">
-            <input type="text" class="form-control" placeholder="Buscar por Cédula, Nombre o Apellidos..." @bind="razonBusqueda" />
+<div class="page-container">
+    <div class="content-card">
+        <div class="header-section">
+            <h1 class="page-title">
+                <i class="fas fa-id-badge"></i> Control Ficha Personal
+            </h1>
+            <button class="btn-modern btn-primary-modern" @onclick="NuevoRegistro">
+                <i class="fas fa-plus"></i> Nuevo
+            </button>
         </div>
 
-        <select class="form-select w-auto" @bind="estadoFiltro">
-            <option value="a">Activo</option>
-            <option value="p">Pasivo</option>
-        </select>
+        <div class="d-flex gap-2 mb-3" style="flex-wrap: wrap; align-items: center;">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Buscar por Cédula, Nombre o Apellidos..." @bind="razonBusqueda" />
+            </div>
+            <select class="form-control" style="width: 180px;" @bind="estadoFiltro">
+                <option value="a">Activo</option>
+                <option value="p">Pasivo</option>
+            </select>
+            <button class="btn-modern btn-secondary-modern" @onclick="BuscarFichas">
+                <i class="fas fa-search"></i> Buscar
+            </button>
+        </div>
 
-        <button class="btn btn-success d-flex align-items-center" @onclick="BuscarFichas">
-            <i class="bi bi-search me-1"></i> Buscar
-        </button>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <p class="text-muted mb-0">Total: @TotalUsuarios | Página: @PaginaActual</p>
+            <Pagination TotalItems="@TotalUsuarios"
+            PageSize="@PageSize"
+            CurrentPage="@PaginaActual"
+            OnPageChanged="OnPageChangedAsync" />
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Cédula</th>
+                        <th>Apellidos</th>
+                        <th>Nombre</th>
+                        <th>Celular</th>
+                        <th>Fecha Nac.</th>
+                        <th>Ingreso</th>
+                        <th style="width: 120px;">Estado</th>
+                        <th>Observaciones</th>
+                        <th>Beneficiarios</th>
+                        <th>Doc. Completos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (fichas != null && fichas.Count > 0)
+                    {
+                        @foreach (var ficha in fichas)
+                        {
+                            <tr @onclick="() => SeleccionarFicha(ficha)" class="@(ficha == fichaSeleccionada ? "table-primary" : "")" style="cursor: pointer;">
+                                <td>@ficha.Cedula</td>
+                                <td>@ficha.Apellidos</td>
+                                <td><strong>@ficha.Nombre</strong></td>
+                                <td>@ficha.Celular</td>
+                                <td>@ficha.Fechanacimiento?.ToShortDateString()</td>
+                                <td>@ficha.Fechaingreso?.ToShortDateString()</td>
+                                <td>
+                                    @if (ficha.Estado == "a")
+                                    {
+                                        <span class="badge-modern badge-success"><i class="fas fa-check-circle"></i> Activo</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge-modern badge-danger"><i class="fas fa-times-circle"></i> Pasivo</span>
+                                    }
+                                </td>
+                                <td>
+                                    <button class="btn-modern btn-secondary-modern"
+                                            @onclick="() => AbrirModalObservaciones(ficha.Cedula, ficha.Fkunidad)"
+                                            @onclick:stopPropagation="true"
+                                            title="Ver Observaciones">
+                                        <i class="fas fa-clipboard-list"></i> Observaciones
+                                    </button>
+                                </td>
+                                <td>
+                                    <button class="btn-modern btn-primary-modern"
+                                            @onclick="() => AbrirModalBeneficiarios(ficha.Cedula)"
+                                            @onclick:stopPropagation="true"
+                                            title="Ver Beneficiarios">
+                                        <i class="fas fa-users"></i> Beneficiarios
+                                    </button>
+                                </td>
+                                <td>
+                                    @(string.IsNullOrWhiteSpace(ficha.Documentacion) ? "INCOMPLETA" : ficha.Documentacion)
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="9" class="empty-state">
+                                <i class="fas fa-id-badge"></i>
+                                <p>No se encontraron registros.</p>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
-
-<!-- Paginación -->
-<div class="d-flex justify-content-between align-items-center mt-3">
-    <div class="flex-grow-1">
-        <p class="text-muted mb-0">Total: @TotalUsuarios | Página: @PaginaActual</p>
-    </div>
-    <div class="d-flex justify-content-center flex-grow-1">
-        <Pagination TotalItems="@TotalUsuarios"
-        PageSize="@PageSize"
-        CurrentPage="@PaginaActual"
-        OnPageChanged="OnPageChangedAsync" />
-    </div>
-    <div class="flex-grow-1 text-end"></div>
-</div>
-
-<!-- Tabla de fichas personales -->
-
-<table class="table table-bordered table-hover table-striped mt-3 shadow-sm">
-    <thead class="table-dark">
-        <tr>
-            <th>Cédula</th>
-            <th>Apellidos</th>
-            <th>Nombre</th>
-            <th>Celular</th>
-            <th>Fecha Nac.</th>
-            <th>Ingreso</th>
-            <th>Estado</th>
-            <th>Observaciones</th>
-            <th>Beneficiarios</th>
-            <th>Doc. Completos</th>
-        </tr>
-    </thead>
-    <tbody>
-        @if (fichas != null && fichas.Count > 0)
-        {
-            @foreach (var ficha in fichas)
-            {
-                <tr @onclick="() => SeleccionarFicha(ficha)" class="@(ficha == fichaSeleccionada ? "table-primary" : "")" style="cursor: pointer;">
-                    <td>@ficha.Cedula</td>
-                    <td>@ficha.Apellidos</td>
-                    <td>@ficha.Nombre</td>
-                    <td>@ficha.Celular</td>
-                    <td>@ficha.Fechanacimiento?.ToShortDateString()</td>
-                    <td>@ficha.Fechaingreso?.ToShortDateString()</td>
-                    <td>
-                        <span class="badge @(ficha.Estado == "a" ? "bg-success" : "bg-secondary")">
-                            @(ficha.Estado == "a" ? "Activo" : "Pasivo")
-                        </span>
-                    </td>
-                    <td>
-                        <button class="btn btn-warning d-flex align-items-center"
-                                style="font-size: 1rem; padding: 0.5rem 1rem;"
-                                @onclick="() => AbrirModalObservaciones(ficha.Cedula, ficha.Fkunidad)"
-                                @onclick:stopPropagation="true"
-                                title="Ver Observaciones">
-                            <i class="bi bi-card-text me-1 fs-5"></i> Observaciones
-                        </button>
-                    </td>
-                    <td>
-                        <button class="btn btn-primary btn-sm"
-                                style="font-size: 0.9rem; padding: 0.4rem 0.8rem;"
-                                @onclick="() => AbrirModalBeneficiarios(ficha.Cedula)"
-                                @onclick:stopPropagation="true"
-                                title="Ver Beneficiarios">
-                            <i class="bi bi-card-text me-1"></i> Beneficiarios
-                        </button>
-                    </td>
-                    <td>
-                    <td>
-                        @(string.IsNullOrWhiteSpace(ficha.Documentacion) ? "INCOMPLETA" : ficha.Documentacion)
-                    </td>
-                        @* <InputSelect class="form-select" @bind-Value="ficha.Documentacion">
-                            <option value="INCOMPLETA" selected="@(string.IsNullOrEmpty(ficha.Documentacion) ? true : false)">INCOMPLETA</option>
-                            <option value="COMPLETA">COMPLETA</option>
-                        </InputSelect> *@
-                    </td>
-
-                </tr>
-            }
-        }
-        else
-        {
-            <tr>
-                <td colspan="9" class="text-center text-muted">No se encontraron registros.</td>
-            </tr>
-        }
-    </tbody>
-</table>
 
 
 
 <!-- IMAGENES -->
+<div class="page-container" style="padding-top: 0;">
+<div class="content-card">
 <div class="row">
     <!-- Sección 1: Documentos del chofer -->
     <div class="col-6 border p-3 mb-3">
@@ -210,6 +209,8 @@
         <InputFile OnChange='@(e => OnFileSelected(e, "VEHICULO"))' />
     </div>
 </div>
+</div>
+</div>
 
 <style>
     .status-circle {
@@ -222,6 +223,8 @@
     }
 </style>
 
+<div class="page-container" style="padding-top: 0;">
+<div class="content-card">
 <EditForm Model="fichaSeleccionada">
         <div class="row">
             <!-- Columna 1 -->
@@ -383,27 +386,25 @@
         </div>
     </EditForm>
 
-    <div class="d-flex gap-2 mt-2">
-        @* <button class="btn btn-warning" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">Actualizar</button> *@
-        <button class="btn btn-warning" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">
-            @(esNuevo ? "Guardar" : "Actualizar")
+    <div class="action-buttons mt-3">
+        <button class="btn-modern btn-primary-modern" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">
+            <i class="fas fa-save"></i> @(esNuevo ? "Guardar" : "Actualizar")
         </button>
-
-        <button class="btn btn-danger" @onclick="EliminarFicha" disabled="@(!PuedeEliminar)">Eliminar</button>
-        <button class="btn btn-secondary" @onclick="CancelarEdicion">Cancelar</button>
-        <div class="ms-2">
-            <button class="btn btn-info" @onclick="ExportarFicha">
-                Exportar PDF <i class="bi bi-file-earmark-pdf-fill"></i>
-            </button>
-        </div>
-        <div class="ms-2">
-            <button class="btn btn-info" @onclick="ExportarImagenesChofer">
-                Exportar PDF imagenes<i class="bi bi-file-earmark-pdf-fill"></i>
-            </button>
-        </div>
+        <button class="btn-modern" style="background:#fee2e2;color:#dc2626;" @onclick="EliminarFicha" disabled="@(!PuedeEliminar)">
+            <i class="fas fa-trash"></i> Eliminar
+        </button>
+        <button class="btn-modern btn-secondary-modern" @onclick="CancelarEdicion">
+            <i class="fas fa-times"></i> Cancelar
+        </button>
+        <button class="btn-modern btn-secondary-modern" @onclick="ExportarFicha">
+            <i class="fas fa-file-pdf"></i> Exportar PDF
+        </button>
+        <button class="btn-modern btn-secondary-modern" @onclick="ExportarImagenesChofer">
+            <i class="fas fa-file-pdf"></i> Exportar Imágenes
+        </button>
     </div>
-
-
+</div>
+</div>
 
 <FichaObservacionesModal @ref="modalObservaciones" OnClose="CerrarModalObservaciones" />
 

@@ -17,104 +17,101 @@
 @inject IParentesco parentescoRepo
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-<h3>Control Ficha Personal</h3>
-<h3>@correoLogueado</h3>
+<link href="css/AdminCommon.css" rel="stylesheet" />
 
-<div class="card mb-3 p-3 shadow-sm border">
-    <!-- Encabezado: Nuevo -->
-    <div class="d-flex flex-wrap align-items-center gap-2">
-        @if (isLoading)
-        {
-            <div class="spinner-border text-primary"></div>
-        }
-        else if (!fichaExiste)
-        {
-            <button class="btn btn-primary d-flex align-items-center"
-                    @onclick="NuevoRegistro">
-                <i class="bi bi-plus-circle me-1"></i> Nuevo
-            </button>
-        }
-    </div>
-</div>
-
-<!-- Paginación -->
-<div class="d-flex justify-content-between align-items-center mt-3">
-    <div class="flex-grow-1">
-        <p class="text-muted mb-0">Total: @TotalUsuarios | Página: @PaginaActual</p>
-    </div>
-    <div class="d-flex justify-content-center flex-grow-1">
-        <Pagination TotalItems="@TotalUsuarios"
-                    PageSize="@PageSize"
-                    CurrentPage="@PaginaActual"
-                    />
-    </div>
-    <div class="flex-grow-1 text-end"></div>
-</div>
-
-<!-- Tabla de fichas personales -->
-<table class="table table-bordered table-hover table-striped mt-3 shadow-sm border">
-    <thead class="table-dark">
-        <tr>
-            <th>Cédula</th>
-            <th>Apellidos</th>
-            <th>Nombre</th>
-            <th>Celular</th>
-            <th>Fecha Nac.</th>
-            <th>Ingreso</th>
-            <th>Estado</th>
-            @* <th>Observaciones</th> *@
-            <th>Beneficiarios</th>
-        </tr>
-    </thead>
-    <tbody>
-        @if (fichas != null && fichas.Count > 0)
-        {
-            @foreach (var ficha in fichas)
+<div class="page-container">
+    <div class="content-card">
+        <div class="header-section">
+            <h1 class="page-title">
+                <i class="fas fa-id-badge"></i> Control Ficha Personal
+            </h1>
+            @if (isLoading)
             {
-                <tr @onclick="() => SeleccionarFicha(ficha)" class="@(ficha == fichaSeleccionada ? "table-primary" : "")" style="cursor: pointer;">
-                    <td>@ficha.Cedula</td>
-                    <td>@ficha.Apellidos</td>
-                    <td>@ficha.Nombre</td>
-                    <td>@ficha.Celular</td>
-                    <td>@ficha.Fechanacimiento?.ToShortDateString()</td>
-                    <td>@ficha.Fechaingreso?.ToShortDateString()</td>
-                    <td>
-                        <span class="badge @(ficha.Estado == "a" ? "bg-success" : "bg-secondary")">
-                            @(ficha.Estado == "a" ? "Activo" : "Pasivo")
-                        </span>
-                    </td>
-                   @*  <td>
-                        <button class="btn btn-warning d-flex align-items-center"
-                                style="font-size: 1rem; padding: 0.5rem 1rem;"
-                                @onclick="() => AbrirModalObservaciones(ficha.Cedula, ficha.Fkunidad)"
-                                @onclick:stopPropagation="true"
-                                title="Ver Observaciones">
-                            <i class="bi bi-card-text me-1 fs-5"></i> Observaciones
-                        </button>
-                    </td> *@
-                    <td>
-                        <button class="btn btn-primary btn-sm"
-                                style="font-size: 0.9rem; padding: 0.4rem 0.8rem;"
-                                @onclick="() => AbrirModalBeneficiarios(ficha.Cedula)"
-                                @onclick:stopPropagation="true"
-                                title="Ver Beneficiarios">
-                            <i class="bi bi-card-text me-1"></i> Beneficiarios
-                        </button>
-                    </td>
-                </tr>
+                <div class="spinner-border text-primary"></div>
             }
-        }
-        else
-        {
-            <tr>
-                <td colspan="9" class="text-center text-muted">No se encontraron registros.</td>
-            </tr>
-        }
-    </tbody>
-</table>
+            else if (!fichaExiste)
+            {
+                <button class="btn-modern btn-primary-modern" @onclick="NuevoRegistro">
+                    <i class="fas fa-plus"></i> Nuevo
+                </button>
+            }
+        </div>
+        <p class="text-muted" style="margin-top: -0.5rem;">@correoLogueado</p>
+
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <p class="text-muted mb-0">Total: @TotalUsuarios | Página: @PaginaActual</p>
+            <Pagination TotalItems="@TotalUsuarios"
+                        PageSize="@PageSize"
+                        CurrentPage="@PaginaActual"
+                        />
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Cédula</th>
+                        <th>Apellidos</th>
+                        <th>Nombre</th>
+                        <th>Celular</th>
+                        <th>Fecha Nac.</th>
+                        <th>Ingreso</th>
+                        <th style="width: 120px;">Estado</th>
+                        <th>Beneficiarios</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (fichas != null && fichas.Count > 0)
+                    {
+                        @foreach (var ficha in fichas)
+                        {
+                            <tr @onclick="() => SeleccionarFicha(ficha)" class="@(ficha == fichaSeleccionada ? "table-primary" : "")" style="cursor: pointer;">
+                                <td>@ficha.Cedula</td>
+                                <td>@ficha.Apellidos</td>
+                                <td><strong>@ficha.Nombre</strong></td>
+                                <td>@ficha.Celular</td>
+                                <td>@ficha.Fechanacimiento?.ToShortDateString()</td>
+                                <td>@ficha.Fechaingreso?.ToShortDateString()</td>
+                                <td>
+                                    @if (ficha.Estado == "a")
+                                    {
+                                        <span class="badge-modern badge-success"><i class="fas fa-check-circle"></i> Activo</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge-modern badge-danger"><i class="fas fa-times-circle"></i> Pasivo</span>
+                                    }
+                                </td>
+                                <td>
+                                    <button class="btn-modern btn-primary-modern"
+                                            @onclick="() => AbrirModalBeneficiarios(ficha.Cedula)"
+                                            @onclick:stopPropagation="true"
+                                            title="Ver Beneficiarios">
+                                        <i class="fas fa-users"></i> Beneficiarios
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="8" class="empty-state">
+                                <i class="fas fa-id-badge"></i>
+                                <p>No se encontraron registros.</p>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
 <!-- IMAGENES -->
-<div class="row border p-3 mb-3 shadow-sm">
+<div class="page-container" style="padding-top: 0;">
+<div class="content-card">
+<div class="row">
     <div class="col-6 border p-3 mb-3">
         <h5>Cedula Frontal / Trasera</h5>
         <div class="mb-2 d-flex align-items-center">
@@ -128,7 +125,7 @@
             <label class="ms-2">Trasera</label>
         </div>
     </div>
-    <div class="col-6 border p-3 mb-3"">
+    <div class="col-6 border p-3 mb-3">
         <h5>Licencia <span class="status-circle" style="background-color:@(estadoImagen?.Licencia == true ? "green" : "red")"></span></h5>
         <InputFile OnChange='@(e => OnFileSelected(e, "LICENCIA"))' />
     </div>
@@ -167,10 +164,12 @@
         <label class="ms-2">Trasera</label>
     </div>
   </div>
-    <div class="col-6 border p-3 mb-3"">
+    <div class="col-6 border p-3 mb-3">
         <h5>Vehículo <span class="status-circle" style="background-color:@(estadoImagen?.Vehiculo == true ? "green" : "red")"></span></h5>
         <InputFile OnChange='@(e => OnFileSelected(e, "VEHICULO"))' />
     </div>
+</div>
+</div>
 </div>
 
 <style>
@@ -184,8 +183,10 @@
     }
 </style>
 
+<div class="page-container" style="padding-top: 0;">
+<div class="content-card">
 <fieldset disabled="@isLoading">
-<EditForm Model="fichaSeleccionada" class="border p-3 shadow-sm">
+<EditForm Model="fichaSeleccionada">
     <div class="row">
         <!-- Columna 1 -->
         <div class="col-md-6">
@@ -315,16 +316,28 @@
         </div>
 
         <!-- Botones -->
-        <div class="d-flex gap-2 mt-2">
-            <button class="btn btn-success" @onclick="GuardarCambios" disabled="@( !PuedeGuardar )">Guardar / Actualizar</button>
-            <button class="btn btn-danger" @onclick="EliminarFicha" disabled="@( !PuedeEliminar )">Eliminar</button>
-            <button class="btn btn-secondary" @onclick="CancelarEdicion">Cancelar</button>
-            <button class="btn btn-info" @onclick="ExportarFicha">Exportar PDF</button>
-            <button class="btn btn-warning" @onclick="ExportarImagenesChofer">Exportar Imágenes</button>
+        <div class="action-buttons mt-3">
+            <button class="btn-modern btn-primary-modern" @onclick="GuardarCambios" disabled="@( !PuedeGuardar )">
+                <i class="fas fa-save"></i> Guardar / Actualizar
+            </button>
+            <button class="btn-modern" style="background:#fee2e2;color:#dc2626;" @onclick="EliminarFicha" disabled="@( !PuedeEliminar )">
+                <i class="fas fa-trash"></i> Eliminar
+            </button>
+            <button class="btn-modern btn-secondary-modern" @onclick="CancelarEdicion">
+                <i class="fas fa-times"></i> Cancelar
+            </button>
+            <button class="btn-modern btn-secondary-modern" @onclick="ExportarFicha">
+                <i class="fas fa-file-pdf"></i> Exportar PDF
+            </button>
+            <button class="btn-modern btn-secondary-modern" @onclick="ExportarImagenesChofer">
+                <i class="fas fa-file-pdf"></i> Exportar Imágenes
+            </button>
         </div>
     </div>
 </EditForm>
 </fieldset>
+</div>
+</div>
 
 
 <FichaObservacionesModal @ref="modalObservaciones" OnClose="CerrarModalObservaciones" />
