@@ -140,7 +140,13 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label">Año</label>
-                            <input type="number" class="form-control" @bind="unidadSeleccionada.Anio" placeholder="Año" />
+                            <select class="form-control" @bind="unidadSeleccionada.Anio">
+                                <option value="">-- Seleccione Año --</option>
+                                @foreach (var anio in AniosDisponibles)
+                                {
+                                    <option value="@anio">@anio</option>
+                                }
+                            </select>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Estado</label>
@@ -167,10 +173,6 @@
                             <label class="form-label">Color</label>
                             <input class="form-control" @bind="unidadSeleccionada.Color" placeholder="Color" />
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">Fecha</label>
-                            <input type="date" class="form-control" @bind="unidadSeleccionada.Fecha" />
-                        </div>
                     </div>
                 </div>
             </div>
@@ -193,6 +195,11 @@
     private UnidadDTO unidadSeleccionada = new();
     private bool esNuevo = false;
     private bool showModal = false;
+
+    private static readonly List<int> AniosDisponibles = Enumerable
+        .Range(1980, DateTime.Now.Year - 1980 + 2)
+        .OrderByDescending(a => a)
+        .ToList();
 
     private string filtroPlaca = "";
     private string filtroPropietario = "";
@@ -264,8 +271,7 @@
                 Anio = u.Anio,
                 Estado = u.Estado,
                 Color = u.Color,
-                Idpropietario = u.Idpropietario,
-                Fecha = u.Fecha
+                Idpropietario = u.Idpropietario
             };
         esNuevo = false;
         showModal = true;
