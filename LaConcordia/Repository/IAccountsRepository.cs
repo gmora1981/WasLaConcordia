@@ -8,5 +8,6 @@ namespace LaConcordia.Repository
         Task<UserToken> Login(UserLogin userInfo);
         Task<UserToken> Register(UserEditDTO userInfo);
         Task<UserToken> RenewToken();
+        Task ChangeMyPassword(ChangeMyPasswordDTO dto);
     }
 }

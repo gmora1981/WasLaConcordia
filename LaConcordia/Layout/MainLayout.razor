@@ -1,4 +1,5 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
+@using System.Security.Claims
 <div class="page">
 <AuthorizeView>
     <Authorized>
@@ -12,23 +13,78 @@
 <AuthorizeView>
     <Authorized>
 
-                <div class="top-row px-4" >
-                    <h6>
-                        <a href="/CambiarPassword" style="color:darkblue;">
-                            Hola, @context.User.Identity.Name!
-                        </a>
-                    </h6>
-                    <a href="Logout" class="ml-md-auto btn btn-danger">
-                        Salir <span class="oi oi-arrow-right"></span>
-                    </a>
+                <div class="top-row px-4 app-header">
+                    <div class="header-right">
+                        <div class="theme-toggle" title="Tema claro/oscuro" @onclick="ToggleThemeVisual">
+                            <i class="fas fa-sun theme-icon"></i>
+                            <span class="toggle-track">
+                                <span class="toggle-thumb @(temaOscuro ? "on" : "")"></span>
+                            </span>
+                            <i class="fas fa-moon theme-icon"></i>
+                        </div>
+
+                        <div class="user-menu-wrapper" @onclick="ToggleUserMenu">
+                            <div class="user-info-text">
+                                <span class="user-email">@context.User.Identity!.Name</span>
+                                <span class="user-role">@ObtenerRol(context.User)</span>
+                            </div>
+                            <div class="user-avatar-circle">@ObtenerInicial(context.User)</div>
+
+                            @if (menuAbierto)
+                            {
+                                <div class="user-dropdown-menu" @onclick:stopPropagation="true">
+                                    <a class="dropdown-menu-item" href="/cambiar-password">
+                                        <i class="fas fa-key"></i> Cambiar contraseña
+                                    </a>
+                                    <a class="dropdown-menu-item" href="Logout">
+                                        <i class="fas fa-sign-out-alt"></i> Salir
+                                    </a>
+                                </div>
+                            }
+                        </div>
+                    </div>
                 </div>
 
 
     </Authorized>
 </AuthorizeView>
-  
+
 <div class="content px-4">
     @Body
 </div>
 </div>
- </div> 
+ </div>
+
+@code {
+    private bool menuAbierto = false;
+    private bool temaOscuro = false;
+
+    private void ToggleUserMenu()
+    {
+        menuAbierto = !menuAbierto;
+    }
+
+    private void ToggleThemeVisual()
+    {
+        // Solo visual por ahora: la app todavia no tiene un sistema de tema oscuro
+        // construido en todas las pantallas. Esto solo mueve el interruptor.
+        temaOscuro = !temaOscuro;
+    }
+
+    private string ObtenerRol(ClaimsPrincipal user)
+    {
+        var rol = user.FindFirst(ClaimTypes.Role)?.Value;
+        if (string.IsNullOrEmpty(rol)) return "USUARIO";
+        return rol.ToUpper() switch
+        {
+            "ADMIN" => "ADMINISTRADOR",
+            var r => r
+        };
+    }
+
+    private string ObtenerInicial(ClaimsPrincipal user)
+    {
+        var nombre = user.Identity?.Name;
+        return !string.IsNullOrEmpty(nombre) ? nombre.Substring(0, 1).ToUpper() : "?";
+    }
+}

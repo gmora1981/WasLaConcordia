@@ -54,5 +54,15 @@ namespace LaConcordia.Repository
 
                 return response.Response;
             }
+
+            public async Task ChangeMyPassword(ChangeMyPasswordDTO dto)
+            {
+                var httpResponse = await httpService.Post<ChangeMyPasswordDTO, object>($"{baseURL}/Accounts/ChangeMyPassword", dto);
+
+                if (!httpResponse.Success)
+                {
+                    throw new ApplicationException(await httpResponse.GetBody());
+                }
+            }
         }
 }
