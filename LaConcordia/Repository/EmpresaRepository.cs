@@ -83,9 +83,13 @@ namespace LaConcordia.Repository
         }
 
         //exportar PDF
-        public async Task<byte[]> ExportarEmpresasPdfAsync(string filtro)
+        public async Task<byte[]> ExportarEmpresasPdfAsync(string? razonSocial, string? estado)
         {
-            var url = $"api/Empresa/exportarPDF?filtro={Uri.EscapeDataString(filtro ?? "")}";
+            var url = "api/Empresa/exportarPDF?";
+            if (!string.IsNullOrEmpty(razonSocial))
+                url += $"razonSocial={Uri.EscapeDataString(razonSocial)}&";
+            if (!string.IsNullOrEmpty(estado))
+                url += $"estado={Uri.EscapeDataString(estado)}&";
 
             var response = await _httpClient.GetAsync(url);
 

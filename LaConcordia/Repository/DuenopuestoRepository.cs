@@ -94,9 +94,17 @@ namespace LaConcordia.Repository
         }
 
         //exportar PDF
-        public async Task<byte[]> ObtenerDuenoPuestoFiltradas(string filtro)
+        public async Task<byte[]> ObtenerDuenoPuestoFiltradas(string? cedula, string? nombre, string? apellidos, string? estado)
         {
-            var url = $"api/Duenopuesto/exportarPDF?filtro={Uri.EscapeDataString(filtro ?? "")}";
+            var url = "api/Duenopuesto/exportarPDF?";
+            if (!string.IsNullOrEmpty(cedula))
+                url += $"cedula={Uri.EscapeDataString(cedula)}&";
+            if (!string.IsNullOrEmpty(nombre))
+                url += $"nombre={Uri.EscapeDataString(nombre)}&";
+            if (!string.IsNullOrEmpty(apellidos))
+                url += $"apellidos={Uri.EscapeDataString(apellidos)}&";
+            if (!string.IsNullOrEmpty(estado))
+                url += $"estado={Uri.EscapeDataString(estado)}&";
 
             var response = await _httpClient.GetAsync(url);
 

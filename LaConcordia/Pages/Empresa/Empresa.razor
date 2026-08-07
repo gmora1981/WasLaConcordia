@@ -285,7 +285,7 @@
     {
         try
         {
-            var pdfBytes = await empresaRepo.ExportarEmpresasPdfAsync(estadoFiltro);
+            var pdfBytes = await empresaRepo.ExportarEmpresasPdfAsync(razonBusqueda, estadoFiltro);
 
             if (pdfBytes == null || pdfBytes.Length == 0)
             {

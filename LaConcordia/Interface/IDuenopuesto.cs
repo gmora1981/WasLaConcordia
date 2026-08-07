@@ -16,7 +16,7 @@
             string? estado = null);
 
         //exportar PDF
-        Task<byte[]> ObtenerDuenoPuestoFiltradas(string filtro);
+        Task<byte[]> ObtenerDuenoPuestoFiltradas(string? cedula, string? nombre, string? apellidos, string? estado);
 
     }
 }
