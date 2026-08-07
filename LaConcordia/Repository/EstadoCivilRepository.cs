@@ -17,7 +17,7 @@ namespace LaConcordia.Repository
         {
             try
             {
-                return await _httpClient.GetFromJsonAsync<List<EstadoCivilDTO>>("api/EstadoCivil/GetEstadoCivilAll");
+                return await _httpClient.GetFromJsonAsync<List<EstadoCivilDTO>>("api/EstadoCivil/GetEstadocivilInfoAll");
             }
             catch (HttpRequestException ex)
             {
@@ -27,12 +27,12 @@ namespace LaConcordia.Repository
 
         public async Task<EstadoCivilDTO> GetEstadoCivilById(int id)
         {
-            return await _httpClient.GetFromJsonAsync<EstadoCivilDTO>($"api/EstadoCivil/GetEstadoCivilById/{id}");
+            return await _httpClient.GetFromJsonAsync<EstadoCivilDTO>($"api/EstadoCivil/BuscarEstadocivil/{id}");
         }
 
         public async Task InsertEstadoCivil(EstadoCivilDTO estadoCivil)
         {
-            var response = await _httpClient.PostAsJsonAsync("api/EstadoCivil/InsertEstadoCivil", estadoCivil);
+            var response = await _httpClient.PostAsJsonAsync("api/EstadoCivil/InsertEstadocivil", estadoCivil);
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
@@ -42,7 +42,7 @@ namespace LaConcordia.Repository
 
         public async Task UpdateEstadoCivil(EstadoCivilDTO estadoCivil)
         {
-            var response = await _httpClient.PutAsJsonAsync("api/EstadoCivil/UpdateEstadoCivil", estadoCivil);
+            var response = await _httpClient.PutAsJsonAsync("api/EstadoCivil/UpdateEstadocivil", estadoCivil);
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
@@ -52,7 +52,7 @@ namespace LaConcordia.Repository
 
         public async Task DeleteEstadoCivilById(int id)
         {
-            var response = await _httpClient.DeleteAsync($"api/EstadoCivil/DeleteEstadoCivilById/{id}");
+            var response = await _httpClient.DeleteAsync($"api/EstadoCivil/DeleteEstadocivil/{id}");
             if (!response.IsSuccessStatusCode)
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
