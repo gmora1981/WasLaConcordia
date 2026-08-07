@@ -497,19 +497,24 @@
     // Inicialización al cargar la página
     protected override async Task OnInitializedAsync()
     {
-        await CargarListasRelacionadas();  // Cargar listas para combos
-        await CargarFichasAsync();          // Cargar listado de fichas
-
+        // Independientes entre si: listas de combos vs listado de fichas
+        await Task.WhenAll(CargarListasRelacionadas(), CargarFichasAsync());
     }
 
     // Método que carga los datos para combos
     private async Task CargarListasRelacionadas()
     {
+        var parentescoTask = parentescoRepo.ParentescoInfoAll();
+        var cargosTask = cargoRepo.GetCargoInfoAll();
+        var tipoLicenciaTask = tipolicenciaRepo.GetTipolicenciaInfoAll();
+        var nacionalidadTask = nacionalidadRepo.GetNacionalidadesAll();
 
-        listaParentesco = await parentescoRepo.ParentescoInfoAll();
-        listaCargos = await cargoRepo.GetCargoInfoAll();
-        listaTipoLicencia = await tipolicenciaRepo.GetTipolicenciaInfoAll();
-        listaNacionalidad = await nacionalidadRepo.GetNacionalidadesAll();
+        await Task.WhenAll(parentescoTask, cargosTask, tipoLicenciaTask, nacionalidadTask);
+
+        listaParentesco = parentescoTask.Result;
+        listaCargos = cargosTask.Result;
+        listaTipoLicencia = tipoLicenciaTask.Result;
+        listaNacionalidad = nacionalidadTask.Result;
     }
 
     // Carga el listado de fichas según filtros y paginación
@@ -549,38 +554,9 @@
     // Selecciona un registro de la tabla para editar
     private async Task SeleccionarFicha(FichapersonalDTO ficha)
     {
-        await CargarBeneficiarios(ficha.Cedula);
         // Asignar directamente la referencia
         fichaSeleccionada = ficha;
         esNuevo = false;
-        StateHasChanged(); // refrescar UI
-
-        // Cargar listas para que los combos tengan opciones y puedan seleccionar valor
-        await CargarListasRelacionadas();
-
-        // Copiar datos del registro seleccionado
-        // fichaSeleccionada = new FichapersonalDTO
-        //     {
-        //         Cedula = ficha.Cedula,
-        //         Nombre = ficha.Nombre,
-        //         Apellidos = ficha.Apellidos,
-        //         Correo = ficha.Correo,
-        //         Telefono = ficha.Telefono,
-        //         Celular = ficha.Celular,
-        //         Fechanacimiento = ficha.Fechanacimiento,
-        //         Fechaingreso = ficha.Fechaingreso,
-        //         Domicilio = ficha.Domicilio,
-        //         Referencia = ficha.Referencia,
-        //         Estadoservicio = ficha.Estadoservicio,
-        //         Cuotaf = ficha.Cuotaf,
-        //         Estado = ficha.Estado,
-        //         Fknacionalidad = ficha.Fknacionalidad,
-        //         Fkunidad = ficha.Fkunidad,
-        //         Fkdpuesto = ficha.Fkdpuesto,
-        //         Fkcargo = ficha.Fkcargo,
-        //         Fktipolicencia = ficha.Fktipolicencia,
-        //         Documentacion = string.IsNullOrEmpty(ficha.Documentacion) ? "INCOMPLETA" : ficha.Documentacion
-        //     };
 
         // Reiniciar datos relacionados
         unidadEncontrada = null;
@@ -589,13 +565,17 @@
         // Guardar código unidad y cédula dueño para buscar detalles relacionados
         codigoUnidad = ficha.Fkunidad ?? string.Empty;
         cedulaDuenopuesto = ficha.Fkdpuesto ?? string.Empty;
+        StateHasChanged(); // refrescar UI
 
-        // Buscar datos relacionados
-        await BuscarUnidad();
-        await BuscarDuenopuesto();
-
-        // 🔹 Actualizar estado de imágenes
-        await ActualizarEstadoImagenes(ficha.Cedula);
+        // Todas estas llamadas son independientes entre si, se ejecutan en paralelo
+        // en vez de una tras otra para no sumar la latencia de cada una.
+        await Task.WhenAll(
+            CargarBeneficiarios(ficha.Cedula),
+            CargarListasRelacionadas(),
+            BuscarUnidad(),
+            BuscarDuenopuesto(),
+            ActualizarEstadoImagenes(ficha.Cedula)
+        );
 
         esNuevo = false;
         StateHasChanged(); // Refrescar UI

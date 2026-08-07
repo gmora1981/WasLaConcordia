@@ -457,15 +457,18 @@
                 fichas = new List<FichapersonalDTO> { fichaSeleccionada };
                 TotalUsuarios = 1;
 
-                await CargarBeneficiarios(fichaSeleccionada.Cedula);
-                await CargarListasRelacionadas();
-
                 codigoUnidad = fichaSeleccionada.Fkunidad ?? string.Empty;
                 cedulaDuenopuesto = fichaSeleccionada.Fkdpuesto ?? string.Empty;
 
-                await BuscarUnidad();
-                await BuscarDuenopuesto();
-                await ActualizarEstadoImagenes(fichaSeleccionada.Cedula);
+                // Todas estas llamadas son independientes entre si, se ejecutan en paralelo
+                // en vez de una tras otra para no sumar la latencia de cada una.
+                await Task.WhenAll(
+                    CargarBeneficiarios(fichaSeleccionada.Cedula),
+                    CargarListasRelacionadas(),
+                    BuscarUnidad(),
+                    BuscarDuenopuesto(),
+                    ActualizarEstadoImagenes(fichaSeleccionada.Cedula)
+                );
 
                 esNuevo = false;
                 fichaExiste = true;
@@ -493,11 +496,17 @@
     // Método que carga los datos para combos
     private async Task CargarListasRelacionadas()
     {
+        var parentescoTask = parentescoRepo.ParentescoInfoAll();
+        var cargosTask = cargoRepo.GetCargoInfoAll();
+        var tipoLicenciaTask = tipolicenciaRepo.GetTipolicenciaInfoAll();
+        var nacionalidadTask = nacionalidadRepo.GetNacionalidadesAll();
 
-        listaParentesco = await parentescoRepo.ParentescoInfoAll();
-        listaCargos = await cargoRepo.GetCargoInfoAll();
-        listaTipoLicencia = await tipolicenciaRepo.GetTipolicenciaInfoAll();
-        listaNacionalidad = await nacionalidadRepo.GetNacionalidadesAll();
+        await Task.WhenAll(parentescoTask, cargosTask, tipoLicenciaTask, nacionalidadTask);
+
+        listaParentesco = parentescoTask.Result;
+        listaCargos = cargosTask.Result;
+        listaTipoLicencia = tipoLicenciaTask.Result;
+        listaNacionalidad = nacionalidadTask.Result;
     }
 
 
