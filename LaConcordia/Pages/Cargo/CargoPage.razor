@@ -1,4 +1,4 @@
-﻿@page "/cargo"
+@page "/cargo"
 @using LaConcordia.DTO
 @using LaConcordia.Interface
 @using LaConcordia.Pagination
@@ -6,91 +6,134 @@
 @inject IJSRuntime JS
 @inject IDisplayMessage displayMessage
 
-<h3>Gestión de Cargos</h3>
+<link href="css/AdminCommon.css" rel="stylesheet" />
 
-<!-- Controles -->
-<div class="mb-3 d-flex gap-2">
-    <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo</button>
-    <input type="text" class="form-control" placeholder="Buscar por nombre..." @bind="filtroBusqueda" />
-    <select class="form-select" @bind="estadoFiltro">
-        <option value="">-- Todos --</option>
-        <option value="ACTIVO">Activo</option>
-        <option value="INACTIVO">Inactivo</option>
-    </select>
-    <button class="btn btn-success" @onclick="BuscarCargos">Buscar</button>
-</div>
+<div class="page-container">
+    <div class="content-card">
+        <div class="header-section">
+            <h1 class="page-title">
+                <i class="fas fa-briefcase"></i> Gestión de Cargos
+            </h1>
+            <button class="btn-modern btn-primary-modern" @onclick="AbrirModalNuevo">
+                <i class="fas fa-plus"></i> Nuevo Cargo
+            </button>
+        </div>
 
-<div class="d-flex justify-content-between align-items-center mt-3">
-    <!-- Columna izquierda -->
-    <div class="flex-grow-1">
-        <p class="text-muted mb-0">Total: @TotalRegistros | Página: @PaginaActual</p>
-    </div>
+        <!-- Filtros -->
+        <div class="d-flex gap-2 mb-3" style="flex-wrap: wrap; align-items: center;">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Buscar por nombre..." @bind="filtroBusqueda" @bind:event="oninput" @onkeyup="OnFiltroChanged" />
+            </div>
+            <select class="form-control" style="width: 180px;" @bind="estadoFiltro" @bind:after="BuscarCargos">
+                <option value="">Todos los Estados</option>
+                <option value="a">Activo</option>
+                <option value="i">Inactivo</option>
+            </select>
+        </div>
 
-    <!-- Columna centro -->
-    <div class="d-flex justify-content-center flex-grow-1">
-        <Pagination TotalItems="@TotalRegistros"
-                    PageSize="@PageSize"
-                    CurrentPage="@PaginaActual"
-                    OnPageChanged="OnPageChangedAsync" />
-    </div>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <p class="text-muted mb-0">Total: @TotalRegistros | Página: @PaginaActual</p>
+            <Pagination TotalItems="@TotalRegistros"
+                        PageSize="@PageSize"
+                        CurrentPage="@PaginaActual"
+                        OnPageChanged="OnPageChangedAsync" />
+        </div>
 
-    <!-- Columna derecha (vacía por ahora) -->
-    <div class="flex-grow-1 text-end">
-        <!-- Espacio reservado para futuras acciones -->
-    </div>
-</div>
-
-
-<!-- Tabla de Cargos -->
-<table class="table table-bordered table-hover">
-    <thead class="table-dark">
-        <tr>
-            <th>ID</th>
-            <th>Nombre</th>
-            <th>Estado</th>
-        </tr>
-    </thead>
-    <tbody>
-        @if (listaCargos != null && listaCargos.Count > 0)
-        {
-            @foreach (var cargo in listaCargos)
-            {
-                <tr @onclick="() => SeleccionarCargo(cargo)" class="@(cargo.Idcargo == cargoSeleccionado?.Idcargo ? "table-primary" : "")" style="cursor: pointer;">
-                    <td>@cargo.Idcargo</td>
-                    <td>@cargo.Cargo1</td>
-                    <td>@cargo.Estado</td>
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th style="width: 70px;">#</th>
+                    <th>Nombre</th>
+                    <th style="width: 130px;">Estado</th>
+                    <th style="width: 120px; text-align: center;">Acciones</th>
                 </tr>
-            }
-        }
-        else
-        {
-            <tr>
-                <td colspan="3" class="text-center">No se encontraron cargos.</td>
-            </tr>
-        }
-    </tbody>
-</table>
-
-<!-- Formulario de detalle -->
-<div class="border rounded p-3 mt-3">
-    <h5>Detalle Cargo</h5>
-    <EditForm Model="cargoSeleccionado">
-        <InputText class="form-control mb-2" @bind-Value="cargoSeleccionado.Cargo1" placeholder="Nombre del Cargo" />
-        <InputSelect class="form-control mb-2" @bind-Value="cargoSeleccionado.Estado">
-            <option value="">-- Seleccione Estado --</option>
-            <option value="ACTIVO">Activo</option>
-            <option value="INACTIVO">Inactivo</option>
-        </InputSelect>
-    </EditForm>
-
-    <div class="d-flex gap-2 mt-2">
-        <button class="btn btn-warning" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">Guardar</button>
-        <button class="btn btn-danger" @onclick="EliminarCargo" disabled="@(!PuedeEliminar)">Eliminar</button>
-        <button class="btn btn-secondary" @onclick="CancelarEdicion">Cancelar</button>
+            </thead>
+            <tbody>
+                @if (listaCargos != null && listaCargos.Count > 0)
+                {
+                    @foreach (var cargo in listaCargos)
+                    {
+                        <tr>
+                            <td style="color: #7f8c8d;">@cargo.Idcargo</td>
+                            <td><strong>@cargo.Cargo1</strong></td>
+                            <td>
+                                @if (cargo.Estado == "a")
+                                {
+                                    <span class="badge-modern badge-success"><i class="fas fa-check-circle"></i> Activo</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-modern badge-danger"><i class="fas fa-times-circle"></i> Inactivo</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="action-buttons" style="justify-content: center;">
+                                    <button class="btn-icon btn-edit" title="Editar" @onclick="() => AbrirModalEditar(cargo)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn-icon btn-delete" title="Eliminar" @onclick="() => EliminarCargo(cargo)">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="4" class="empty-state">
+                            <i class="fas fa-briefcase"></i>
+                            <p>No se encontraron cargos.</p>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
     </div>
 </div>
 
+<!-- Modal Nuevo/Editar -->
+@if (showModal)
+{
+    <div class="modal-modern" @onclick="CerrarModal">
+        <div class="modal-content-modern" style="max-width: 480px;" @onclick:stopPropagation="true">
+            <div class="modal-header-modern">
+                <h2 class="modal-title-modern">
+                    <i class="fas @(esNuevo ? "fa-plus" : "fa-edit")"></i>
+                    @(esNuevo ? "Nuevo Cargo" : "Editar Cargo")
+                </h2>
+                <button type="button" class="btn-close-modern" @onclick="CerrarModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
 
+            <div class="modal-body-modern">
+                <div class="form-group">
+                    <label class="form-label">Nombre <span class="text-danger">*</span></label>
+                    <input class="form-control" @bind="cargoSeleccionado.Cargo1" placeholder="Ej: Chofer" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Estado</label>
+                    <select class="form-control" @bind="cargoSeleccionado.Estado">
+                        <option value="a">Activo</option>
+                        <option value="i">Inactivo</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="modal-footer-modern">
+                <button type="button" class="btn-modern btn-secondary-modern" @onclick="CerrarModal">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button type="button" class="btn-modern btn-primary-modern" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     private List<CargoDTO> listaCargos = new();
@@ -99,6 +142,7 @@
     private string estadoFiltro = string.Empty;
 
     private bool esNuevo = false;
+    private bool showModal = false;
     private int PaginaActual = 1;
     private int PageSize = 8;
     private int TotalRegistros = 0;
@@ -122,13 +166,26 @@
         }
     }
 
-    private async void BuscarCargos()
+    private async Task OnFiltroChanged()
     {
         PaginaActual = 1;
         await CargarCargosAsync();
     }
 
-    private void SeleccionarCargo(CargoDTO cargo)
+    private async Task BuscarCargos()
+    {
+        PaginaActual = 1;
+        await CargarCargosAsync();
+    }
+
+    private void AbrirModalNuevo()
+    {
+        cargoSeleccionado = new CargoDTO { Estado = "a" };
+        esNuevo = true;
+        showModal = true;
+    }
+
+    private void AbrirModalEditar(CargoDTO cargo)
     {
         cargoSeleccionado = new CargoDTO
             {
@@ -137,12 +194,13 @@
                 Estado = cargo.Estado
             };
         esNuevo = false;
+        showModal = true;
     }
 
-    private void NuevoRegistro()
+    private void CerrarModal()
     {
+        showModal = false;
         cargoSeleccionado = new CargoDTO();
-        esNuevo = true;
     }
 
     private async Task GuardarCambios()
@@ -154,9 +212,9 @@
             else
                 await cargoRepo.UpdateCargo(cargoSeleccionado);
 
+            await displayMessage.DisplaySuccessMessage(esNuevo ? "Cargo creado correctamente." : "Cargo actualizado correctamente.");
+            CerrarModal();
             await CargarCargosAsync();
-            cargoSeleccionado = new CargoDTO();
-            esNuevo = false;
         }
         catch (Exception ex)
         {
@@ -164,28 +222,22 @@
         }
     }
 
-    private async Task EliminarCargo()
+    private async Task EliminarCargo(CargoDTO cargo)
     {
-        bool confirm = await JS.InvokeAsync<bool>("confirm", "¿Está seguro de eliminar este cargo?");
+        bool confirm = await JS.InvokeAsync<bool>("confirm", $"¿Está seguro de eliminar el cargo \"{cargo.Cargo1}\"?");
         if (confirm)
         {
             try
             {
-                await cargoRepo.DeleteCargoById(cargoSeleccionado.Idcargo);
+                await cargoRepo.DeleteCargoById(cargo.Idcargo);
+                await displayMessage.DisplaySuccessMessage("Cargo eliminado correctamente.");
                 await CargarCargosAsync();
-                cargoSeleccionado = new CargoDTO();
             }
             catch (Exception ex)
             {
                 await displayMessage.DisplayErrorMessage("Error al eliminar: " + ex.Message);
             }
         }
-    }
-
-    private void CancelarEdicion()
-    {
-        cargoSeleccionado = new CargoDTO();
-        esNuevo = false;
     }
 
     private async Task OnPageChangedAsync(int nuevaPagina)
@@ -195,5 +247,4 @@
     }
 
     private bool PuedeGuardar => !string.IsNullOrWhiteSpace(cargoSeleccionado.Cargo1);
-    private bool PuedeEliminar => !esNuevo && cargoSeleccionado.Idcargo > 0;
 }
