@@ -161,38 +161,11 @@ code {
     gap: 0.45rem;
 }
 
-    /* Cada item dibuja su propio conector en forma de "L" redondeada hacia la linea guia:
-       ::before = el codo (mitad vertical + horizontal, con esquina redondeada)
-       ::after  = el tramo recto que sigue hacia el siguiente item (se corta en el ultimo) */
+    /* Sin conectores de linea: solo sangria respecto a la linea guia del padre */
     .dropdown-blazor li {
         position: relative;
-        padding-left: 1.25rem;
+        padding-left: 1.75rem;
     }
-
-        .dropdown-blazor li::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: -0.35rem;
-            width: 0.85rem;
-            height: 1.15rem;
-            border-left: 2px solid rgba(255, 255, 255, 0.2);
-            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
-            border-bottom-left-radius: 8px;
-        }
-
-        .dropdown-blazor li::after {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: -0.35rem;
-            bottom: -0.35rem;
-            border-left: 2px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .dropdown-blazor li:last-child::after {
-            bottom: 50%;
-        }
 
     /* Item individual: alineado a la izquierda, usando los mismos colores
        que el resto del menu (sidebar oscuro) */
