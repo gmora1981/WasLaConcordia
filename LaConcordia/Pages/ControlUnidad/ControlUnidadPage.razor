@@ -1,6 +1,7 @@
 @page "/control-unidades"
 @using LaConcordia.DTO
 @using LaConcordia.Interface
+@using LaConcordia.Pagination
 @inject IControlUnidad controlUnidadRepo
 @inject IDisplayMessage displayMessage
 
@@ -63,14 +64,17 @@
 
         <div style="display: flex; flex-wrap: wrap; gap: 2rem;">
             <div style="flex: 1 1 400px; min-width: 320px; max-width: 100%;">
-                <h5>Fuera de Servicio</h5>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5>Fuera de Servicio</h5>
+                    <span class="text-muted" style="font-size: 0.85rem;">Total: @fueraDeServicio.Count</span>
+                </div>
                 <div style="overflow-x: auto; max-width: 100%;">
                     <table class="admin-table">
                         <thead>
                             <tr><th>Unidad</th><th>Nombres</th><th>Apellidos</th><th></th></tr>
                         </thead>
                         <tbody>
-                            @foreach (var f in fueraDeServicio)
+                            @foreach (var f in FueraDeServicioPagina)
                             {
                                 <tr>
                                     <td>@f.Fkunidad</td>
@@ -90,17 +94,26 @@
                         </tbody>
                     </table>
                 </div>
+                <div class="d-flex justify-content-center mt-2">
+                    <Pagination TotalItems="@fueraDeServicio.Count"
+                                PageSize="@PageSizeControl"
+                                CurrentPage="@PaginaFueraServicio"
+                                OnPageChanged="@(p => PaginaFueraServicio = p)" />
+                </div>
             </div>
 
             <div style="flex: 1 1 400px; min-width: 320px; max-width: 100%;">
-                <h5>En Servicio</h5>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5>En Servicio</h5>
+                    <span class="text-muted" style="font-size: 0.85rem;">Total: @enServicio.Count</span>
+                </div>
                 <div style="overflow-x: auto; max-width: 100%;">
                     <table class="admin-table">
                         <thead>
                             <tr><th></th><th>Unidad</th><th>Nombres</th><th>Apellidos</th></tr>
                         </thead>
                         <tbody>
-                            @foreach (var f in enServicio)
+                            @foreach (var f in EnServicioPagina)
                             {
                                 <tr>
                                     <td style="white-space: nowrap; width: 1%;">
@@ -120,6 +133,12 @@
                         </tbody>
                     </table>
                 </div>
+                <div class="d-flex justify-content-center mt-2">
+                    <Pagination TotalItems="@enServicio.Count"
+                                PageSize="@PageSizeControl"
+                                CurrentPage="@PaginaEnServicio"
+                                OnPageChanged="@(p => PaginaEnServicio = p)" />
+                </div>
             </div>
         </div>
     </div>
@@ -132,6 +151,16 @@
 
     private string unidadVerificar = string.Empty;
     private string? estadoVerificado; // "a" = en servicio, "p" = fuera de servicio, null = no encontrada
+
+    private const int PageSizeControl = 10;
+    private int PaginaFueraServicio = 1;
+    private int PaginaEnServicio = 1;
+
+    private IEnumerable<UnidadServicioDTO> FueraDeServicioPagina =>
+        fueraDeServicio.Skip((PaginaFueraServicio - 1) * PageSizeControl).Take(PageSizeControl);
+
+    private IEnumerable<UnidadServicioDTO> EnServicioPagina =>
+        enServicio.Skip((PaginaEnServicio - 1) * PageSizeControl).Take(PageSizeControl);
 
     protected override async Task OnInitializedAsync()
     {
@@ -165,6 +194,8 @@
     {
         fueraDeServicio = await controlUnidadRepo.GetFichaPersonalPorServicio("p");
         enServicio = await controlUnidadRepo.GetFichaPersonalPorServicio("a");
+        PaginaFueraServicio = 1;
+        PaginaEnServicio = 1;
     }
 
     private async Task Ingresar(UnidadServicioDTO f)
