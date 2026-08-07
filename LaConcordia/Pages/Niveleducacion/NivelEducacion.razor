@@ -1,4 +1,4 @@
-﻿@page "/niveleducacion"
+@page "/niveleducacion"
 @using LaConcordia.DTO
 @using LaConcordia.Interface
 @using LaConcordia.Pagination
@@ -6,89 +6,132 @@
 @inject IJSRuntime JS
 @inject IDisplayMessage displayMessage
 
-<h3>Gestión de Nivel de Educación</h3>
+<link href="css/AdminCommon.css" rel="stylesheet" />
 
-<!-- Controles de búsqueda y nuevo registro -->
-<div class="mb-3 d-flex gap-2">
-    <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo</button>
-    <input type="text" class="form-control" placeholder="Buscar por descripción..." @bind="filtroBusqueda" @bind:event="oninput" @bind:after="OnFiltroChanged" />
-    <select class="form-select" @bind="estadoFiltro" @bind:after="OnFiltroChanged">
-        <option value="">-- Todos --</option>
-        <option value="a">Activo</option>
-        <option value="p">Pasivo</option>
-    </select>
-    <button class="btn btn-success" @onclick="BuscarNivelEducacion">Buscar</button>
-</div>
+<div class="page-container">
+    <div class="content-card">
+        <div class="header-section">
+            <h1 class="page-title">
+                <i class="fas fa-graduation-cap"></i> Gestión de Nivel de Educación
+            </h1>
+            <button class="btn-modern btn-primary-modern" @onclick="AbrirModalNuevo">
+                <i class="fas fa-plus"></i> Nuevo Nivel
+            </button>
+        </div>
 
-<div class="d-flex justify-content-between align-items-center mt-3">
-    <!-- Columna izquierda -->
-    <div class="flex-grow-1">
-        <p class="text-muted mb-0">Total: @TotalRegistros | Página: @PaginaActual</p>
-    </div>
+        <div class="d-flex gap-2 mb-3" style="flex-wrap: wrap; align-items: center;">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Buscar por descripción..." @bind="filtroBusqueda" @bind:event="oninput" @bind:after="OnFiltroChanged" />
+            </div>
+            <select class="form-control" style="width: 180px;" @bind="estadoFiltro" @bind:after="OnFiltroChanged">
+                <option value="">Todos los Estados</option>
+                <option value="a">Activo</option>
+                <option value="p">Pasivo</option>
+            </select>
+        </div>
 
-    <!-- Columna centro -->
-    <div class="d-flex justify-content-center flex-grow-1">
-        <Pagination TotalItems="@TotalRegistros"
-                    PageSize="@PageSize"
-                    CurrentPage="@PaginaActual"
-                    OnPageChanged="OnPageChangedAsync" />
-    </div>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <p class="text-muted mb-0">Total: @TotalRegistros | Página: @PaginaActual</p>
+            <Pagination TotalItems="@TotalRegistros"
+                        PageSize="@PageSize"
+                        CurrentPage="@PaginaActual"
+                        OnPageChanged="OnPageChangedAsync" />
+        </div>
 
-    <!-- Columna derecha (vacía por ahora) -->
-    <div class="flex-grow-1 text-end">
-        <!-- Espacio reservado para futuras acciones -->
-    </div>
-</div>
-<!-- Tabla de niveles de educación -->
-<table class="table table-bordered table-hover">
-    <thead class="table-dark">
-        <tr>
-            <th>ID</th>
-            <th>Descripción</th>
-            <th>Estado</th>
-        </tr>
-    </thead>
-    <tbody>
-        @if (niveles != null && niveles.Count > 0)
-        {
-            @foreach (var nivel in niveles)
-            {
-                <tr @onclick="() => SeleccionarNivel(nivel)" class="@(nivel.Ideducacion == nivelSeleccionado?.Ideducacion ? "table-primary" : "")" style="cursor: pointer;">
-                    <td>@nivel.Ideducacion</td>
-                    <td>@nivel.Descripcion</td>
-                    <td>@ObtenerNombreEstado(nivel.Estado)</td>
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th style="width: 70px;">#</th>
+                    <th>Descripción</th>
+                    <th style="width: 130px;">Estado</th>
+                    <th style="width: 120px; text-align: center;">Acciones</th>
                 </tr>
-            }
-        }
-        else
-        {
-            <tr>
-                <td colspan="3" class="text-center">No se encontraron registros.</td>
-            </tr>
-        }
-    </tbody>
-</table>
-
-<!-- Detalle y formulario -->
-<div class="border rounded p-3 mt-3">
-    <h5>Detalle Nivel de Educación</h5>
-    <EditForm Model="nivelSeleccionado">
-        <input class="form-control mb-2" @bind="nivelSeleccionado.Descripcion" placeholder="Descripción" @ref="inputDescripcionRef" />
-        <InputSelect class="form-control mb-2" @bind-Value="nivelSeleccionado.Estado">
-            <option value="">-- Seleccione Estado --</option>
-            <option value="a">Activo</option>
-            <option value="p">Pasivo</option>
-        </InputSelect>
-    </EditForm>
-
-    <div class="d-flex gap-2 mt-2">
-        <button class="btn btn-warning" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">Guardar</button>
-        <button class="btn btn-danger" @onclick="EliminarNivel" disabled="@(!PuedeEliminar)">Eliminar</button>
-        <button class="btn btn-secondary" @onclick="CancelarEdicion">Cancelar</button>
+            </thead>
+            <tbody>
+                @if (niveles != null && niveles.Count > 0)
+                {
+                    @foreach (var nivel in niveles)
+                    {
+                        <tr>
+                            <td style="color: #7f8c8d;">@nivel.Ideducacion</td>
+                            <td><strong>@nivel.Descripcion</strong></td>
+                            <td>
+                                @if (nivel.Estado == "a")
+                                {
+                                    <span class="badge-modern badge-success"><i class="fas fa-check-circle"></i> Activo</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-modern badge-danger"><i class="fas fa-times-circle"></i> Pasivo</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="action-buttons" style="justify-content: center;">
+                                    <button class="btn-icon btn-edit" title="Editar" @onclick="() => AbrirModalEditar(nivel)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn-icon btn-delete" title="Eliminar" @onclick="() => EliminarNivel(nivel)">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="4" class="empty-state">
+                            <i class="fas fa-graduation-cap"></i>
+                            <p>No se encontraron registros.</p>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
     </div>
 </div>
 
+@if (showModal)
+{
+    <div class="modal-modern" @onclick="CerrarModal">
+        <div class="modal-content-modern" style="max-width: 480px;" @onclick:stopPropagation="true">
+            <div class="modal-header-modern">
+                <h2 class="modal-title-modern">
+                    <i class="fas @(esNuevo ? "fa-plus" : "fa-edit")"></i>
+                    @(esNuevo ? "Nuevo Nivel de Educación" : "Editar Nivel de Educación")
+                </h2>
+                <button type="button" class="btn-close-modern" @onclick="CerrarModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
 
+            <div class="modal-body-modern">
+                <div class="form-group">
+                    <label class="form-label">Descripción <span class="text-danger">*</span></label>
+                    <input class="form-control" @bind="nivelSeleccionado.Descripcion" placeholder="Descripción" @ref="inputDescripcionRef" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Estado</label>
+                    <select class="form-control" @bind="nivelSeleccionado.Estado">
+                        <option value="a">Activo</option>
+                        <option value="p">Pasivo</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="modal-footer-modern">
+                <button type="button" class="btn-modern btn-secondary-modern" @onclick="CerrarModal">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button type="button" class="btn-modern btn-primary-modern" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     private ElementReference inputDescripcionRef;
@@ -105,6 +148,7 @@
     private int TotalRegistros = 0;
 
     private bool esNuevo = false;
+    private bool showModal = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -152,23 +196,14 @@
         AplicarFiltro();
     }
 
-    private void BuscarNivelEducacion()
+    private void AbrirModalNuevo()
     {
-        PaginaActual = 1;
-        AplicarFiltro();
+        nivelSeleccionado = new NiveleducacionDTO { Estado = "a" };
+        esNuevo = true;
+        showModal = true;
     }
 
-    private string ObtenerNombreEstado(string? estado)
-    {
-        return estado switch
-        {
-            "a" => "Activo",
-            "p" => "Pasivo",
-            _ => "Desconocido"
-        };
-    }
-
-    private void SeleccionarNivel(NiveleducacionDTO nivel)
+    private void AbrirModalEditar(NiveleducacionDTO nivel)
     {
         nivelSeleccionado = new NiveleducacionDTO
             {
@@ -177,14 +212,14 @@
                 Estado = nivel.Estado
             };
         esNuevo = false;
+        showModal = true;
     }
 
-    private async void NuevoRegistro()
+    private void CerrarModal()
     {
+        showModal = false;
         nivelSeleccionado = new NiveleducacionDTO();
-        esNuevo = true;
-        await Task.Yield();
-        await JS.InvokeVoidAsync("eval", "document.querySelector('[placeholder=\"Descripción\"]').focus()");
+        esNuevo = false;
     }
 
     private async Task GuardarCambios()
@@ -196,9 +231,9 @@
             else
                 await niveleducacionRepo.UpdateNiveleducacion(nivelSeleccionado);
 
+            await displayMessage.DisplaySuccessMessage(esNuevo ? "Nivel creado correctamente." : "Nivel actualizado correctamente.");
+            CerrarModal();
             await CargarNivelesAsync();
-            nivelSeleccionado = new NiveleducacionDTO();
-            esNuevo = false;
         }
         catch (Exception ex)
         {
@@ -206,28 +241,21 @@
         }
     }
 
-    private async Task EliminarNivel()
+    private async Task EliminarNivel(NiveleducacionDTO nivel)
     {
-        bool confirm = await JS.InvokeAsync<bool>("confirm", "¿Está seguro de eliminar este nivel?");
+        bool confirm = await JS.InvokeAsync<bool>("confirm", $"¿Está seguro de eliminar \"{nivel.Descripcion}\"?");
         if (confirm)
         {
             try
             {
-                await niveleducacionRepo.DeleteNiveleducacionById(nivelSeleccionado.Ideducacion);
+                await niveleducacionRepo.DeleteNiveleducacionById(nivel.Ideducacion);
                 await CargarNivelesAsync();
-                nivelSeleccionado = new NiveleducacionDTO();
             }
             catch (Exception ex)
             {
                 await JS.InvokeVoidAsync("alert", $"Error al eliminar: {ex.Message}");
             }
         }
-    }
-
-    private void CancelarEdicion()
-    {
-        nivelSeleccionado = new NiveleducacionDTO();
-        esNuevo = false;
     }
 
     private void OnPageChangedAsync(int nuevaPagina)
@@ -237,5 +265,4 @@
     }
 
     private bool PuedeGuardar => !string.IsNullOrWhiteSpace(nivelSeleccionado.Descripcion);
-    private bool PuedeEliminar => !esNuevo && nivelSeleccionado.Ideducacion > 0;
 }

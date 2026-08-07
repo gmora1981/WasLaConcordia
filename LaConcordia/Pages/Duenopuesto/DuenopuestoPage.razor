@@ -1,107 +1,167 @@
-﻿@page "/duenopuesto"
+@page "/duenopuesto"
 @using LaConcordia.Interface
-
 @inject IDuenopuesto duenopuestoRepo
 @inject IJSRuntime JS
 @using LaConcordia.DTO
 @using LaConcordia.Pagination
 @inject IDisplayMessage displayMessage
 
-<h3>Gestión de Dueños de Puestos</h3>
+<link href="css/AdminCommon.css" rel="stylesheet" />
 
-<div class="mb-3 d-flex gap-2">
-    <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo</button>
-    <input type="text" class="form-control" placeholder="Buscar por cédula..." @bind="filtroCedula" @bind:event="oninput" @bind:after="OnFiltroChanged" />
-    <input type="text" class="form-control" placeholder="Buscar por nombre..." @bind="filtroNombre" @bind:event="oninput" @bind:after="OnFiltroChanged" />
-    <input type="text" class="form-control" placeholder="Buscar por apellidos..." @bind="filtroApellidos" @bind:event="oninput" @bind:after="OnFiltroChanged" />
-    <select class="form-select" @bind="estadoFiltro" @bind:after="OnFiltroChanged">
-        <option value="">-- Todos --</option>
-        <option value="a">Activo</option>
-        <option value="p">Pasivo</option>
-    </select>
-    <button class="btn btn-success" @onclick="Buscar">Buscar</button>
-    <div class="ms-2">
-        <button class="btn btn-danger btn-sm" @onclick="ExportarEmpresasPdf">
-            Exportar PDF <i class="bi bi-file-earmark-pdf-fill"></i>
-        </button>
-    </div>
-</div>
+<div class="page-container">
+    <div class="content-card">
+        <div class="header-section">
+            <h1 class="page-title">
+                <i class="fas fa-user-tie"></i> Gestión de Dueños de Puestos
+            </h1>
+            <div class="action-buttons">
+                <button class="btn-modern btn-secondary-modern" @onclick="ExportarEmpresasPdf">
+                    <i class="fas fa-file-pdf"></i> Exportar PDF
+                </button>
+                <button class="btn-modern btn-primary-modern" @onclick="AbrirModalNuevo">
+                    <i class="fas fa-plus"></i> Nuevo Dueño de Puesto
+                </button>
+            </div>
+        </div>
 
-<div class="d-flex justify-content-between align-items-center mt-3">
-    <!-- Columna izquierda -->
-    <div class="flex-grow-1">
-        <p class="text-muted mb-0">Total: @TotalRegistros | Página: @PaginaActual</p>
-    </div>
+        <div class="d-flex gap-2 mb-3" style="flex-wrap: wrap; align-items: center;">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Buscar por cédula..." @bind="filtroCedula" @bind:event="oninput" @bind:after="OnFiltroChanged" />
+            </div>
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Buscar por nombre..." @bind="filtroNombre" @bind:event="oninput" @bind:after="OnFiltroChanged" />
+            </div>
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Buscar por apellidos..." @bind="filtroApellidos" @bind:event="oninput" @bind:after="OnFiltroChanged" />
+            </div>
+            <select class="form-control" style="width: 180px;" @bind="estadoFiltro" @bind:after="OnFiltroChanged">
+                <option value="">Todos los Estados</option>
+                <option value="a">Activo</option>
+                <option value="p">Pasivo</option>
+            </select>
+        </div>
 
-    <!-- Columna centro -->
-    <div class="d-flex justify-content-center flex-grow-1">
-        <Pagination TotalItems="@TotalRegistros"
-                    PageSize="@PageSize"
-                    CurrentPage="@PaginaActual"
-                    OnPageChanged="OnPageChangedAsync" />
-    </div>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <p class="text-muted mb-0">Total: @TotalRegistros | Página: @PaginaActual</p>
+            <Pagination TotalItems="@TotalRegistros"
+                        PageSize="@PageSize"
+                        CurrentPage="@PaginaActual"
+                        OnPageChanged="OnPageChangedAsync" />
+        </div>
 
-    <!-- Columna derecha (vacía por ahora) -->
-    <div class="flex-grow-1 text-end">
-        <!-- Espacio reservado para futuras acciones -->
-    </div>
-</div>
-
-<table class="table table-bordered table-hover">
-    <thead class="table-dark">
-        <tr>
-            <th>Cédula</th>
-            <th>Nombres</th>
-            <th>Apellidos</th>
-            <th>Estado</th>
-        </tr>
-    </thead>
-    <tbody>
-        @if (duenopuestos is not null && duenopuestos.Count > 0)
-        {
-            @foreach (var dp in duenopuestos)
-            {
-                <tr @onclick="() => Seleccionar(dp)" class="@(dp.Cedula == duenopuestoSeleccionado?.Cedula ? "table-primary" : "")">
-                    <td>@dp.Cedula</td>
-                    <td>@dp.Nombres</td>
-                    <td>@dp.Apellidos</td>
-                    <td>@MostrarEstado(dp.Estado)</td>
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Cédula</th>
+                    <th>Nombres</th>
+                    <th>Apellidos</th>
+                    <th style="width: 130px;">Estado</th>
+                    <th style="width: 120px; text-align: center;">Acciones</th>
                 </tr>
-            }
-        }
-        else
-        {
-            <tr><td colspan="4" class="text-center">No se encontraron registros.</td></tr>
-        }
-    </tbody>
-</table>
-
-<div class="border p-3 rounded">
-    <h5>Detalle</h5>
-    <EditForm Model="duenopuestoSeleccionado">
-        <InputText class="form-control mb-2" @bind-Value="duenopuestoSeleccionado.Cedula" placeholder="Cédula" disabled="@(!esNuevo)" />
-        <InputText class="form-control mb-2" @bind-Value="duenopuestoSeleccionado.Nombres" placeholder="Nombres" />
-        <InputText class="form-control mb-2" @bind-Value="duenopuestoSeleccionado.Apellidos" placeholder="Apellidos" />
-        <InputSelect class="form-control mb-2" @bind-Value="duenopuestoSeleccionado.Estado">
-            <option value="">-- Seleccione Estado --</option>
-            <option value="a">Activo</option>
-            <option value="p">Pasivo</option>
-        </InputSelect>
-    </EditForm>
-    <div class="d-flex gap-2 mt-2">
-        <button class="btn btn-warning" @onclick="Guardar" disabled="@(!PuedeGuardar)">Guardar</button>
-        <button class="btn btn-danger" @onclick="Eliminar" disabled="@(!PuedeEliminar)">Eliminar</button>
-        <button class="btn btn-secondary" @onclick="Cancelar">Cancelar</button>
+            </thead>
+            <tbody>
+                @if (duenopuestos is not null && duenopuestos.Count > 0)
+                {
+                    @foreach (var dp in duenopuestos)
+                    {
+                        <tr>
+                            <td style="color: #7f8c8d;">@dp.Cedula</td>
+                            <td><strong>@dp.Nombres</strong></td>
+                            <td>@dp.Apellidos</td>
+                            <td>
+                                @if (dp.Estado == "a")
+                                {
+                                    <span class="badge-modern badge-success"><i class="fas fa-check-circle"></i> Activo</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-modern badge-danger"><i class="fas fa-times-circle"></i> Pasivo</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="action-buttons" style="justify-content: center;">
+                                    <button class="btn-icon btn-edit" title="Editar" @onclick="() => AbrirModalEditar(dp)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn-icon btn-delete" title="Eliminar" @onclick="() => Eliminar(dp)">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="5" class="empty-state">
+                            <i class="fas fa-user-tie"></i>
+                            <p>No se encontraron registros.</p>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
     </div>
 </div>
 
+@if (showModal)
+{
+    <div class="modal-modern" @onclick="CerrarModal">
+        <div class="modal-content-modern" style="max-width: 480px;" @onclick:stopPropagation="true">
+            <div class="modal-header-modern">
+                <h2 class="modal-title-modern">
+                    <i class="fas @(esNuevo ? "fa-plus" : "fa-edit")"></i>
+                    @(esNuevo ? "Nuevo Dueño de Puesto" : "Editar Dueño de Puesto")
+                </h2>
+                <button type="button" class="btn-close-modern" @onclick="CerrarModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
 
+            <div class="modal-body-modern">
+                <div class="form-group">
+                    <label class="form-label">Cédula <span class="text-danger">*</span></label>
+                    <input class="form-control" @bind="duenopuestoSeleccionado.Cedula" placeholder="Cédula" disabled="@(!esNuevo)" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Nombres</label>
+                    <input class="form-control" @bind="duenopuestoSeleccionado.Nombres" placeholder="Nombres" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Apellidos</label>
+                    <input class="form-control" @bind="duenopuestoSeleccionado.Apellidos" placeholder="Apellidos" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Estado</label>
+                    <select class="form-control" @bind="duenopuestoSeleccionado.Estado">
+                        <option value="a">Activo</option>
+                        <option value="p">Pasivo</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="modal-footer-modern">
+                <button type="button" class="btn-modern btn-secondary-modern" @onclick="CerrarModal">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button type="button" class="btn-modern btn-primary-modern" @onclick="Guardar" disabled="@(!PuedeGuardar)">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     private List<DuenopuestoDTO> todosLosDuenopuestos = new();
     private List<DuenopuestoDTO> duenopuestos = new();
     private DuenopuestoDTO duenopuestoSeleccionado = new();
     private bool esNuevo = false;
+    private bool showModal = false;
 
     private string filtroCedula = "";
     private string filtroNombre = "";
@@ -166,13 +226,14 @@
         AplicarFiltro();
     }
 
-    private void Buscar()
+    private void AbrirModalNuevo()
     {
-        PaginaActual = 1;
-        AplicarFiltro();
+        duenopuestoSeleccionado = new DuenopuestoDTO { Estado = "a" };
+        esNuevo = true;
+        showModal = true;
     }
 
-    private void Seleccionar(DuenopuestoDTO dp)
+    private void AbrirModalEditar(DuenopuestoDTO dp)
     {
         duenopuestoSeleccionado = new DuenopuestoDTO
             {
@@ -182,12 +243,14 @@
                 Estado = dp.Estado
             };
         esNuevo = false;
+        showModal = true;
     }
 
-    private void NuevoRegistro()
+    private void CerrarModal()
     {
-        duenopuestoSeleccionado = new DuenopuestoDTO();
-        esNuevo = true;
+        showModal = false;
+        duenopuestoSeleccionado = new();
+        esNuevo = false;
     }
 
     private async Task Guardar()
@@ -199,9 +262,9 @@
             else
                 await duenopuestoRepo.UpdateDuenopuesto(duenopuestoSeleccionado);
 
+            await displayMessage.DisplaySuccessMessage(esNuevo ? "Dueño de puesto creado correctamente." : "Dueño de puesto actualizado correctamente.");
+            CerrarModal();
             await CargarAsync();
-            duenopuestoSeleccionado = new();
-            esNuevo = false;
         }
         catch (Exception ex)
         {
@@ -209,21 +272,14 @@
         }
     }
 
-    private async Task Eliminar()
+    private async Task Eliminar(DuenopuestoDTO dp)
     {
-        bool confirm = await JS.InvokeAsync<bool>("confirm", "¿Está seguro de eliminar?");
+        bool confirm = await JS.InvokeAsync<bool>("confirm", $"¿Está seguro de eliminar a \"{dp.Nombres} {dp.Apellidos}\"?");
         if (confirm)
         {
-            await duenopuestoRepo.DeleteDuenopuestoByCedula(duenopuestoSeleccionado.Cedula);
+            await duenopuestoRepo.DeleteDuenopuestoByCedula(dp.Cedula);
             await CargarAsync();
-            duenopuestoSeleccionado = new();
         }
-    }
-
-    private void Cancelar()
-    {
-        duenopuestoSeleccionado = new();
-        esNuevo = false;
     }
 
     private void OnPageChangedAsync(int nuevaPagina)
@@ -231,13 +287,6 @@
         PaginaActual = nuevaPagina;
         AplicarFiltro();
     }
-
-    private string MostrarEstado(string? estado) => estado switch
-    {
-        "a" => "Activo",
-        "p" => "Pasivo",
-        _ => "Desconocido"
-    };
 
     //exportar pdf
     private async Task ExportarEmpresasPdf()
@@ -266,5 +315,4 @@
     }
 
     private bool PuedeGuardar => !string.IsNullOrWhiteSpace(duenopuestoSeleccionado.Cedula);
-    private bool PuedeEliminar => !esNuevo && !string.IsNullOrWhiteSpace(duenopuestoSeleccionado.Cedula);
 }

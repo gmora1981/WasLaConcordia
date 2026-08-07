@@ -1,4 +1,4 @@
-﻿@page "/unidad"
+@page "/unidad"
 @using LaConcordia.Interface
 @inject IUnidad unidadRepo
 @inject IJSRuntime JS
@@ -6,118 +6,189 @@
 @using LaConcordia.Pagination
 @inject IDisplayMessage displayMessage
 
-<h3>Gestión de Unidad</h3>
+<link href="css/AdminCommon.css" rel="stylesheet" />
 
-<div class="mb-3 d-flex gap-2">
-    <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo</button>
-    <input type="text" class="form-control" placeholder="Buscar por placa..." @bind="filtroPlaca" @bind:event="oninput" @bind:after="OnFiltroChanged" />
-    <input type="text" class="form-control" placeholder="Buscar por propietario..." @bind="filtroPropietario" @bind:event="oninput" @bind:after="OnFiltroChanged" />
+<div class="page-container">
+    <div class="content-card">
+        <div class="header-section">
+            <h1 class="page-title">
+                <i class="fas fa-car"></i> Gestión de Unidades
+            </h1>
+            <button class="btn-modern btn-primary-modern" @onclick="AbrirModalNuevo">
+                <i class="fas fa-plus"></i> Nueva Unidad
+            </button>
+        </div>
 
-    <select class="form-select" @bind="estadoFiltro" @bind:after="OnFiltroChanged">
-        <option value="">-- Todos --</option>
-        <option value="a">Activo</option>
-        <option value="p">Pasivo</option>
-    </select>
-    <button class="btn btn-success" @onclick="Buscar">Buscar</button>
+        <div class="d-flex gap-2 mb-3" style="flex-wrap: wrap; align-items: center;">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Buscar por placa..." @bind="filtroPlaca" @bind:event="oninput" @bind:after="OnFiltroChanged" />
+            </div>
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Buscar por propietario..." @bind="filtroPropietario" @bind:event="oninput" @bind:after="OnFiltroChanged" />
+            </div>
+            <select class="form-control" style="width: 180px;" @bind="estadoFiltro" @bind:after="OnFiltroChanged">
+                <option value="">Todos los Estados</option>
+                <option value="a">Activo</option>
+                <option value="p">Pasivo</option>
+            </select>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <p class="text-muted mb-0">Total: @TotalRegistros | Página: @PaginaActual</p>
+            <Pagination TotalItems="@TotalRegistros"
+                        PageSize="@PageSize"
+                        CurrentPage="@PaginaActual"
+                        OnPageChanged="OnPageChangedAsync" />
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Unidad</th>
+                        <th>Placa</th>
+                        <th>Cédula</th>
+                        <th>Propietario</th>
+                        <th>Marca</th>
+                        <th>Modelo</th>
+                        <th>Año</th>
+                        <th style="width: 130px;">Estado</th>
+                        <th style="width: 120px; text-align: center;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (unidades is not null && unidades.Count > 0)
+                    {
+                        @foreach (var u in unidades)
+                        {
+                            <tr>
+                                <td><strong>@u.Unidad1</strong></td>
+                                <td>@u.Placa</td>
+                                <td>@u.Idpropietario</td>
+                                <td>@u.Propietario</td>
+                                <td>@u.Marca</td>
+                                <td>@u.Modelo</td>
+                                <td>@u.Anio</td>
+                                <td>
+                                    @if (u.Estado == "a")
+                                    {
+                                        <span class="badge-modern badge-success"><i class="fas fa-check-circle"></i> Activo</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge-modern badge-danger"><i class="fas fa-times-circle"></i> Pasivo</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="action-buttons" style="justify-content: center;">
+                                        <button class="btn-icon btn-edit" title="Editar" @onclick="() => AbrirModalEditar(u)">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn-icon btn-delete" title="Eliminar" @onclick="() => Eliminar(u)">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="9" class="empty-state">
+                                <i class="fas fa-car"></i>
+                                <p>No se encontraron registros.</p>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
-<div class="d-flex justify-content-between align-items-center mt-3">
-    <!-- Columna izquierda -->
-    <div class="flex-grow-1">
-        <p class="text-muted mb-0">Total: @TotalRegistros | Página: @PaginaActual</p>
-    </div>
-
-    <!-- Columna centro -->
-    <div class="d-flex justify-content-center flex-grow-1">
-        <Pagination TotalItems="@TotalRegistros"
-                    PageSize="@PageSize"
-                    CurrentPage="@PaginaActual"
-                    OnPageChanged="OnPageChangedAsync" />
-    </div>
-
-    <!-- Columna derecha (vacía por ahora) -->
-    <div class="flex-grow-1 text-end">
-        <!-- Espacio reservado para futuras acciones -->
-    </div>
-</div>
-
-<table class="table table-bordered table-hover">
-    <thead class="table-dark">
-        <tr>
-            <th>Unidad</th>
-            <th>Placa</th>
-            <th>Cédula</th>
-            <th>Propietario</th>
-            <th>Marca</th>
-            <th>Modelo</th>
-            <th>Año</th>
-            <th>Estado</th>
-        </tr>
-    </thead>
-    <tbody>
-        @if (unidades is not null && unidades.Count > 0)
-        {
-            @foreach (var u in unidades)
-            {
-                <tr @onclick="() => Seleccionar(u)" class="@(u.Unidad1 == unidadSeleccionada?.Unidad1 ? "table-primary" : "")">
-                    <td>@u.Unidad1</td>
-                    <td>@u.Placa</td>
-                    <td>@u.Idpropietario</td>
-                    <td>@u.Propietario</td>
-                    <td>@u.Marca</td>
-                    <td>@u.Modelo</td>
-                    <td>@u.Anio</td>
-                    <td>@MostrarEstado(u.Estado)</td>
-                </tr>
-            }
-        }
-        else
-        {
-            <tr><td colspan="7" class="text-center">No se encontraron registros.</td></tr>
-        }
-    </tbody>
-</table>
-
-<div class="border p-3 rounded">
-    <h5>Detalle</h5>
-    <EditForm Model="unidadSeleccionada">
-        <div class="row">
-            <!-- Columna 1 -->
-            <div class="col-md-6">
-                <InputText class="form-control mb-2" @bind-Value="unidadSeleccionada.Unidad1" placeholder="Unidad" disabled="@(!esNuevo)" />
-                <InputText class="form-control mb-2" @bind-Value="unidadSeleccionada.Idpropietario" placeholder="Cédula" />
-                <InputText class="form-control mb-2" @bind-Value="unidadSeleccionada.Marca" placeholder="Marca" />
-                <InputNumber class="form-control mb-2" @bind-Value="unidadSeleccionada.Anio" placeholder="Año" />
-                <InputSelect class="form-control mb-2" @bind-Value="unidadSeleccionada.Estado">
-                    <option value="">-- Seleccione Estado --</option>
-                    <option value="a">Activo</option>
-                    <option value="p">Pasivo</option>
-                </InputSelect>
+@if (showModal)
+{
+    <div class="modal-modern" @onclick="CerrarModal">
+        <div class="modal-content-modern" style="max-width: 560px;" @onclick:stopPropagation="true">
+            <div class="modal-header-modern">
+                <h2 class="modal-title-modern">
+                    <i class="fas @(esNuevo ? "fa-plus" : "fa-edit")"></i>
+                    @(esNuevo ? "Nueva Unidad" : "Editar Unidad")
+                </h2>
+                <button type="button" class="btn-close-modern" @onclick="CerrarModal">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
 
-            <!-- Columna 2 -->
-            <div class="col-md-6">
-                <InputText class="form-control mb-2" @bind-Value="unidadSeleccionada.Placa" placeholder="Placa" />
-                <InputText class="form-control mb-2" @bind-Value="unidadSeleccionada.Propietario" placeholder="Propietario" />
-                <InputText class="form-control mb-2" @bind-Value="unidadSeleccionada.Modelo" placeholder="Modelo" />
-                <InputText class="form-control mb-2" @bind-Value="unidadSeleccionada.Color" placeholder="Color" />
+            <div class="modal-body-modern">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Unidad <span class="text-danger">*</span></label>
+                            <input class="form-control" @bind="unidadSeleccionada.Unidad1" placeholder="Unidad" disabled="@(!esNuevo)" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Cédula Propietario</label>
+                            <input class="form-control" @bind="unidadSeleccionada.Idpropietario" placeholder="Cédula" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Marca</label>
+                            <input class="form-control" @bind="unidadSeleccionada.Marca" placeholder="Marca" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Año</label>
+                            <input type="number" class="form-control" @bind="unidadSeleccionada.Anio" placeholder="Año" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Estado</label>
+                            <select class="form-control" @bind="unidadSeleccionada.Estado">
+                                <option value="a">Activo</option>
+                                <option value="p">Pasivo</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Placa <span class="text-danger">*</span></label>
+                            <input class="form-control" @bind="unidadSeleccionada.Placa" placeholder="Placa" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Propietario</label>
+                            <input class="form-control" @bind="unidadSeleccionada.Propietario" placeholder="Propietario" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Modelo</label>
+                            <input class="form-control" @bind="unidadSeleccionada.Modelo" placeholder="Modelo" />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Color</label>
+                            <input class="form-control" @bind="unidadSeleccionada.Color" placeholder="Color" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer-modern">
+                <button type="button" class="btn-modern btn-secondary-modern" @onclick="CerrarModal">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button type="button" class="btn-modern btn-primary-modern" @onclick="Guardar" disabled="@(!PuedeGuardar)">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
             </div>
         </div>
-    </EditForm>
-
-    <div class="d-flex gap-2 mt-2">
-        <button class="btn btn-warning" @onclick="Guardar" disabled="@(!PuedeGuardar)">Guardar</button>
-        <button class="btn btn-danger" @onclick="Eliminar" disabled="@(!PuedeEliminar)">Eliminar</button>
-        <button class="btn btn-secondary" @onclick="Cancelar">Cancelar</button>
     </div>
-</div>
-
+}
 
 @code {
     private List<UnidadDTO> todasLasUnidades = new();
     private List<UnidadDTO> unidades = new();
     private UnidadDTO unidadSeleccionada = new();
     private bool esNuevo = false;
+    private bool showModal = false;
 
     private string filtroPlaca = "";
     private string filtroPropietario = "";
@@ -170,13 +241,14 @@
         AplicarFiltro();
     }
 
-    private void Buscar()
+    private void AbrirModalNuevo()
     {
-        PaginaActual = 1;
-        AplicarFiltro();
+        unidadSeleccionada = new UnidadDTO { Estado = "a" };
+        esNuevo = true;
+        showModal = true;
     }
 
-    private void Seleccionar(UnidadDTO u)
+    private void AbrirModalEditar(UnidadDTO u)
     {
         unidadSeleccionada = new UnidadDTO
             {
@@ -191,12 +263,14 @@
                 Idpropietario = u.Idpropietario
             };
         esNuevo = false;
+        showModal = true;
     }
 
-    private void NuevoRegistro()
+    private void CerrarModal()
     {
-        unidadSeleccionada = new UnidadDTO();
-        esNuevo = true;
+        showModal = false;
+        unidadSeleccionada = new();
+        esNuevo = false;
     }
 
     private async Task Guardar()
@@ -208,9 +282,9 @@
             else
                 await unidadRepo.UpdateUnidad(unidadSeleccionada);
 
+            await displayMessage.DisplaySuccessMessage(esNuevo ? "Unidad creada correctamente." : "Unidad actualizada correctamente.");
+            CerrarModal();
             await CargarAsync();
-            unidadSeleccionada = new();
-            esNuevo = false;
         }
         catch (Exception ex)
         {
@@ -218,21 +292,14 @@
         }
     }
 
-    private async Task Eliminar()
+    private async Task Eliminar(UnidadDTO u)
     {
-        bool confirm = await JS.InvokeAsync<bool>("confirm", "¿Está seguro de eliminar?");
+        bool confirm = await JS.InvokeAsync<bool>("confirm", $"¿Está seguro de eliminar la unidad \"{u.Unidad1}\"?");
         if (confirm)
         {
-            await unidadRepo.DeleteUnidadById(unidadSeleccionada.Unidad1);
+            await unidadRepo.DeleteUnidadById(u.Unidad1);
             await CargarAsync();
-            unidadSeleccionada = new();
         }
-    }
-
-    private void Cancelar()
-    {
-        unidadSeleccionada = new();
-        esNuevo = false;
     }
 
     private void OnPageChangedAsync(int nuevaPagina)
@@ -241,13 +308,5 @@
         AplicarFiltro();
     }
 
-    private string MostrarEstado(string? estado) => estado switch
-    {
-        "a" => "Activo",
-        "p" => "Pasivo",
-        _ => "Desconocido"
-    };
-
     private bool PuedeGuardar => !string.IsNullOrWhiteSpace(unidadSeleccionada.Unidad1) && !string.IsNullOrWhiteSpace(unidadSeleccionada.Placa);
-    private bool PuedeEliminar => !esNuevo && !string.IsNullOrWhiteSpace(unidadSeleccionada.Unidad1);
 }

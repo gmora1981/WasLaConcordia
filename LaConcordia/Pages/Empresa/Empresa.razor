@@ -1,4 +1,4 @@
-﻿@page "/empresa"
+@page "/empresa"
 @using LaConcordia.DTO
 @using LaConcordia.Interface
 @using LaConcordia.Pagination
@@ -6,126 +6,153 @@
 @inject IJSRuntime JS
 @inject IDisplayMessage displayMessage
 
-<h3>Gestión de Empresas</h3>
+<link href="css/AdminCommon.css" rel="stylesheet" />
 
-<!-- Encabezado: Nuevo, Buscar -->
-<div class="mb-3 d-flex gap-2">
-    <button class="btn btn-primary" @onclick="NuevoRegistro">Nuevo</button>
-    <input type="text" class="form-control" placeholder="Buscar por Razón Social..." @bind="razonBusqueda" @bind:event="oninput" @bind:after="OnFiltroChanged" />
-    <select class="form-select" @bind="estadoFiltro" @bind:after="OnFiltroChanged">
-        <option value="">-- Todos --</option>
-        <option value="a">Activo</option>
-        <option value="p">Pasivo</option>
-    </select>
-    <button class="btn btn-success" @onclick="BuscarEmpresas">Buscar</button>
-    <div class="ms-2">
-        <button class="btn btn-danger btn-sm" @onclick="ExportarEmpresasPdf">
-            Exportar PDF <i class="bi bi-file-earmark-pdf-fill"></i>
-        </button>
-    </div>
-</div>
-
-<div class="d-flex justify-content-between align-items-center mt-3">
-    <!-- Columna izquierda -->
-    <div class="flex-grow-1">
-        <p class="text-muted mb-0">Total: @TotalUsuarios | Página: @PaginaActual</p>
-    </div>
-
-    <!-- Columna centro -->
-    <div class="d-flex justify-content-center flex-grow-1">
-        <Pagination TotalItems="@TotalUsuarios"
-                    PageSize="@PageSize"
-                    CurrentPage="@PaginaActual"
-                    OnPageChanged="OnPageChangedAsync" />
-    </div>
-
-    <!-- Columna derecha (vacía por ahora) -->
-    <div class="flex-grow-1 text-end">
-        <!-- Espacio reservado para futuras acciones -->
-    </div>
-</div>
-
-
-
-<!-- Lista de empresas -->
-<table class="table table-bordered table-hover">
-    <thead class="table-dark">
-        <tr>
-            <th>RUC</th>
-            <th>Razón Social</th>
-            <th>Dirección</th>
-            <th>Teléfono</th>
-            <th>Estado</th>
-        </tr>
-    </thead>
-    <tbody>
-        @if (empresas != null && empresas.Count > 0)
-        {
-            @foreach (var empresa in empresas)
-            {
-                <tr @onclick="() => SeleccionarEmpresa(empresa)" class="@(empresa == empresaSeleccionada ? "table-primary" : "")" style="cursor: pointer;">
-                    <td>@empresa.Ruc</td>
-                    <td>@empresa.Razonsocial</td>
-                    <td>@empresa.Direccion</td>
-                    <td>@empresa.Telefono</td>
-                    <td>@ObtenerNombreEstado(empresa.Estado)</td>
-                </tr>
-            }
-        }
-        else
-        {
-            <tr>
-                <td colspan="5" class="text-center">No se encontraron empresas.</td>
-            </tr>
-        }
-    </tbody>
-</table>
-
-<!-- Detalles de la empresa -->
-<div class="border rounded p-3 mt-3">
-    <h5>Detalle Empresa</h5>
-    <EditForm Model="empresaSeleccionada">
-        <div class="row">
-            <!-- Columna 1 -->
-            <div class="col-md-6">
-                @* RUC *@
-                <input class="form-control mb-2" @bind="empresaSeleccionada.Ruc"
-                       placeholder="RUC"
-                       disabled="@(!esNuevo)"
-                       @ref="inputTipoLicenciaRef" />
-
-                @* Dirección *@
-                <InputText class="form-control mb-2" @bind-Value="empresaSeleccionada.Direccion" placeholder="Dirección" />
-            </div>
-
-            <!-- Columna 2 -->
-            <div class="col-md-6">
-                @* Razón Social *@
-                <InputText class="form-control mb-2" @bind-Value="empresaSeleccionada.Razonsocial" placeholder="Razón Social" />
-
-                @* Teléfono *@
-                <InputText class="form-control mb-2" @bind-Value="empresaSeleccionada.Telefono" placeholder="Teléfono" />
-            </div>
-
-            <!-- Columna completa para el Estado -->
-            <div class="col-md-12">
-                <InputSelect class="form-control mb-2" @bind-Value="empresaSeleccionada.Estado">
-                    <option value="">-- Seleccione Estado --</option>
-                    <option value="a">Activo</option>
-                    <option value="p">Pasivo</option>
-                </InputSelect>
+<div class="page-container">
+    <div class="content-card">
+        <div class="header-section">
+            <h1 class="page-title">
+                <i class="fas fa-building"></i> Gestión de Empresas
+            </h1>
+            <div class="action-buttons">
+                <button class="btn-modern btn-secondary-modern" @onclick="ExportarEmpresasPdf">
+                    <i class="fas fa-file-pdf"></i> Exportar PDF
+                </button>
+                <button class="btn-modern btn-primary-modern" @onclick="AbrirModalNuevo">
+                    <i class="fas fa-plus"></i> Nueva Empresa
+                </button>
             </div>
         </div>
-    </EditForm>
 
-    <div class="d-flex gap-2 mt-2">
-        <button class="btn btn-warning" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">Actualizar</button>
-        <button class="btn btn-danger" @onclick="EliminarEmpresa" disabled="@(!PuedeEliminar)">Eliminar</button>
-        <button class="btn btn-secondary" @onclick="CancelarEdicion">Cancelar</button>
+        <div class="d-flex gap-2 mb-3" style="flex-wrap: wrap; align-items: center;">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Buscar por Razón Social..." @bind="razonBusqueda" @bind:event="oninput" @bind:after="OnFiltroChanged" />
+            </div>
+            <select class="form-control" style="width: 180px;" @bind="estadoFiltro" @bind:after="OnFiltroChanged">
+                <option value="">Todos los Estados</option>
+                <option value="a">Activo</option>
+                <option value="p">Pasivo</option>
+            </select>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <p class="text-muted mb-0">Total: @TotalUsuarios | Página: @PaginaActual</p>
+            <Pagination TotalItems="@TotalUsuarios"
+                        PageSize="@PageSize"
+                        CurrentPage="@PaginaActual"
+                        OnPageChanged="OnPageChangedAsync" />
+        </div>
+
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>RUC</th>
+                    <th>Razón Social</th>
+                    <th>Dirección</th>
+                    <th>Teléfono</th>
+                    <th style="width: 130px;">Estado</th>
+                    <th style="width: 120px; text-align: center;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (empresas != null && empresas.Count > 0)
+                {
+                    @foreach (var empresa in empresas)
+                    {
+                        <tr>
+                            <td style="color: #7f8c8d;">@empresa.Ruc</td>
+                            <td><strong>@empresa.Razonsocial</strong></td>
+                            <td>@empresa.Direccion</td>
+                            <td>@empresa.Telefono</td>
+                            <td>
+                                @if (empresa.Estado == "a")
+                                {
+                                    <span class="badge-modern badge-success"><i class="fas fa-check-circle"></i> Activo</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-modern badge-danger"><i class="fas fa-times-circle"></i> Pasivo</span>
+                                }
+                            </td>
+                            <td>
+                                <div class="action-buttons" style="justify-content: center;">
+                                    <button class="btn-icon btn-edit" title="Editar" @onclick="() => AbrirModalEditar(empresa)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn-icon btn-delete" title="Eliminar" @onclick="() => EliminarEmpresa(empresa)">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="6" class="empty-state">
+                            <i class="fas fa-building"></i>
+                            <p>No se encontraron empresas.</p>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
     </div>
 </div>
 
+@if (showModal)
+{
+    <div class="modal-modern" @onclick="CerrarModal">
+        <div class="modal-content-modern" style="max-width: 520px;" @onclick:stopPropagation="true">
+            <div class="modal-header-modern">
+                <h2 class="modal-title-modern">
+                    <i class="fas @(esNuevo ? "fa-plus" : "fa-edit")"></i>
+                    @(esNuevo ? "Nueva Empresa" : "Editar Empresa")
+                </h2>
+                <button type="button" class="btn-close-modern" @onclick="CerrarModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
 
+            <div class="modal-body-modern">
+                <div class="form-group">
+                    <label class="form-label">RUC <span class="text-danger">*</span></label>
+                    <input class="form-control" @bind="empresaSeleccionada.Ruc" placeholder="RUC" disabled="@(!esNuevo)" @ref="inputTipoLicenciaRef" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Razón Social</label>
+                    <input class="form-control" @bind="empresaSeleccionada.Razonsocial" placeholder="Razón Social" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Dirección</label>
+                    <input class="form-control" @bind="empresaSeleccionada.Direccion" placeholder="Dirección" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Teléfono</label>
+                    <input class="form-control" @bind="empresaSeleccionada.Telefono" placeholder="Teléfono" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Estado</label>
+                    <select class="form-control" @bind="empresaSeleccionada.Estado">
+                        <option value="a">Activo</option>
+                        <option value="p">Pasivo</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="modal-footer-modern">
+                <button type="button" class="btn-modern btn-secondary-modern" @onclick="CerrarModal">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button type="button" class="btn-modern btn-primary-modern" @onclick="GuardarCambios" disabled="@(!PuedeGuardar)">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+}
 
 @code {
     //para focus al dar nuevo
@@ -136,6 +163,7 @@
     private string razonBusqueda = string.Empty;
     private string estadoFiltro = string.Empty;
     private bool esNuevo = false;
+    private bool showModal = false;
 
     private int PaginaActual = 1;
     private int PageSize = 8;
@@ -187,23 +215,14 @@
         AplicarFiltro();
     }
 
-    private void BuscarEmpresas()
+    private void AbrirModalNuevo()
     {
-        PaginaActual = 1;
-        AplicarFiltro();
+        empresaSeleccionada = new EmpresaDTO { Estado = "a" };
+        esNuevo = true;
+        showModal = true;
     }
 
-    private string ObtenerNombreEstado(string? estado)
-    {
-        return estado switch
-        {
-            "a" => "Activo",
-            "p" => "Pasivo",
-            _ => "Desconocido"
-        };
-    }
-
-    private void SeleccionarEmpresa(EmpresaDTO empresa)
+    private void AbrirModalEditar(EmpresaDTO empresa)
     {
         empresaSeleccionada = new EmpresaDTO
         {
@@ -214,12 +233,14 @@
             Estado = empresa.Estado
         };
         esNuevo = false;
+        showModal = true;
     }
 
-    private void NuevoRegistro()
+    private void CerrarModal()
     {
+        showModal = false;
         empresaSeleccionada = new EmpresaDTO();
-        esNuevo = true;
+        esNuevo = false;
     }
 
     private async Task GuardarCambios()
@@ -231,9 +252,9 @@
             else
                 await empresaRepo.UpdateEmpresa(empresaSeleccionada);
 
+            await displayMessage.DisplaySuccessMessage(esNuevo ? "Empresa creada correctamente." : "Empresa actualizada correctamente.");
+            CerrarModal();
             await CargarEmpresasAsync();
-            empresaSeleccionada = new EmpresaDTO();
-            esNuevo = false;
         }
         catch (Exception ex)
         {
@@ -241,24 +262,16 @@
         }
     }
 
-    private async Task EliminarEmpresa()
+    private async Task EliminarEmpresa(EmpresaDTO empresa)
     {
-        if (!string.IsNullOrEmpty(empresaSeleccionada.Ruc))
-        {
-            bool confirm = await JS.InvokeAsync<bool>("confirm", "¿Estás seguro de eliminar esta empresa?");
-            if (confirm)
-            {
-                await empresaRepo.DeleteEmpresaByRuc(empresaSeleccionada.Ruc.Trim());
-                await CargarEmpresasAsync();
-                empresaSeleccionada = new EmpresaDTO();
-            }
-        }
-    }
+        if (string.IsNullOrEmpty(empresa.Ruc)) return;
 
-    private void CancelarEdicion()
-    {
-        empresaSeleccionada = new EmpresaDTO();
-        esNuevo = false;
+        bool confirm = await JS.InvokeAsync<bool>("confirm", $"¿Estás seguro de eliminar la empresa \"{empresa.Razonsocial}\"?");
+        if (confirm)
+        {
+            await empresaRepo.DeleteEmpresaByRuc(empresa.Ruc.Trim());
+            await CargarEmpresasAsync();
+        }
     }
 
     private void OnPageChangedAsync(int nuevaPagina)
@@ -272,7 +285,7 @@
     {
         try
         {
-            var pdfBytes = await empresaRepo.ExportarEmpresasPdfAsync( estadoFiltro);
+            var pdfBytes = await empresaRepo.ExportarEmpresasPdfAsync(estadoFiltro);
 
             if (pdfBytes == null || pdfBytes.Length == 0)
             {
@@ -294,5 +307,4 @@
     }
 
     private bool PuedeGuardar => !string.IsNullOrWhiteSpace(empresaSeleccionada.Ruc);
-    private bool PuedeEliminar => !esNuevo && !string.IsNullOrWhiteSpace(empresaSeleccionada.Ruc);
 }
