@@ -57,9 +57,9 @@ namespace LaConcordia.Repository
         // Paginado
         public async Task<PagedResult<CargoDTO>> GetCargosPaginados(int pagina, int pageSize, string? filtro = null, string? estado = null)
         {
-            var url = $"api/Cargo/GetCargoPaginados?page={pagina}&pageSize={pageSize}";
+            var url = $"api/Cargo/GetCargoPaginados?pagina={pagina}&pageSize={pageSize}";
             if (!string.IsNullOrEmpty(filtro))
-                url += $"&filtro={Uri.EscapeDataString(filtro)}";
+                url += $"&cargo1={Uri.EscapeDataString(filtro)}";
             if (!string.IsNullOrEmpty(estado))
                 url += $"&estado={Uri.EscapeDataString(estado)}";
             try
