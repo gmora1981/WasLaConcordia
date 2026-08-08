@@ -460,7 +460,15 @@
 
         if (!string.IsNullOrWhiteSpace(correoLogueado))
         {
-            fichaSeleccionada = await fichaRepo.GetFichaPersonalByCorreo(correoLogueado);
+            // Solo se carga lo necesario para pintar la tabla y los combos del modal.
+            // Beneficiarios, unidad, dueño de puesto e imágenes (esta última consulta FTP
+            // y es la más lenta) se cargan bajo demanda al abrir el modal (SeleccionarFicha),
+            // no aquí, para no bloquear la carga inicial de la página.
+            var fichaTask = fichaRepo.GetFichaPersonalByCorreo(correoLogueado);
+            var listasTask = CargarListasRelacionadas();
+            await Task.WhenAll(fichaTask, listasTask);
+
+            fichaSeleccionada = fichaTask.Result;
 
             if (fichaSeleccionada != null)
             {
@@ -471,22 +479,11 @@
                 codigoUnidad = fichaSeleccionada.Fkunidad ?? string.Empty;
                 cedulaDuenopuesto = fichaSeleccionada.Fkdpuesto ?? string.Empty;
 
-                // Todas estas llamadas son independientes entre si, se ejecutan en paralelo
-                // en vez de una tras otra para no sumar la latencia de cada una.
-                await Task.WhenAll(
-                    CargarBeneficiarios(fichaSeleccionada.Cedula),
-                    CargarListasRelacionadas(),
-                    BuscarUnidad(),
-                    BuscarDuenopuesto(),
-                    ActualizarEstadoImagenes(fichaSeleccionada.Cedula)
-                );
-
                 esNuevo = false;
                 fichaExiste = true;
             }
             else
             {
-                await CargarListasRelacionadas();
                 esNuevo = true;
                 fichaExiste = false;
                 fichaSeleccionada = new FichapersonalDTO
