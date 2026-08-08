@@ -1,6 +1,7 @@
 @page "/orden-pago"
 @using LaConcordia.DTO
 @using LaConcordia.Interface
+@using LaConcordia.Pagination
 @inject IOrdenPago ordenPagoRepo
 @inject IEmpresa empresaRepo
 @inject IPasajero pasajeroRepo
@@ -28,6 +29,14 @@
             </select>
         </div>
 
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <p class="text-muted mb-0">Total: @lista.Count | Página: @PaginaActual</p>
+            <Pagination TotalItems="@lista.Count"
+                        PageSize="@PageSize"
+                        CurrentPage="@PaginaActual"
+                        OnPageChanged="@(p => PaginaActual = p)" />
+        </div>
+
         <table class="admin-table">
             <thead>
                 <tr>
@@ -42,7 +51,7 @@
             <tbody>
                 @if (lista.Count > 0)
                 {
-                    @foreach (var p in lista)
+                    @foreach (var p in ListaPagina)
                     {
                         <tr @onclick="() => Seleccionar(p)" class="@(EsSeleccionado(p) ? "table-primary" : "")" style="cursor:pointer;">
                             <td>@p.Ruc</td>
@@ -199,6 +208,12 @@
     private List<PedidoVoucherDTO> lista = new();
     private PedidoVoucherDTO? seleccionado;
 
+    private const int PageSize = 10;
+    private int PaginaActual = 1;
+
+    private IEnumerable<PedidoVoucherDTO> ListaPagina =>
+        lista.Skip((PaginaActual - 1) * PageSize).Take(PageSize);
+
     private string numVoucher = string.Empty;
     private string cliente = string.Empty;
     private string tiempoEspera = string.Empty;
@@ -224,6 +239,7 @@
     private async Task Buscar()
     {
         lista = await ordenPagoRepo.GetPedidosPendientesVoucher(string.IsNullOrEmpty(filtroRuc) ? null : filtroRuc);
+        PaginaActual = 1;
     }
 
     private bool EsSeleccionado(PedidoVoucherDTO p) =>
