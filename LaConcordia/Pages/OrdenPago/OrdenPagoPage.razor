@@ -343,8 +343,17 @@
         }
         catch { /* sin pasajero registrado, se deja en blanco */ }
 
-        puntoPartida = await ordenPagoRepo.GetDireccionTexto(p.Celular, p.Origenlat, p.Origenlog) ?? string.Empty;
-        puntoFinal = await ordenPagoRepo.GetDireccionTexto(p.Celular, p.Destinolat, p.Destinolog) ?? string.Empty;
+        try
+        {
+            puntoPartida = await ordenPagoRepo.GetDireccionTexto(p.Celular, p.Origenlat, p.Origenlog) ?? string.Empty;
+        }
+        catch { puntoPartida = string.Empty; }
+
+        try
+        {
+            puntoFinal = await ordenPagoRepo.GetDireccionTexto(p.Celular, p.Destinolat, p.Destinolog) ?? string.Empty;
+        }
+        catch { puntoFinal = string.Empty; }
 
         saldoCaja = await ordenPagoRepo.GetSaldoCajaActual();
         RecalcularMonto();
