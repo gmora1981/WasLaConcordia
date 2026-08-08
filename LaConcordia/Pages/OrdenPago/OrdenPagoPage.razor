@@ -99,117 +99,156 @@
                     <div class="col-md-3"><strong>Fecha:</strong> @seleccionado.Fecharegistro.ToString("dd/MM/yyyy HH:mm")</div>
                 </div>
 
-                <div class="row mb-2">
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label class="form-label">N° Voucher <span class="text-danger">*</span></label>
-                            <input class="form-control" @bind="numVoucher" />
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label class="form-label">Cliente</label>
-                            <input class="form-control" value="@cliente" disabled />
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label class="form-label">Tiempo de Espera</label>
-                            <input class="form-control" @bind="tiempoEspera" />
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label class="form-label">Empleado</label>
-                            <input class="form-control" @bind="empleado" />
-                        </div>
-                    </div>
+                <!-- Igual que el dialogo "Desea Modificar Datos / Pagar a las Unidades" del sistema de escritorio -->
+                <div class="action-buttons mb-3">
+                    <button class="btn-modern @(modo == "pagar" ? "btn-primary-modern" : "btn-secondary-modern")" @onclick='() => modo = "pagar"'>
+                        <i class="fas fa-hand-holding-usd"></i> Pagar a las Unidades
+                    </button>
+                    <button class="btn-modern @(modo == "modificar" ? "btn-primary-modern" : "btn-secondary-modern")" @onclick='() => modo = "modificar"'>
+                        <i class="fas fa-edit"></i> Modificar Datos
+                    </button>
                 </div>
 
-                <div class="row mb-2">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label class="form-label">Punto de Partida</label>
-                            <input class="form-control" value="@puntoPartida" disabled />
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label class="form-label">Punto Final</label>
-                            <input class="form-control" value="@puntoFinal" disabled />
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row mb-2">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label class="form-label">Recorrido</label>
-                            <input class="form-control" @bind="recorrido" />
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label class="form-label">Observación</label>
-                            <input class="form-control" @bind="observacion" />
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row mb-2 align-items-end">
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label class="form-label">Precio</label>
-                            <input class="form-control" value="@precio.ToString("0.00")" disabled />
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="form-check">
-                            <input type="checkbox" class="form-check-input" id="chkSinDesc" @bind="sinDescuento" @bind:after="RecalcularMonto" />
-                            <label class="form-check-label" for="chkSinDesc">Sin Descuento (paga 100%)</label>
-                        </div>
-                    </div>
-                    @if (sinDescuento)
-                    {
+                @if (modo == "pagar")
+                {
+                    <div class="row mb-2">
                         <div class="col-md-3">
                             <div class="form-group">
-                                <label class="form-label">Bono</label>
-                                <div class="input-group">
-                                    <input type="number" step="0.01" class="form-control" @bind="bono" />
-                                    <button class="btn-modern btn-secondary-modern" type="button" @onclick="AplicarBono">Aplicar</button>
-                                </div>
+                                <label class="form-label">N° Voucher <span class="text-danger">*</span></label>
+                                <input class="form-control" @bind="numVoucher" />
                             </div>
                         </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="form-label">Cliente</label>
+                                <input class="form-control" value="@cliente" disabled />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="form-label">Tiempo de Espera</label>
+                                <input class="form-control" @bind="tiempoEspera" />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="form-label">Empleado</label>
+                                <input class="form-control" @bind="empleado" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-2">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label">Punto de Partida</label>
+                                <input class="form-control" value="@puntoPartida" disabled />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label">Punto Final</label>
+                                <input class="form-control" value="@puntoFinal" disabled />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-2">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label">Recorrido</label>
+                                <input class="form-control" @bind="recorrido" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="form-label">Observación</label>
+                                <input class="form-control" @bind="observacion" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-2 align-items-end">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="form-label">Precio</label>
+                                <input class="form-control" value="@precio.ToString("0.00")" disabled />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="chkSinDesc" @bind="sinDescuento" @bind:after="RecalcularMonto" />
+                                <label class="form-check-label" for="chkSinDesc">Sin Descuento (paga 100%)</label>
+                            </div>
+                        </div>
+                        @if (sinDescuento)
+                        {
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label class="form-label">Bono</label>
+                                    <div class="input-group">
+                                        <input type="number" step="0.01" class="form-control" @bind="bono" />
+                                        <button class="btn-modern btn-secondary-modern" type="button" @onclick="AplicarBono">Aplicar</button>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="row mb-2">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="form-label">@(sinDescuento ? "Monto a Pagar" : "Monto a Pagar (-10%)")</label>
+                                <input class="form-control fw-bold" value="@monto.ToString("0.00")" disabled />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="form-label">Saldo Caja</label>
+                                <input class="form-control" value="@saldoCaja.ToString("0.00")" disabled />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="form-label">Saldo Final</label>
+                                <input class="form-control @(saldoFinal <= 0 ? "text-danger fw-bold" : "")" value="@saldoFinal.ToString("0.00")" disabled />
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (saldoFinal <= 0)
+                    {
+                        <p class="text-danger">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Saldo Negativo, no se puede ingresar (política de caja: nunca se autoriza un pago que deje el saldo en negativo).
+                        </p>
                     }
-                </div>
-
-                <div class="row mb-2">
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label class="form-label">@(sinDescuento ? "Monto a Pagar" : "Monto a Pagar (-10%)")</label>
-                            <input class="form-control fw-bold" value="@monto.ToString("0.00")" disabled />
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label class="form-label">Saldo Caja</label>
-                            <input class="form-control" value="@saldoCaja.ToString("0.00")" disabled />
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label class="form-label">Saldo Final</label>
-                            <input class="form-control @(saldoFinal <= 0 ? "text-danger fw-bold" : "")" value="@saldoFinal.ToString("0.00")" disabled />
-                        </div>
-                    </div>
-                </div>
-
-                @if (saldoFinal <= 0)
+                }
+                else
                 {
-                    <p class="text-danger">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        Saldo Negativo, no se puede ingresar (política de caja: nunca se autoriza un pago que deje el saldo en negativo).
+                    <p class="text-muted">
+                        Corrige el precio, el recorrido o el empleado del pedido. No genera voucher ni afecta el flujo de caja.
                     </p>
+                    <div class="row mb-2">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="form-label">Precio ($)</label>
+                                <input type="number" step="0.01" class="form-control" @bind="precioModificar" />
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="form-label">Recorrido</label>
+                                <input class="form-control" @bind="recorrido" />
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="form-label">Empleado</label>
+                                <input class="form-control" @bind="empleado" />
+                            </div>
+                        </div>
+                    </div>
                 }
             </div>
 
@@ -217,9 +256,18 @@
                 <button class="btn-modern btn-secondary-modern" @onclick="Cerrar">
                     <i class="fas fa-times"></i> Cancelar
                 </button>
-                <button class="btn-modern btn-primary-modern" @onclick="Guardar" disabled="@(!PuedeGuardar)">
-                    <i class="fas fa-save"></i> Generar Voucher
-                </button>
+                @if (modo == "pagar")
+                {
+                    <button class="btn-modern btn-primary-modern" @onclick="Guardar" disabled="@(!PuedeGuardar)">
+                        <i class="fas fa-save"></i> Generar Voucher
+                    </button>
+                }
+                else
+                {
+                    <button class="btn-modern btn-primary-modern" @onclick="ActualizarDatos" disabled="@(precioModificar <= 0)">
+                        <i class="fas fa-save"></i> Actualizar Datos
+                    </button>
+                }
             </div>
         </div>
     </div>
@@ -253,6 +301,11 @@
     private decimal saldoCaja;
     private decimal saldoFinal;
 
+    // "pagar" (Pagar a las Unidades) o "modificar" (Modificar Datos), igual que el
+    // dialogo Si/No del sistema de escritorio.
+    private string modo = "pagar";
+    private decimal precioModificar;
+
     protected override async Task OnInitializedAsync()
     {
         empresas = await empresaRepo.GetEmpresaInfoAll();
@@ -271,12 +324,14 @@
     private async Task Seleccionar(PedidoVoucherDTO p)
     {
         seleccionado = p;
+        modo = "pagar";
         numVoucher = string.Empty;
         empleado = p.Empleado ?? string.Empty;
         recorrido = p.Recorrido ?? string.Empty;
         observacion = string.Empty;
         tiempoEspera = string.Empty;
         precio = p.Precio ?? 0;
+        precioModificar = p.Precio ?? 0;
         sinDescuento = false;
         bono = 0;
 
@@ -356,6 +411,38 @@
         catch (Exception ex)
         {
             await displayMessage.DisplayErrorMessage("Error al guardar: " + ex.Message);
+        }
+    }
+
+    // "Modificar Datos": corrige Precio/Recorrido/Empleado sin generar voucher ni tocar caja.
+    private async Task ActualizarDatos()
+    {
+        if (seleccionado == null) return;
+
+        try
+        {
+            var request = new ActualizarDatosPedidoRequestDTO
+                {
+                    Celular = seleccionado.Celular,
+                    Origenlat = seleccionado.Origenlat,
+                    Origenlog = seleccionado.Origenlog,
+                    Destinolat = seleccionado.Destinolat,
+                    Destinolog = seleccionado.Destinolog,
+                    FechaRegistroPedido = seleccionado.Fecharegistro,
+                    Precio = precioModificar,
+                    Recorrido = recorrido,
+                    Empleado = empleado
+                };
+
+            await ordenPagoRepo.ActualizarDatosPedido(request);
+            await displayMessage.DisplaySuccessMessage("Datos del pedido actualizados correctamente.");
+
+            seleccionado = null;
+            await Buscar();
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al actualizar: " + ex.Message);
         }
     }
 }

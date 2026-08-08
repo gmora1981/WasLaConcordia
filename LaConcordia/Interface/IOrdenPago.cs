@@ -10,5 +10,8 @@ namespace LaConcordia.Interface
         Task<OrdenPagoResultadoDTO> GenerarOrdenPago(GenerarOrdenPagoRequestDTO request);
 
         Task<List<OrdenPagoResumenDTO>> GetOrdenPagoPorEmpresa(string ruc);
+
+        // "Modificar Datos": corrige Precio/Recorrido/Empleado sin generar voucher.
+        Task ActualizarDatosPedido(ActualizarDatosPedidoRequestDTO request);
     }
 }
