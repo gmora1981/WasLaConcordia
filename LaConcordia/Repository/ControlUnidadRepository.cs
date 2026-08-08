@@ -27,5 +27,23 @@ namespace LaConcordia.Repository
                 throw new Exception(errorContent);
             }
         }
+
+        //exportar PDF
+        public async Task<byte[]> ExportarPdf(string? turno)
+        {
+            var url = "api/ControlUnidad/exportarPDF";
+            if (!string.IsNullOrEmpty(turno))
+                url += $"?turno={Uri.EscapeDataString(turno)}";
+
+            var response = await _httpClient.GetAsync(url);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Error al exportar PDF: {errorContent}");
+            }
+
+            return await response.Content.ReadAsByteArrayAsync();
+        }
     }
 }

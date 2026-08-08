@@ -3,6 +3,7 @@
 @using LaConcordia.Interface
 @using LaConcordia.Pagination
 @inject IControlUnidad controlUnidadRepo
+@inject IJSRuntime JS
 @inject IDisplayMessage displayMessage
 
 <link href="css/AdminCommon.css" rel="stylesheet" />
@@ -13,6 +14,9 @@
             <h1 class="page-title">
                 <i class="fas fa-truck-loading"></i> Control de Unidades
             </h1>
+            <button class="btn-modern btn-secondary-modern" @onclick="ExportarPdf">
+                <i class="fas fa-file-pdf"></i> Exportar PDF
+            </button>
         </div>
 
         <div class="d-flex gap-4 mb-2" style="flex-wrap: wrap; align-items: flex-end;">
@@ -259,6 +263,32 @@
         catch (Exception ex)
         {
             await displayMessage.DisplayErrorMessage("Error al registrar la salida: " + ex.Message);
+        }
+    }
+
+    //exportar pdf
+    private async Task ExportarPdf()
+    {
+        try
+        {
+            var pdfBytes = await controlUnidadRepo.ExportarPdf(string.IsNullOrEmpty(turno) ? null : turno);
+
+            if (pdfBytes == null || pdfBytes.Length == 0)
+            {
+                await displayMessage.DisplayErrorMessage("El PDF generado está vacío.");
+                return;
+            }
+
+            await JS.InvokeVoidAsync("downloadFileFromByteArray", new
+            {
+                byteArray = pdfBytes,
+                fileName = "ControlUnidades.pdf",
+                contentType = "application/pdf"
+            });
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al exportar PDF: " + ex.Message);
         }
     }
 }
