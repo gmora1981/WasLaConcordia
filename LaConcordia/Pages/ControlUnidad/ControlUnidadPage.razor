@@ -81,7 +81,7 @@
                                     <td>@f.Nombre</td>
                                     <td>@f.Apellidos</td>
                                     <td style="white-space: nowrap; width: 1%;">
-                                        <button class="btn-icon btn-edit" title="Ingresar" @onclick="() => Ingresar(f)" disabled="@string.IsNullOrEmpty(turno)">
+                                        <button class="btn-icon btn-edit" title="Ingresar" @onclick="() => Ingresar(f)">
                                             <i class="fas fa-arrow-right"></i>
                                         </button>
                                     </td>
@@ -117,7 +117,7 @@
                             {
                                 <tr>
                                     <td style="white-space: nowrap; width: 1%;">
-                                        <button class="btn-icon btn-delete" title="Sacar" @onclick="() => Sacar(f)" disabled="@string.IsNullOrEmpty(turno)">
+                                        <button class="btn-icon btn-delete" title="Salir" @onclick="() => Sacar(f)">
                                             <i class="fas fa-arrow-left"></i>
                                         </button>
                                     </td>
