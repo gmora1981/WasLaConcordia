@@ -74,15 +74,35 @@
             </tbody>
         </table>
 
-        @if (seleccionado != null)
-        {
-            <div class="content-card" style="margin: 1rem 0 0 0; box-shadow: none; border: 1px solid #e5e7eb;">
-                <h5>Generar Voucher — @seleccionado.RazonSocial</h5>
+    </div>
+</div>
+
+@if (seleccionado != null)
+{
+    <div class="modal-modern" @onclick="Cerrar">
+        <div class="modal-content-modern" style="max-width: 800px;" @onclick:stopPropagation="true">
+            <div class="modal-header-modern">
+                <h2 class="modal-title-modern">
+                    <i class="fas fa-money-check-alt"></i> Generar Voucher — @seleccionado.RazonSocial
+                </h2>
+                <button type="button" class="btn-close-modern" @onclick="Cerrar">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="modal-body-modern">
+                <!-- Resumen del pedido (solo lectura, igual que el sistema de escritorio) -->
+                <div class="row mb-2" style="background: #f8f9fb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0.75rem; margin: 0 0 1rem 0;">
+                    <div class="col-md-3"><strong>Unidad:</strong> @seleccionado.Unidad</div>
+                    <div class="col-md-3"><strong>C.I. Conductor:</strong> @seleccionado.Ciconductor</div>
+                    <div class="col-md-3"><strong>Conductor:</strong> @seleccionado.Conductor</div>
+                    <div class="col-md-3"><strong>Fecha:</strong> @seleccionado.Fecharegistro.ToString("dd/MM/yyyy HH:mm")</div>
+                </div>
 
                 <div class="row mb-2">
                     <div class="col-md-3">
                         <div class="form-group">
-                            <label class="form-label">N° Voucher</label>
+                            <label class="form-label">N° Voucher <span class="text-danger">*</span></label>
                             <input class="form-control" @bind="numVoucher" />
                         </div>
                     </div>
@@ -186,21 +206,24 @@
 
                 @if (saldoFinal <= 0)
                 {
-                    <p class="text-danger">Saldo negativo, no se puede generar la orden de pago.</p>
+                    <p class="text-danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Saldo Negativo, no se puede ingresar (política de caja: nunca se autoriza un pago que deje el saldo en negativo).
+                    </p>
                 }
-
-                <div class="action-buttons mt-2">
-                    <button class="btn-modern btn-primary-modern" @onclick="Guardar" disabled="@(!PuedeGuardar)">
-                        <i class="fas fa-save"></i> Generar Voucher
-                    </button>
-                    <button class="btn-modern btn-secondary-modern" @onclick="() => seleccionado = null">
-                        <i class="fas fa-times"></i> Cancelar
-                    </button>
-                </div>
             </div>
-        }
+
+            <div class="modal-footer-modern">
+                <button class="btn-modern btn-secondary-modern" @onclick="Cerrar">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button class="btn-modern btn-primary-modern" @onclick="Guardar" disabled="@(!PuedeGuardar)">
+                    <i class="fas fa-save"></i> Generar Voucher
+                </button>
+            </div>
+        </div>
     </div>
-</div>
+}
 
 @code {
     private List<EmpresaDTO> empresas = new();
@@ -285,6 +308,11 @@
     }
 
     private bool PuedeGuardar => seleccionado != null && !string.IsNullOrWhiteSpace(numVoucher) && saldoFinal > 0;
+
+    private void Cerrar()
+    {
+        seleccionado = null;
+    }
 
     private async Task Guardar()
     {
