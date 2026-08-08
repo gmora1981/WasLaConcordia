@@ -108,9 +108,22 @@
     </div>
 </div>
 
+@if (showModal)
+{
+    <div class="modal-modern" @onclick="CerrarModal">
+        <div class="modal-content-modern" style="max-width: 1100px; width: 95%; max-height: 92vh; overflow-y: auto;" @onclick:stopPropagation="true">
+            <div class="modal-header-modern">
+                <h2 class="modal-title-modern">
+                    <i class="fas @(esNuevo ? "fa-plus" : "fa-id-badge")"></i>
+                    @(esNuevo ? "Nueva Ficha Personal" : "Detalle de Ficha Personal")
+                </h2>
+                <button type="button" class="btn-close-modern" @onclick="CerrarModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="modal-body-modern">
 <!-- IMAGENES -->
-<div class="page-container" style="padding-top: 0;">
-<div class="content-card">
 <div class="row">
     <div class="col-6 border p-3 mb-3">
         <h5>Cedula Frontal / Trasera</h5>
@@ -169,8 +182,6 @@
         <InputFile OnChange='@(e => OnFileSelected(e, "VEHICULO"))' />
     </div>
 </div>
-</div>
-</div>
 
 <style>
     .status-circle {
@@ -183,8 +194,6 @@
     }
 </style>
 
-<div class="page-container" style="padding-top: 0;">
-<div class="content-card">
 <fieldset disabled="@isLoading">
 <EditForm Model="fichaSeleccionada">
     <div class="row">
@@ -315,30 +324,31 @@
             }
         </div>
 
-        <!-- Botones -->
-        <div class="action-buttons mt-3">
-            <button class="btn-modern btn-primary-modern" @onclick="GuardarCambios" disabled="@( !PuedeGuardar )">
-                <i class="fas fa-save"></i> Guardar / Actualizar
-            </button>
-            <button class="btn-modern" style="background:#fee2e2;color:#dc2626;" @onclick="EliminarFicha" disabled="@( !PuedeEliminar )">
-                <i class="fas fa-trash"></i> Eliminar
-            </button>
-            <button class="btn-modern btn-secondary-modern" @onclick="CancelarEdicion">
-                <i class="fas fa-times"></i> Cancelar
-            </button>
-            <button class="btn-modern btn-secondary-modern" @onclick="ExportarFicha">
-                <i class="fas fa-file-pdf"></i> Exportar PDF
-            </button>
-            <button class="btn-modern btn-secondary-modern" @onclick="ExportarImagenesChofer">
-                <i class="fas fa-file-pdf"></i> Exportar Imágenes
-            </button>
-        </div>
     </div>
 </EditForm>
 </fieldset>
-</div>
-</div>
+            </div>
 
+            <div class="modal-footer-modern">
+                <button class="btn-modern btn-primary-modern" @onclick="GuardarCambios" disabled="@( !PuedeGuardar )">
+                    <i class="fas fa-save"></i> Guardar / Actualizar
+                </button>
+                <button class="btn-modern" style="background:#fee2e2;color:#dc2626;" @onclick="EliminarFicha" disabled="@( !PuedeEliminar )">
+                    <i class="fas fa-trash"></i> Eliminar
+                </button>
+                <button class="btn-modern btn-secondary-modern" @onclick="CerrarModal">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button class="btn-modern btn-secondary-modern" @onclick="ExportarFicha">
+                    <i class="fas fa-file-pdf"></i> Exportar PDF
+                </button>
+                <button class="btn-modern btn-secondary-modern" @onclick="ExportarImagenesChofer">
+                    <i class="fas fa-file-pdf"></i> Exportar Imágenes
+                </button>
+            </div>
+        </div>
+    </div>
+}
 
 <FichaObservacionesModal @ref="modalObservaciones" OnClose="CerrarModalObservaciones" />
 
@@ -371,6 +381,7 @@
     private string estadoFiltro = string.Empty;
     private bool esNuevo = false;
     private string textoBoton = "Nuevo";
+    private bool showModal = false;
 
 
     // Para gestión de unidad y dueño del puesto
@@ -580,6 +591,7 @@
         await ActualizarEstadoImagenes(ficha.Cedula);
 
         esNuevo = false;
+        showModal = true;
         StateHasChanged(); // Refrescar UI
     }
 
@@ -601,6 +613,14 @@
         archivoMatriculaTrasera = null;
         archivoVehiculo = null;
         esNuevo = true; // Indica que es un registro nuevo
+        showModal = true;
+    }
+
+    // Cierra la ventana modal y limpia el formulario
+    private void CerrarModal()
+    {
+        showModal = false;
+        CancelarEdicion();
     }
     private async Task GuardarCambios()
     {
@@ -658,7 +678,7 @@
                 TotalUsuarios = fichas.Count;
             }
 
-            // Limpiar formulario y mantener cédula bloqueada
+            // Limpiar formulario y cerrar modal
             fichaSeleccionada = new FichapersonalDTO
             {
                 Correo = correoLogueado
@@ -668,6 +688,7 @@
             codigoUnidad = string.Empty;
             cedulaDuenopuesto = string.Empty;
             esNuevo = false;
+            showModal = false;
 
             StateHasChanged();
         }
@@ -696,6 +717,7 @@
                 fichaSeleccionada = new FichapersonalDTO();
                 // archivoSeleccionado = null;
                 esNuevo = false;
+                showModal = false;
             }
         }
     }
