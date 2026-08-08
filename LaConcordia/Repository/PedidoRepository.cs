@@ -88,5 +88,15 @@ namespace LaConcordia.Repository
         {
             return await _httpClient.GetFromJsonAsync<List<PedidoDTO>>("api/Pedido/GetPedidosConDestinoPendiente") ?? new List<PedidoDTO>();
         }
+
+        public async Task GuardarDireccion(GuardarDireccionRequestDTO request)
+        {
+            var response = await _httpClient.PostAsJsonAsync("api/Pedido/GuardarDireccion", request);
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Error al guardar la dirección: {errorContent}");
+            }
+        }
     }
 }

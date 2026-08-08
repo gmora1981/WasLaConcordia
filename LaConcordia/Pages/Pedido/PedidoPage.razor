@@ -7,6 +7,7 @@
 @inject IPasajero pasajeroRepo
 @inject IEmpresa empresaRepo
 @inject IFichapersonal fichaRepo
+@inject IGeocoding geocodingRepo
 @inject IJSRuntime JS
 @inject IDisplayMessage displayMessage
 
@@ -673,6 +674,12 @@
             {
                 pedidoSeleccionado.Fecharegistro = DateTime.Now;
                 await pedidoRepo.InsertPedido(pedidoSeleccionado);
+
+                // Deja guardados el pasajero y las direcciones de origen/destino para que
+                // Orden de Pago pueda mostrarlas despues. Si algo de esto falla, no debe
+                // impedir que el pedido ya guardado se de por exitoso.
+                await GuardarPasajeroYDireccionesAsync();
+
                 await MostrarNotificacion();
             }
             else
@@ -686,6 +693,66 @@
         catch (Exception ex)
         {
             await displayMessage.DisplayErrorMessage("Error al guardar: " + ex.Message);
+        }
+    }
+
+    private async Task GuardarPasajeroYDireccionesAsync()
+    {
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(pasajeroActual.Nombres))
+            {
+                pasajeroActual.Celular = pedidoSeleccionado.Celular;
+                var entidad = new Pasajero
+                    {
+                        Celular = pasajeroActual.Celular,
+                        Nombres = pasajeroActual.Nombres,
+                        Observacion = pasajeroActual.Observacion,
+                        Correo = pasajeroActual.Correo,
+                        Sexo = pasajeroActual.Sexo,
+                        Whatsapp = pasajeroActual.Whatsapp,
+                        Publicidad = pasajeroActual.Publicidad
+                    };
+
+                if (pasajeroExiste)
+                    await pasajeroRepo.UpdatePasajero(entidad);
+                else
+                    await pasajeroRepo.InsertPasajero(entidad);
+
+                pasajeroExiste = true;
+            }
+        }
+        catch
+        {
+            // No bloquea el guardado del pedido si falla el pasajero.
+        }
+
+        try
+        {
+            var direccionOrigen = await geocodingRepo.Reverse(origenLat, origenLng);
+            await pedidoRepo.GuardarDireccion(new GuardarDireccionRequestDTO
+                {
+                    Celular = pedidoSeleccionado.Celular,
+                    Lat = origenLat,
+                    Lng = origenLng,
+                    Calle = direccionOrigen
+                });
+
+            if (tieneDestino)
+            {
+                var direccionDestino = await geocodingRepo.Reverse(destinoLat, destinoLng);
+                await pedidoRepo.GuardarDireccion(new GuardarDireccionRequestDTO
+                    {
+                        Celular = pedidoSeleccionado.Celular,
+                        Lat = destinoLat,
+                        Lng = destinoLng,
+                        Calle = direccionDestino
+                    });
+            }
+        }
+        catch
+        {
+            // No bloquea el guardado del pedido si falla la geocodificacion/direccion.
         }
     }
 

@@ -28,5 +28,18 @@ namespace LaConcordia.Repository
                 return new List<GeocodingResultDTO>();
             }
         }
+
+        public async Task<string?> Reverse(decimal lat, decimal lon)
+        {
+            try
+            {
+                var url = $"api/Geocoding/Reverse?lat={lat.ToString(System.Globalization.CultureInfo.InvariantCulture)}&lon={lon.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+                return await _httpClient.GetFromJsonAsync<string?>(url);
+            }
+            catch (HttpRequestException)
+            {
+                return null;
+            }
+        }
     }
 }

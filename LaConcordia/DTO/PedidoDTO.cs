@@ -2,6 +2,14 @@ using System;
 
 namespace LaConcordia.DTO
 {
+    public class GuardarDireccionRequestDTO
+    {
+        public string Celular { get; set; } = null!;
+        public decimal Lat { get; set; }
+        public decimal Lng { get; set; }
+        public string? Calle { get; set; }
+    }
+
     public class PedidoDTO
     {
         public string Celular { get; set; } = null!;
