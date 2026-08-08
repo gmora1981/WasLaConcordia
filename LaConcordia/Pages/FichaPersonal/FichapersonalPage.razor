@@ -87,19 +87,19 @@
                                     }
                                 </td>
                                 <td>
-                                    <button class="btn-modern btn-secondary-modern" style="padding: 0.35rem 0.8rem; font-size: 0.78rem;"
+                                    <button class="btn-icon btn-edit"
                                             @onclick="() => AbrirModalObservaciones(ficha.Cedula, ficha.Fkunidad)"
                                             @onclick:stopPropagation="true"
                                             title="Ver Observaciones">
-                                        <i class="fas fa-clipboard-list"></i> Observaciones
+                                        <i class="fas fa-clipboard-list"></i>
                                     </button>
                                 </td>
                                 <td>
-                                    <button class="btn-modern btn-primary-modern" style="padding: 0.35rem 0.8rem; font-size: 0.78rem;"
+                                    <button class="btn-icon btn-roles"
                                             @onclick="() => AbrirModalBeneficiarios(ficha.Cedula)"
                                             @onclick:stopPropagation="true"
                                             title="Ver Beneficiarios">
-                                        <i class="fas fa-users"></i> Beneficiarios
+                                        <i class="fas fa-users"></i>
                                     </button>
                                 </td>
                                 <td>
