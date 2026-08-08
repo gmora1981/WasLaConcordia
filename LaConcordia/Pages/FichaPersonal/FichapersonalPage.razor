@@ -59,8 +59,8 @@
                         <th>Fecha Nac.</th>
                         <th>Ingreso</th>
                         <th style="width: 120px;">Estado</th>
-                        <th>Observaciones</th>
-                        <th>Beneficiarios</th>
+                        <th style="width: 70px; text-align: center;" title="Observaciones">Obs.</th>
+                        <th style="width: 70px; text-align: center;" title="Beneficiarios">Benef.</th>
                         <th>Doc. Completos</th>
                     </tr>
                 </thead>
@@ -86,7 +86,7 @@
                                         <span class="badge-modern badge-danger"><i class="fas fa-times-circle"></i> Pasivo</span>
                                     }
                                 </td>
-                                <td>
+                                <td style="text-align: center;">
                                     <button class="btn-icon btn-edit"
                                             @onclick="() => AbrirModalObservaciones(ficha.Cedula, ficha.Fkunidad)"
                                             @onclick:stopPropagation="true"
@@ -94,7 +94,7 @@
                                         <i class="fas fa-clipboard-list"></i>
                                     </button>
                                 </td>
-                                <td>
+                                <td style="text-align: center;">
                                     <button class="btn-icon btn-roles"
                                             @onclick="() => AbrirModalBeneficiarios(ficha.Cedula)"
                                             @onclick:stopPropagation="true"

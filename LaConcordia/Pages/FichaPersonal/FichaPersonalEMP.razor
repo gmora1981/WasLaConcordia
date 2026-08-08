@@ -57,7 +57,7 @@
                         <th>Fecha Nac.</th>
                         <th>Ingreso</th>
                         <th style="width: 120px;">Estado</th>
-                        <th>Beneficiarios</th>
+                        <th style="width: 70px; text-align: center;" title="Beneficiarios">Benef.</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -82,7 +82,7 @@
                                         <span class="badge-modern badge-danger"><i class="fas fa-times-circle"></i> Pasivo</span>
                                     }
                                 </td>
-                                <td>
+                                <td style="text-align: center;">
                                     <button class="btn-icon btn-roles"
                                             @onclick="() => AbrirModalBeneficiarios(ficha.Cedula)"
                                             @onclick:stopPropagation="true"
