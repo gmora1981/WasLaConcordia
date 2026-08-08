@@ -79,7 +79,7 @@ namespace LaConcordia.Repository
         //paginado
 
         public async Task<PagedResult<FichapersonalDTO>> GetFichaPersonalPaginados(int pagina,
-        int pageSize, string? filtro = null, string? estado = null)
+        int pageSize, string? filtro = null, string? estado = null, string? documentacion = null)
         {
             var url = $"api/Fichapersona/GetFichaPersonalPaginados?pagina={pagina}&pageSize={pageSize}";
 
@@ -88,6 +88,9 @@ namespace LaConcordia.Repository
 
             if (!string.IsNullOrEmpty(estado))
                 url += $"&estado={Uri.EscapeDataString(estado)}";
+
+            if (!string.IsNullOrEmpty(documentacion))
+                url += $"&documentacion={Uri.EscapeDataString(documentacion)}";
 
             try
             {

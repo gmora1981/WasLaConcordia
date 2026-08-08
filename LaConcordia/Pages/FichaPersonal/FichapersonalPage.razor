@@ -38,6 +38,11 @@
                 <option value="a">Activo</option>
                 <option value="p">Pasivo</option>
             </select>
+            <select class="form-control" style="width: 200px;" @bind="documentacionFiltro" @bind:after="BuscarFichas">
+                <option value="">-- Documentación (Todos) --</option>
+                <option value="COMPLETA">Documentos Completos</option>
+                <option value="INCOMPLETA">Documentos Incompletos</option>
+            </select>
         </div>
 
         <div class="d-flex justify-content-between align-items-center mb-2">
@@ -435,6 +440,7 @@
     // Filtros y controles de búsqueda
     private string razonBusqueda = string.Empty;
     private string estadoFiltro = "a";
+    private string documentacionFiltro = string.Empty;
     private bool esNuevo = false;
     private string textoBoton = "Nuevo";
     private bool showModal = false;
@@ -529,7 +535,7 @@
     // Carga el listado de fichas según filtros y paginación
     private async Task CargarFichasAsync()
     {
-        var resultado = await fichaRepo.GetFichaPersonalPaginados(PaginaActual, PageSize, razonBusqueda, estadoFiltro);
+        var resultado = await fichaRepo.GetFichaPersonalPaginados(PaginaActual, PageSize, razonBusqueda, estadoFiltro, documentacionFiltro);
         fichas = resultado.Items;
         TotalUsuarios = resultado.TotalItems;
     }
