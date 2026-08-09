@@ -1,6 +1,7 @@
 @page "/generar-cuota-semanal"
 @using LaConcordia.DTO
 @using LaConcordia.Interface
+@using LaConcordia.Pagination
 @inject IGenerarCuota generarCuotaRepo
 @inject IDisplayMessage displayMessage
 
@@ -53,7 +54,13 @@
             </button>
         </div>
 
-        <p class="text-muted">Total de socios pendientes: <strong>@pendientes.Count</strong></p>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <p class="text-muted mb-0">Total de socios pendientes: <strong>@pendientes.Count</strong></p>
+            <Pagination TotalItems="@pendientes.Count"
+                        PageSize="@PageSize"
+                        CurrentPage="@PaginaActual"
+                        OnPageChanged="OnPageChangedAsync" />
+        </div>
 
         <table class="admin-table">
             <thead>
@@ -67,7 +74,7 @@
             <tbody>
                 @if (pendientes.Count > 0)
                 {
-                    @foreach (var item in pendientes)
+                    @foreach (var item in pendientesPagina)
                     {
                         <tr>
                             <td>@item.Cedula</td>
@@ -96,6 +103,12 @@
     private string semana = string.Empty;
     private List<PendienteCuotaDTO> pendientes = new();
 
+    // Paginación (client-side: la lista completa ya llega del servidor de una sola vez)
+    private int PaginaActual = 1;
+    private int PageSize = 10;
+    private List<PendienteCuotaDTO> pendientesPagina =>
+        pendientes.Skip((PaginaActual - 1) * PageSize).Take(PageSize).ToList();
+
     private string Periodo => anio + mes;
 
     private bool PuedeMostrar => !string.IsNullOrEmpty(anio) && !string.IsNullOrEmpty(mes) && !string.IsNullOrEmpty(semana);
@@ -106,6 +119,7 @@
         try
         {
             pendientes = await generarCuotaRepo.GetPendientesPorPeriodo(Periodo, semana);
+            PaginaActual = 1;
         }
         catch (Exception ex)
         {
@@ -120,10 +134,16 @@
             var resultado = await generarCuotaRepo.GenerarCuotaSemanal(Periodo, semana);
             await displayMessage.DisplaySuccessMessage($"Período generado con éxito. Se generaron {resultado.TotalGenerados} cuotas.");
             pendientes.Clear();
+            PaginaActual = 1;
         }
         catch (Exception ex)
         {
             await displayMessage.DisplayErrorMessage("Error al generar el período: " + ex.Message);
         }
+    }
+
+    private void OnPageChangedAsync(int nuevaPagina)
+    {
+        PaginaActual = nuevaPagina;
     }
 }
