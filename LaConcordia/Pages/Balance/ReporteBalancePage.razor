@@ -27,7 +27,7 @@
             <button class="btn-modern btn-primary-modern" @onclick="Generar" disabled="@(fechaDesde == null || fechaHasta == null)">
                 <i class="fas fa-play"></i> Generar
             </button>
-            <button class="btn-modern btn-secondary-modern" @onclick="ExportarPdf" disabled="@(resultado == null)">
+            <button class="btn-modern btn-secondary-modern" @onclick="ExportarPdf" disabled="@(fechaDesde == null || fechaHasta == null)">
                 <i class="fas fa-file-pdf"></i> Exportar PDF
             </button>
         </div>
