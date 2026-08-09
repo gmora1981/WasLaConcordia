@@ -25,5 +25,19 @@ namespace LaConcordia.Repository
                 throw new Exception("Hubo un error al generar el balance.", ex);
             }
         }
+
+        public async Task<byte[]> ExportarPdf(DateTime fechaDesde, DateTime fechaHasta)
+        {
+            var url = $"api/Balance/ExportarPdf?fechaDesde={fechaDesde:yyyy-MM-dd}&fechaHasta={fechaHasta:yyyy-MM-dd}";
+
+            var response = await _httpClient.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Error al exportar el balance: {errorContent}");
+            }
+
+            return await response.Content.ReadAsByteArrayAsync();
+        }
     }
 }

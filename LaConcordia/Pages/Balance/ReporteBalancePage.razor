@@ -3,6 +3,7 @@
 @using LaConcordia.Interface
 @inject IBalance balanceRepo
 @inject IDisplayMessage displayMessage
+@inject IJSRuntime JS
 
 <link href="css/AdminCommon.css" rel="stylesheet" />
 
@@ -25,6 +26,9 @@
             </div>
             <button class="btn-modern btn-primary-modern" @onclick="Generar" disabled="@(fechaDesde == null || fechaHasta == null)">
                 <i class="fas fa-play"></i> Generar
+            </button>
+            <button class="btn-modern btn-secondary-modern" @onclick="ExportarPdf" disabled="@(resultado == null)">
+                <i class="fas fa-file-pdf"></i> Exportar PDF
             </button>
         </div>
 
@@ -90,6 +94,33 @@
         catch (Exception ex)
         {
             await displayMessage.DisplayErrorMessage("Error al generar el balance: " + ex.Message);
+        }
+    }
+
+    private async Task ExportarPdf()
+    {
+        if (fechaDesde == null || fechaHasta == null) return;
+
+        try
+        {
+            var pdfBytes = await balanceRepo.ExportarPdf(fechaDesde.Value, fechaHasta.Value);
+
+            if (pdfBytes == null || pdfBytes.Length == 0)
+            {
+                await displayMessage.DisplayErrorMessage("El PDF generado está vacío.");
+                return;
+            }
+
+            await JS.InvokeVoidAsync("downloadFileFromByteArray", new
+            {
+                byteArray = pdfBytes,
+                fileName = "BalanceInicial.pdf",
+                contentType = "application/pdf"
+            });
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al exportar el balance: " + ex.Message);
         }
     }
 }
