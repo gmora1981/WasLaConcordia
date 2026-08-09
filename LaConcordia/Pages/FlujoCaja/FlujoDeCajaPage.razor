@@ -2,8 +2,10 @@
 @using LaConcordia.DTO
 @using LaConcordia.Interface
 @using LaConcordia.Pagination
+@using Microsoft.AspNetCore.Components.Authorization
 @inject IFlujoCaja flujoCajaRepo
 @inject IDisplayMessage displayMessage
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <link href="css/AdminCommon.css" rel="stylesheet" />
 
@@ -13,6 +15,9 @@
             <h1 class="page-title">
                 <i class="fas fa-exchange-alt"></i> Flujo de Caja
             </h1>
+            <button class="btn-modern btn-primary-modern" @onclick="AbrirModal">
+                <i class="fas fa-cash-register"></i> Ingreso / Egreso
+            </button>
         </div>
 
         <div class="d-flex gap-2 mb-3" style="flex-wrap: wrap; align-items: end;">
@@ -83,6 +88,62 @@
     </div>
 </div>
 
+@if (showModal)
+{
+    <div class="modal-modern" @onclick="CerrarModal">
+        <div class="modal-content-modern" style="max-width: 480px;" @onclick:stopPropagation="true">
+            <div class="modal-header-modern">
+                <h2 class="modal-title-modern">
+                    <i class="fas fa-cash-register"></i> Ingreso / Egreso de Caja
+                </h2>
+                <button type="button" class="btn-close-modern" @onclick="CerrarModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="modal-body-modern">
+                <div class="form-group">
+                    <label class="form-label">Tipo</label>
+                    <select class="form-control" @bind="tipoMovimiento" @bind:after="OnTipoChanged">
+                        <option value="">-- Seleccione --</option>
+                        <option value="INGRESO">Ingreso</option>
+                        <option value="EGRESO">Egreso</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Concepto</label>
+                    <input class="form-control" @bind="conceptoMovimiento" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Observación</label>
+                    <input class="form-control" @bind="observacionMovimiento" />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Valor</label>
+                    <input class="form-control" type="number" step="0.01" min="0" @bind="valorMovimiento" />
+                </div>
+
+                @if (saldoAnterior.HasValue)
+                {
+                    <p class="text-muted mb-0">Saldo actual: <strong>@saldoAnterior.Value.ToString("0.00")</strong></p>
+                }
+            </div>
+
+            <div class="modal-footer-modern">
+                <button type="button" class="btn-modern btn-secondary-modern" @onclick="CerrarModal">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button type="button" class="btn-modern btn-primary-modern" @onclick="GuardarMovimiento" disabled="@(!PuedeGuardarMovimiento)">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private List<FlujoCajaDTO> lista = new();
     private DateTime? fechaDesde;
@@ -93,8 +154,19 @@
     private int PageSize = 10;
     private int TotalRegistros = 0;
 
+    // Modal Ingreso / Egreso
+    private bool showModal = false;
+    private string tipoMovimiento = string.Empty;
+    private string conceptoMovimiento = string.Empty;
+    private string observacionMovimiento = string.Empty;
+    private decimal? valorMovimiento;
+    private decimal? saldoAnterior;
+    private string? usuarioActual;
+
     protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        usuarioActual = authState.User?.Identity?.Name;
         await CargarAsync();
     }
 
@@ -123,4 +195,76 @@
         PaginaActual = nuevaPagina;
         await CargarAsync();
     }
+
+    // Modal Ingreso / Egreso
+    private async Task AbrirModal()
+    {
+        tipoMovimiento = string.Empty;
+        conceptoMovimiento = string.Empty;
+        observacionMovimiento = string.Empty;
+        valorMovimiento = null;
+        showModal = true;
+        await CargarSaldoActual();
+    }
+
+    private void CerrarModal()
+    {
+        showModal = false;
+    }
+
+    private async Task CargarSaldoActual()
+    {
+        try
+        {
+            var ultimo = await flujoCajaRepo.GetUltimoRegistro();
+            saldoAnterior = ultimo?.Saldo ?? 0m;
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al obtener el saldo actual: " + ex.Message);
+        }
+    }
+
+    private void OnTipoChanged()
+    {
+        if (tipoMovimiento == "INGRESO")
+        {
+            conceptoMovimiento = "INGRESO A CAJA";
+            observacionMovimiento = "EN EFECTIVO PARA PAGOS DE VOUCHER";
+        }
+        else if (tipoMovimiento == "EGRESO")
+        {
+            conceptoMovimiento = "EGRESO DE CAJA";
+            observacionMovimiento = "EN EFECTIVO POR CIERRE Y CUADRE DE VOUCHER";
+        }
+    }
+
+    private async Task GuardarMovimiento()
+    {
+        try
+        {
+            var nuevo = new FlujoCajaDTO
+                {
+                    Fecha = DateTime.Now,
+                    Concepto = conceptoMovimiento,
+                    Observacion = observacionMovimiento,
+                    Usuario = usuarioActual,
+                    Ingreso = tipoMovimiento == "INGRESO" ? valorMovimiento : 0,
+                    Egreso = tipoMovimiento == "EGRESO" ? valorMovimiento : 0
+                };
+
+            await flujoCajaRepo.InsertFlujoCaja(nuevo);
+            await displayMessage.DisplaySuccessMessage("El registro se guardó con éxito.");
+
+            showModal = false;
+            PaginaActual = 1;
+            await CargarAsync();
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al guardar: " + ex.Message);
+        }
+    }
+
+    private bool PuedeGuardarMovimiento => !string.IsNullOrEmpty(tipoMovimiento) && valorMovimiento.HasValue && valorMovimiento.Value > 0;
 }
