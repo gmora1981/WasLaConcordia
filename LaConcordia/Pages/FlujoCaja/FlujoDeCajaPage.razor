@@ -167,6 +167,12 @@
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         usuarioActual = authState.User?.Identity?.Name;
+
+        // Por defecto solo se consultan los últimos 60 días para no saturar el sistema.
+        // El usuario puede cambiar el rango de fechas y volver a buscar cuando lo necesite.
+        fechaHasta = DateTime.Today;
+        fechaDesde = DateTime.Today.AddDays(-60);
+
         await CargarAsync();
     }
 
@@ -174,7 +180,11 @@
     {
         try
         {
-            var resultado = await flujoCajaRepo.GetFlujoCajaPaginados(PaginaActual, PageSize, fechaDesde, fechaHasta, concepto);
+            // "Hasta" incluye todo el día seleccionado (si no, al filtrar por hoy quedan
+            // fuera los movimientos registrados hoy porque la hora llega en 00:00:00).
+            var fechaHastaConsulta = fechaHasta?.Date.AddDays(1).AddTicks(-1);
+
+            var resultado = await flujoCajaRepo.GetFlujoCajaPaginados(PaginaActual, PageSize, fechaDesde, fechaHastaConsulta, concepto);
             lista = resultado.Items ?? new();
             TotalRegistros = resultado.TotalItems;
         }
