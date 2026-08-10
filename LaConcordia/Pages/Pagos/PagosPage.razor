@@ -1,6 +1,7 @@
 @page "/cobros-monitoria"
 @using LaConcordia.DTO
 @using LaConcordia.Interface
+@using LaConcordia.Pagination
 @inject IPagos pagosRepo
 @inject IFichapersonal fichaRepo
 @inject IDisplayMessage displayMessage
@@ -15,14 +16,71 @@
             </h1>
         </div>
 
-        <div class="d-flex gap-2 mb-3" style="max-width: 700px; align-items: end;">
-            <div class="search-box" style="flex-grow: 1;">
-                <i class="fas fa-search"></i>
-                <input type="text" placeholder="Cédula del socio..." @bind="cedulaBuscar" />
+        <div class="d-flex gap-2 mb-3" style="flex-wrap: wrap; align-items: end;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Estado</label>
+                <select class="form-control" style="width: 160px;" @bind="estadoFiltro" @bind:after="BuscarListado">
+                    <option value="a">Activo</option>
+                    <option value="p">Pasivo</option>
+                </select>
             </div>
-            <button class="btn-modern btn-secondary-modern" @onclick="BuscarSocio">
-                <i class="fas fa-search"></i> Buscar
-            </button>
+            <div class="search-box" style="flex-grow: 1; min-width: 220px;">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Búsqueda por Unidad..."
+                       @bind="unidadFiltro" @bind:event="oninput" @bind:after="BuscarListado" />
+            </div>
+            <div class="search-box" style="flex-grow: 1; min-width: 220px;">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Búsqueda por Apellido..."
+                       @bind="apellidoFiltro" @bind:event="oninput" @bind:after="BuscarListado" />
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <p class="text-muted mb-0">Total: @TotalSocios | Página: @PaginaActual</p>
+            <Pagination TotalItems="@TotalSocios"
+                        PageSize="@PageSize"
+                        CurrentPage="@PaginaActual"
+                        OnPageChanged="OnPageChangedAsync" />
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Cédula</th>
+                        <th>Nombre</th>
+                        <th>Apellidos</th>
+                        <th>Celular</th>
+                        <th>Unidad</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (socios.Count > 0)
+                    {
+                        @foreach (var s in socios)
+                        {
+                            <tr @onclick="() => SeleccionarSocio(s)"
+                                class="@(deuda?.Cedula == s.Cedula ? "table-primary" : "")"
+                                style="cursor: pointer;">
+                                <td>@s.Cedula</td>
+                                <td><strong>@s.Nombre</strong></td>
+                                <td>@s.Apellidos</td>
+                                <td>@s.Celular</td>
+                                <td>@s.Fkunidad</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="empty-state">
+                                <p>No se encontraron socios.</p>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
         </div>
 
         @if (deuda != null)
@@ -175,7 +233,15 @@
 </div>
 
 @code {
-    private string cedulaBuscar = string.Empty;
+    // Grilla de socios (filtros + paginación)
+    private List<FichapersonalDTO> socios = new();
+    private string estadoFiltro = "a";
+    private string unidadFiltro = string.Empty;
+    private string apellidoFiltro = string.Empty;
+    private int PaginaActual = 1;
+    private int PageSize = 10;
+    private int TotalSocios = 0;
+
     private DeudaSocioDTO? deuda;
 
     // Item seleccionado para pago
@@ -197,17 +263,39 @@
     private bool PuedeGuardar => !string.IsNullOrEmpty(formaDePago) && valorAPagar.HasValue && valorAPagar.Value > 0
         && (!RequiereComprobante || comprobanteValidado);
 
-    private async Task BuscarSocio()
+    protected override async Task OnInitializedAsync()
     {
-        if (string.IsNullOrWhiteSpace(cedulaBuscar))
-            return;
+        await BuscarListado();
+    }
 
+    private async Task CargarListadoAsync()
+    {
+        var resultado = await fichaRepo.GetFichaPersonalPaginados(
+            PaginaActual, PageSize, null, estadoFiltro, null, unidadFiltro, apellidoFiltro);
+        socios = resultado.Items;
+        TotalSocios = resultado.TotalItems;
+    }
+
+    private async Task BuscarListado()
+    {
+        PaginaActual = 1;
+        await CargarListadoAsync();
+    }
+
+    private async Task OnPageChangedAsync(int nuevaPagina)
+    {
+        PaginaActual = nuevaPagina;
+        await CargarListadoAsync();
+    }
+
+    private async Task SeleccionarSocio(FichapersonalDTO ficha)
+    {
         try
         {
-            deuda = await pagosRepo.GetDeudaSocio(cedulaBuscar);
+            deuda = await pagosRepo.GetDeudaSocio(ficha.Cedula);
             if (deuda == null)
             {
-                await displayMessage.DisplayErrorMessage("No se encontró un socio con esa cédula.");
+                await displayMessage.DisplayErrorMessage("No se encontró la deuda de este socio.");
             }
             pagoActivo = false;
         }
