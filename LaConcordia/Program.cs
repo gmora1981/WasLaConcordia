@@ -7,6 +7,7 @@ using LaConcordia.Repository;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
@@ -62,7 +63,15 @@ builder.Services.AddScoped<IOrdenPago, OrdenPagoRepository>();
 
 configureservices(builder.Services);
 
-await builder.Build().RunAsync();
+var host = builder.Build();
+
+// Arranca el temporizador que renueva el token JWT antes de que expire.
+// Sin esto, TokenRenewer quedaba registrado pero nunca se iniciaba: el token
+// se vencia a mitad de sesion y todas las llamadas a la API empezaban a fallar
+// con 401 aunque el usuario siguiera "logueado" en pantalla.
+host.Services.GetRequiredService<TokenRenewer>().Initiate();
+
+await host.RunAsync();
 
 static void configureservices(IServiceCollection services)
 {
