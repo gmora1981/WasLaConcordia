@@ -17,13 +17,32 @@
         <p class="text-muted">Cobra un valor a todos los socios activos a favor de una unidad accidentada.</p>
 
         <div class="d-flex gap-2 mb-3" style="max-width: 700px; align-items: end;">
-            <div class="search-box" style="flex-grow: 1;">
+            <div class="search-box" style="flex-grow: 1; position: relative;">
                 <i class="fas fa-search"></i>
-                <input type="text" placeholder="Número de unidad..." @bind="numeroUnidad" />
+                <input type="text" placeholder="Número de unidad, placa o propietario..."
+                       @bind="busqueda" @bind:event="oninput" @bind:after="BuscarSugerencias"
+                       @onfocus="() => mostrarSugerencias = sugerencias.Count > 0"
+                       @onblur="OcultarSugerenciasConDelay" />
+
+                @if (mostrarSugerencias)
+                {
+                    <div class="autocomplete-dropdown">
+                        @if (sugerencias.Count > 0)
+                        {
+                            @foreach (var s in sugerencias)
+                            {
+                                <div class="autocomplete-item" @onclick="() => SeleccionarSugerencia(s)">
+                                    <strong>Unidad @s.Unidad1</strong> — Placa @s.Placa — @s.Propietario
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="autocomplete-item autocomplete-empty">No se encontraron unidades.</div>
+                        }
+                    </div>
+                }
             </div>
-            <button class="btn-modern btn-secondary-modern" @onclick="BuscarUnidad">
-                <i class="fas fa-search"></i> Buscar
-            </button>
         </div>
 
         @if (unidad != null)
@@ -50,33 +69,104 @@
     </div>
 </div>
 
+<style>
+    .autocomplete-dropdown {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+        max-height: 260px;
+        overflow-y: auto;
+        z-index: 1050;
+    }
+
+    .autocomplete-item {
+        padding: 0.6rem 0.9rem;
+        cursor: pointer;
+        font-size: 0.9rem;
+        color: #1f2937;
+    }
+
+        .autocomplete-item:hover {
+            background: #f0f1f5;
+        }
+
+    .autocomplete-empty {
+        cursor: default;
+        color: #6c757d;
+        font-style: italic;
+    }
+
+        .autocomplete-empty:hover {
+            background: transparent;
+        }
+</style>
+
 @code {
-    private string numeroUnidad = string.Empty;
+    private string busqueda = string.Empty;
+    private List<UnidadDTO> sugerencias = new();
+    private bool mostrarSugerencias = false;
+    private CancellationTokenSource? busquedaCts;
+
     private UnidadDTO? unidad;
     private decimal? valor;
     private string observacion = string.Empty;
 
     private bool PuedeGenerar => valor.HasValue && valor.Value > 0;
 
-    private async Task BuscarUnidad()
+    private async Task BuscarSugerencias()
     {
-        if (string.IsNullOrWhiteSpace(numeroUnidad))
+        busquedaCts?.Cancel();
+
+        if (string.IsNullOrWhiteSpace(busqueda) || busqueda.Trim().Length < 2)
+        {
+            sugerencias.Clear();
+            mostrarSugerencias = false;
             return;
+        }
+
+        var cts = new CancellationTokenSource();
+        busquedaCts = cts;
 
         try
         {
-            unidad = await unidadRepo.GetUnidadById(numeroUnidad);
-            if (unidad == null)
-            {
-                await displayMessage.DisplayErrorMessage("No se encontró una unidad con ese número.");
-                return;
-            }
-            observacion = $"Choque unidad {unidad.Unidad1}, placa {unidad.Placa}";
+            await Task.Delay(300, cts.Token); // debounce: espera a que el usuario deje de escribir
+
+            var resultado = await unidadRepo.GetUnidadPaginados(1, 8, filtro: busqueda.Trim());
+            if (cts.IsCancellationRequested) return;
+
+            sugerencias = resultado.Items;
+            mostrarSugerencias = true;
+        }
+        catch (TaskCanceledException)
+        {
+            // el usuario siguió escribiendo antes de que venciera el debounce; se ignora
         }
         catch (Exception ex)
         {
             await displayMessage.DisplayErrorMessage("Error al buscar la unidad: " + ex.Message);
         }
+    }
+
+    private void SeleccionarSugerencia(UnidadDTO u)
+    {
+        unidad = u;
+        busqueda = $"Unidad {u.Unidad1} — Placa {u.Placa} — {u.Propietario}";
+        sugerencias.Clear();
+        mostrarSugerencias = false;
+        observacion = $"Choque unidad {u.Unidad1}, placa {u.Placa}";
+    }
+
+    private async Task OcultarSugerenciasConDelay()
+    {
+        // pequeño retardo para que el click sobre un item del dropdown alcance a registrarse
+        // antes de que el blur del input lo oculte
+        await Task.Delay(200);
+        mostrarSugerencias = false;
     }
 
     private async Task Generar()
@@ -103,7 +193,7 @@
             await displayMessage.DisplaySuccessMessage($"Período generado con éxito. Se cobró a {resultado.TotalGenerados} socios.");
 
             unidad = null;
-            numeroUnidad = string.Empty;
+            busqueda = string.Empty;
             valor = null;
             observacion = string.Empty;
         }

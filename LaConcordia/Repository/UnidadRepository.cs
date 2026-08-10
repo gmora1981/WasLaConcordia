@@ -60,7 +60,7 @@ namespace LaConcordia.Repository
             }
         }
 
-        public async Task<PagedResult<UnidadDTO>> GetUnidadPaginados(int pagina, int pageSize, string? Placa = null, string? Idpropietario = null, string? Unidad1 = null, string? Propietario = null, string? Estado = null)
+        public async Task<PagedResult<UnidadDTO>> GetUnidadPaginados(int pagina, int pageSize, string? Placa = null, string? Idpropietario = null, string? Unidad1 = null, string? Propietario = null, string? Estado = null, string? filtro = null)
         {
             var queryParams = new Dictionary<string, string>
             {
@@ -72,6 +72,7 @@ namespace LaConcordia.Repository
             if (!string.IsNullOrEmpty(Unidad1)) queryParams.Add("Unidad1", Unidad1);
             if (!string.IsNullOrEmpty(Propietario)) queryParams.Add("Propietario", Propietario);
             if (!string.IsNullOrEmpty(Estado)) queryParams.Add("Estado", Estado);
+            if (!string.IsNullOrEmpty(filtro)) queryParams.Add("filtro", filtro);
             var response = await _httpClient.GetAsync($"api/Unidad/GetUnidadPaginados?" + await new FormUrlEncodedContent(queryParams).ReadAsStringAsync());
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<PagedResult<UnidadDTO>>();
