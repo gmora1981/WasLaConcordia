@@ -5,22 +5,29 @@
 @implements IAsyncDisposable
 
 <div class="mapa-selector">
-    <div class="input-group input-group-sm mb-2">
-        <input class="form-control" placeholder="Buscar dirección..." @bind="textoBusqueda" @bind:event="oninput" @onkeydown="OnKeyDown" />
-        <button class="btn btn-outline-secondary" type="button" @onclick="Buscar">Buscar</button>
-    </div>
+    <div class="mb-2" style="position: relative;">
+        <input class="form-control" placeholder="Escribe una calle o dirección..."
+               @bind="textoBusqueda" @bind:event="oninput" @bind:after="BuscarSugerencias"
+               @onkeydown="OnKeyDown"
+               @onfocus="() => mostrarSugerencias = resultados.Count > 0"
+               @onblur="OcultarSugerenciasConDelay" />
 
-    @if (resultados.Count > 0)
-    {
-        <ul class="list-group mb-2" style="max-height: 150px; overflow-y: auto;">
-            @foreach (var r in resultados)
-            {
-                <li class="list-group-item list-group-item-action" style="cursor:pointer; font-size: 0.85rem;" @onclick="() => SeleccionarResultado(r)">
-                    @r.DisplayName
-                </li>
-            }
-        </ul>
-    }
+        @if (buscando)
+        {
+            <div class="mapa-buscando">Buscando…</div>
+        }
+        else if (mostrarSugerencias && resultados.Count > 0)
+        {
+            <ul class="mapa-autocomplete-dropdown">
+                @foreach (var r in resultados)
+                {
+                    <li @onclick="() => SeleccionarResultado(r)">
+                        <i class="fas fa-map-marker-alt"></i> @r.DisplayName
+                    </li>
+                }
+            </ul>
+        }
+    </div>
 
     <div id="@mapaId" style="height:@Height; border-radius: 4px; border: 1px solid #ccc;"></div>
 
@@ -29,6 +36,57 @@
         (haga clic en el mapa o arrastre el marcador para fijar el punto)
     </p>
 </div>
+
+<style>
+    .mapa-autocomplete-dropdown {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+        max-height: 220px;
+        overflow-y: auto;
+        z-index: 1050;
+        list-style: none;
+        margin: 0;
+        padding: 0.25rem 0;
+    }
+
+        .mapa-autocomplete-dropdown li {
+            padding: 0.5rem 0.75rem;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: #1f2937;
+        }
+
+            .mapa-autocomplete-dropdown li:hover {
+                background: #f0f1f5;
+            }
+
+            .mapa-autocomplete-dropdown li i {
+                color: #6c757d;
+                margin-right: 0.35rem;
+            }
+
+    .mapa-buscando {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+        padding: 0.5rem 0.75rem;
+        font-size: 0.85rem;
+        color: #6c757d;
+        font-style: italic;
+        z-index: 1050;
+    }
+</style>
 
 @code {
     [Parameter] public decimal Lat { get; set; }
@@ -47,6 +105,9 @@
 
     private string textoBusqueda = string.Empty;
     private List<GeocodingResultDTO> resultados = new();
+    private bool mostrarSugerencias = false;
+    private bool buscando = false;
+    private CancellationTokenSource? busquedaCts;
 
     // Coordenada por defecto: Guayaquil, Ecuador (ciudad donde opera la cooperativa).
     private const decimal LatPorDefecto = -2.1709979m;
@@ -77,15 +138,56 @@
         StateHasChanged();
     }
 
-    private async Task Buscar()
+    private async Task BuscarSugerencias()
     {
-        resultados = await geocodingRepo.Buscar(textoBusqueda);
+        busquedaCts?.Cancel();
+
+        if (string.IsNullOrWhiteSpace(textoBusqueda) || textoBusqueda.Trim().Length < 3)
+        {
+            resultados.Clear();
+            mostrarSugerencias = false;
+            buscando = false;
+            return;
+        }
+
+        var cts = new CancellationTokenSource();
+        busquedaCts = cts;
+        buscando = true;
+
+        try
+        {
+            await Task.Delay(400, cts.Token); // debounce: espera a que el usuario deje de escribir
+            var encontrados = await geocodingRepo.Buscar(textoBusqueda.Trim());
+            if (cts.IsCancellationRequested) return;
+
+            resultados = encontrados;
+            mostrarSugerencias = true;
+        }
+        catch (TaskCanceledException)
+        {
+            // el usuario siguió escribiendo antes de que venciera el debounce; se ignora
+        }
+        finally
+        {
+            if (!cts.IsCancellationRequested)
+                buscando = false;
+        }
     }
 
     private async Task OnKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter")
-            await Buscar();
+        if (e.Key == "Enter" && resultados.Count > 0)
+        {
+            await SeleccionarResultado(resultados[0]);
+        }
+    }
+
+    private async Task OcultarSugerenciasConDelay()
+    {
+        // pequeño retardo para que el click sobre una sugerencia alcance a registrarse
+        // antes de que el blur del input la oculte
+        await Task.Delay(200);
+        mostrarSugerencias = false;
     }
 
     private async Task SeleccionarResultado(GeocodingResultDTO r)
@@ -93,6 +195,7 @@
         Lat = r.Lat;
         Lng = r.Lon;
         resultados.Clear();
+        mostrarSugerencias = false;
         textoBusqueda = r.DisplayName;
 
         await LatChanged.InvokeAsync(Lat);
