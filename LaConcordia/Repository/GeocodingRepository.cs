@@ -1,6 +1,7 @@
 using LaConcordia.DTO;
 using LaConcordia.Interface;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace LaConcordia.Repository
 {
@@ -18,15 +19,13 @@ namespace LaConcordia.Repository
             if (string.IsNullOrWhiteSpace(query))
                 return new List<PlacePredictionDTO>();
 
-            try
-            {
-                var url = $"api/Geocoding/BuscarPredicciones?query={Uri.EscapeDataString(query)}";
-                return await _httpClient.GetFromJsonAsync<List<PlacePredictionDTO>>(url) ?? new List<PlacePredictionDTO>();
-            }
-            catch (HttpRequestException)
-            {
-                return new List<PlacePredictionDTO>();
-            }
+            var url = $"api/Geocoding/BuscarPredicciones?query={Uri.EscapeDataString(query)}";
+            var response = await _httpClient.GetAsync(url);
+
+            if (!response.IsSuccessStatusCode)
+                throw new Exception(await LeerMensajeError(response));
+
+            return await response.Content.ReadFromJsonAsync<List<PlacePredictionDTO>>() ?? new List<PlacePredictionDTO>();
         }
 
         public async Task<GeocodingResultDTO?> ObtenerCoordenadasPorPlaceId(string placeId)
@@ -34,28 +33,44 @@ namespace LaConcordia.Repository
             if (string.IsNullOrWhiteSpace(placeId))
                 return null;
 
-            try
-            {
-                var url = $"api/Geocoding/ObtenerCoordenadasPorPlaceId?placeId={Uri.EscapeDataString(placeId)}";
-                return await _httpClient.GetFromJsonAsync<GeocodingResultDTO>(url);
-            }
-            catch (HttpRequestException)
-            {
+            var url = $"api/Geocoding/ObtenerCoordenadasPorPlaceId?placeId={Uri.EscapeDataString(placeId)}";
+            var response = await _httpClient.GetAsync(url);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 return null;
-            }
+
+            if (!response.IsSuccessStatusCode)
+                throw new Exception(await LeerMensajeError(response));
+
+            return await response.Content.ReadFromJsonAsync<GeocodingResultDTO>();
         }
 
         public async Task<string?> Reverse(decimal lat, decimal lon)
         {
+            var url = $"api/Geocoding/Reverse?lat={lat.ToString(System.Globalization.CultureInfo.InvariantCulture)}&lon={lon.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+            var response = await _httpClient.GetAsync(url);
+
+            if (!response.IsSuccessStatusCode)
+                throw new Exception(await LeerMensajeError(response));
+
+            return await response.Content.ReadFromJsonAsync<string?>();
+        }
+
+        private static async Task<string> LeerMensajeError(HttpResponseMessage response)
+        {
             try
             {
-                var url = $"api/Geocoding/Reverse?lat={lat.ToString(System.Globalization.CultureInfo.InvariantCulture)}&lon={lon.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
-                return await _httpClient.GetFromJsonAsync<string?>(url);
+                var json = await response.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(json);
+                if (doc.RootElement.TryGetProperty("error", out var errEl))
+                    return errEl.GetString() ?? "Error al consultar la ubicación.";
             }
-            catch (HttpRequestException)
+            catch
             {
-                return null;
+                // el cuerpo no era el JSON esperado; se usa el mensaje generico de abajo
             }
+
+            return $"Error al consultar la ubicación ({(int)response.StatusCode}).";
         }
     }
 }

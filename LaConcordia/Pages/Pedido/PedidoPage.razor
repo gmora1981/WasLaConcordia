@@ -236,21 +236,14 @@
             }
 
             <div class="row">
-                <div class="col-md-6 mb-2">
-                    <label class="form-label">Origen</label>
-                    <MapaSelector Lat="@origenLat" LatChanged="@((decimal v) => origenLat = v)"
-                                  Lng="@origenLng" LngChanged="@((decimal v) => origenLng = v)"
-                                  OnCoordenadasChanged="OnCoordenadasCambiaron" Height="250px" />
+                <div class="col-12 mb-2">
+                    <MapaSelectorDual OrigenLat="@origenLat" OrigenLatChanged="@((decimal v) => origenLat = v)"
+                                      OrigenLng="@origenLng" OrigenLngChanged="@((decimal v) => origenLng = v)"
+                                      DestinoLat="@destinoLat" DestinoLatChanged="@((decimal v) => destinoLat = v)"
+                                      DestinoLng="@destinoLng" DestinoLngChanged="@((decimal v) => destinoLng = v)"
+                                      MostrarDestino="@tieneDestino"
+                                      OnCoordenadasChanged="OnCoordenadasCambiaron" Height="350px" />
                 </div>
-                @if (tieneDestino)
-                {
-                    <div class="col-md-6 mb-2">
-                        <label class="form-label">Destino</label>
-                        <MapaSelector Lat="@destinoLat" LatChanged="@((decimal v) => destinoLat = v)"
-                                      Lng="@destinoLng" LngChanged="@((decimal v) => destinoLng = v)"
-                                      OnCoordenadasChanged="OnCoordenadasCambiaron" Height="250px" />
-                    </div>
-                }
             </div>
 
             <div class="row">

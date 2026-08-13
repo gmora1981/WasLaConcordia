@@ -1,0 +1,454 @@
+@using LaConcordia.DTO
+@using LaConcordia.Interface
+@inject IGeocoding geocodingRepo
+@inject IJSRuntime JS
+@inject IDisplayMessage displayMessage
+@implements IAsyncDisposable
+
+<div class="mapa-selector-dual">
+    <div class="row g-2 mb-2">
+        <div class="col-md-6" style="position: relative;">
+            <label class="form-label small mb-1"><span class="pin-dot pin-origen"></span> Origen</label>
+            <input class="form-control" placeholder="Escribe la dirección de origen..."
+                   @bind="textoOrigen" @bind:event="oninput" @bind:after="BuscarSugerenciasOrigen"
+                   @onkeydown="OnKeyDownOrigen"
+                   @onfocus='() => { mostrarSugerenciasOrigen = prediccionesOrigen.Count > 0; }'
+                   @onblur="OcultarSugerenciasOrigenConDelay" />
+
+            @if (buscandoOrigen)
+            {
+                <div class="mapa-buscando">Buscando…</div>
+            }
+            else if (mostrarSugerenciasOrigen && prediccionesOrigen.Count > 0)
+            {
+                <ul class="mapa-autocomplete-dropdown">
+                    @foreach (var p in prediccionesOrigen)
+                    {
+                        <li @onclick="() => SeleccionarPrediccionOrigen(p)">
+                            <i class="fas fa-map-marker-alt"></i> @p.Description
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+
+        @if (MostrarDestino)
+        {
+            <div class="col-md-6" style="position: relative;">
+                <label class="form-label small mb-1"><span class="pin-dot pin-destino"></span> Destino</label>
+                <input class="form-control" placeholder="Escribe la dirección de destino..."
+                       @bind="textoDestino" @bind:event="oninput" @bind:after="BuscarSugerenciasDestino"
+                       @onkeydown="OnKeyDownDestino"
+                       @onfocus='() => { mostrarSugerenciasDestino = prediccionesDestino.Count > 0; }'
+                       @onblur="OcultarSugerenciasDestinoConDelay" />
+
+                @if (buscandoDestino)
+                {
+                    <div class="mapa-buscando">Buscando…</div>
+                }
+                else if (mostrarSugerenciasDestino && prediccionesDestino.Count > 0)
+                {
+                    <ul class="mapa-autocomplete-dropdown">
+                        @foreach (var p in prediccionesDestino)
+                        {
+                            <li @onclick="() => SeleccionarPrediccionDestino(p)">
+                                <i class="fas fa-map-marker-alt"></i> @p.Description
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        }
+    </div>
+
+    @if (MostrarDestino)
+    {
+        <div class="mb-2 d-flex align-items-center gap-2">
+            <div class="btn-group btn-group-sm" role="group">
+                <button type="button" class="btn @(activo == "origen" ? "btn-success" : "btn-outline-success")" @onclick='() => EstablecerActivo("origen")'>
+                    <i class="fas fa-map-marker-alt"></i> Origen
+                </button>
+                <button type="button" class="btn @(activo == "destino" ? "btn-danger" : "btn-outline-danger")" @onclick='() => EstablecerActivo("destino")'>
+                    <i class="fas fa-flag-checkered"></i> Destino
+                </button>
+            </div>
+            <span class="text-muted" style="font-size: 0.8rem;">un clic en el mapa fija este punto</span>
+        </div>
+    }
+
+    <div id="@mapaId" style="height:@Height; border-radius: 4px; border: 1px solid #ccc;"></div>
+
+    <p class="text-muted mt-1 mb-0" style="font-size: 0.8rem;">
+        <span class="pin-dot pin-origen"></span> Origen: @OrigenLat.ToString("0.000000"), @OrigenLng.ToString("0.000000")
+        @if (MostrarDestino)
+        {
+            <text>
+                &nbsp;&nbsp;<span class="pin-dot pin-destino"></span> Destino: @DestinoLat.ToString("0.000000"), @DestinoLng.ToString("0.000000")
+            </text>
+        }
+        (haga clic en el mapa o arrastre el marcador correspondiente)
+    </p>
+</div>
+
+<style>
+    .pin-dot {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 4px;
+    }
+
+    .pin-origen {
+        background: #16a34a;
+    }
+
+    .pin-destino {
+        background: #dc2626;
+    }
+
+    .mapa-autocomplete-dropdown {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+        max-height: 220px;
+        overflow-y: auto;
+        z-index: 1050;
+        list-style: none;
+        margin: 0;
+        padding: 0.25rem 0;
+    }
+
+        .mapa-autocomplete-dropdown li {
+            padding: 0.5rem 0.75rem;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: #1f2937;
+        }
+
+            .mapa-autocomplete-dropdown li:hover {
+                background: #f0f1f5;
+            }
+
+            .mapa-autocomplete-dropdown li i {
+                color: #6c757d;
+                margin-right: 0.35rem;
+            }
+
+    .mapa-buscando {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+        padding: 0.5rem 0.75rem;
+        font-size: 0.85rem;
+        color: #6c757d;
+        font-style: italic;
+        z-index: 1050;
+    }
+</style>
+
+@code {
+    [Parameter] public decimal OrigenLat { get; set; }
+    [Parameter] public EventCallback<decimal> OrigenLatChanged { get; set; }
+    [Parameter] public decimal OrigenLng { get; set; }
+    [Parameter] public EventCallback<decimal> OrigenLngChanged { get; set; }
+
+    [Parameter] public decimal DestinoLat { get; set; }
+    [Parameter] public EventCallback<decimal> DestinoLatChanged { get; set; }
+    [Parameter] public decimal DestinoLng { get; set; }
+    [Parameter] public EventCallback<decimal> DestinoLngChanged { get; set; }
+
+    [Parameter] public bool MostrarDestino { get; set; }
+    [Parameter] public EventCallback OnCoordenadasChanged { get; set; }
+    [Parameter] public string Height { get; set; } = "350px";
+
+    private readonly string mapaId = "mapadual_" + Guid.NewGuid().ToString("N");
+    private DotNetObjectReference<MapaSelectorDual>? dotNetRef;
+    private bool mapaIniciado = false;
+    private bool mostrarDestinoPrevio;
+    private string activo = "origen";
+
+    // Coordenada por defecto: Guayaquil, Ecuador (ciudad donde opera la cooperativa).
+    private const decimal LatPorDefecto = -2.1709979m;
+    private const decimal LngPorDefecto = -79.9223592m;
+
+    // --- Busqueda Origen ---
+    private string textoOrigen = string.Empty;
+    private List<PlacePredictionDTO> prediccionesOrigen = new();
+    private bool mostrarSugerenciasOrigen = false;
+    private bool buscandoOrigen = false;
+    private CancellationTokenSource? ctsOrigen;
+
+    // --- Busqueda Destino ---
+    private string textoDestino = string.Empty;
+    private List<PlacePredictionDTO> prediccionesDestino = new();
+    private bool mostrarSugerenciasDestino = false;
+    private bool buscandoDestino = false;
+    private CancellationTokenSource? ctsDestino;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            dotNetRef = DotNetObjectReference.Create(this);
+
+            var oLat = OrigenLat != 0 ? OrigenLat : LatPorDefecto;
+            var oLng = OrigenLng != 0 ? OrigenLng : LngPorDefecto;
+            var dLat = DestinoLat != 0 ? DestinoLat : oLat;
+            var dLng = DestinoLng != 0 ? DestinoLng : oLng;
+            var zoom = (OrigenLat != 0 && OrigenLng != 0) ? 16 : 13;
+
+            await JS.InvokeVoidAsync("leafletInterop.iniciarDual", mapaId, dotNetRef, oLat, oLng, dLat, dLng, MostrarDestino, zoom);
+            mapaIniciado = true;
+            mostrarDestinoPrevio = MostrarDestino;
+            activo = MostrarDestino ? "destino" : "origen";
+        }
+        else if (mapaIniciado && MostrarDestino != mostrarDestinoPrevio)
+        {
+            var dLat = DestinoLat != 0 ? DestinoLat : OrigenLat;
+            var dLng = DestinoLng != 0 ? DestinoLng : OrigenLng;
+            await JS.InvokeVoidAsync("leafletInterop.mostrarOcultarDestinoDual", mapaId, MostrarDestino, (double)dLat, (double)dLng, dotNetRef);
+            mostrarDestinoPrevio = MostrarDestino;
+            activo = MostrarDestino ? "destino" : "origen";
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnCoordenadasSeleccionadas(string cual, double lat, double lng)
+    {
+        if (cual == "destino")
+        {
+            DestinoLat = (decimal)lat;
+            DestinoLng = (decimal)lng;
+            await DestinoLatChanged.InvokeAsync(DestinoLat);
+            await DestinoLngChanged.InvokeAsync(DestinoLng);
+        }
+        else
+        {
+            OrigenLat = (decimal)lat;
+            OrigenLng = (decimal)lng;
+            await OrigenLatChanged.InvokeAsync(OrigenLat);
+            await OrigenLngChanged.InvokeAsync(OrigenLng);
+        }
+
+        await OnCoordenadasChanged.InvokeAsync();
+        StateHasChanged();
+    }
+
+    private async Task EstablecerActivo(string cual)
+    {
+        activo = cual;
+        if (mapaIniciado)
+            await JS.InvokeVoidAsync("leafletInterop.establecerActivoDual", mapaId, cual);
+    }
+
+    // ---------------- Origen ----------------
+
+    private async Task BuscarSugerenciasOrigen()
+    {
+        ctsOrigen?.Cancel();
+
+        if (string.IsNullOrWhiteSpace(textoOrigen) || textoOrigen.Trim().Length < 3)
+        {
+            prediccionesOrigen.Clear();
+            mostrarSugerenciasOrigen = false;
+            buscandoOrigen = false;
+            return;
+        }
+
+        var cts = new CancellationTokenSource();
+        ctsOrigen = cts;
+        buscandoOrigen = true;
+
+        try
+        {
+            await Task.Delay(400, cts.Token);
+            var encontradas = await geocodingRepo.BuscarPredicciones(textoOrigen.Trim());
+            if (cts.IsCancellationRequested) return;
+
+            prediccionesOrigen = encontradas;
+            mostrarSugerenciasOrigen = true;
+        }
+        catch (TaskCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("No se pudo buscar el origen: " + ex.Message);
+        }
+        finally
+        {
+            if (!cts.IsCancellationRequested)
+                buscandoOrigen = false;
+        }
+    }
+
+    private async Task OnKeyDownOrigen(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && prediccionesOrigen.Count > 0)
+            await SeleccionarPrediccionOrigen(prediccionesOrigen[0]);
+    }
+
+    private async Task OcultarSugerenciasOrigenConDelay()
+    {
+        await Task.Delay(200);
+        mostrarSugerenciasOrigen = false;
+    }
+
+    private async Task SeleccionarPrediccionOrigen(PlacePredictionDTO p)
+    {
+        textoOrigen = p.Description;
+        prediccionesOrigen.Clear();
+        mostrarSugerenciasOrigen = false;
+        buscandoOrigen = true;
+
+        GeocodingResultDTO? resultado;
+        try
+        {
+            resultado = await geocodingRepo.ObtenerCoordenadasPorPlaceId(p.PlaceId);
+        }
+        catch (Exception ex)
+        {
+            buscandoOrigen = false;
+            await displayMessage.DisplayErrorMessage("No se pudo ubicar el origen: " + ex.Message);
+            return;
+        }
+        buscandoOrigen = false;
+
+        if (resultado == null)
+        {
+            await displayMessage.DisplayErrorMessage("No se encontraron coordenadas para esa dirección.");
+            return;
+        }
+
+        OrigenLat = resultado.Lat;
+        OrigenLng = resultado.Lon;
+        await OrigenLatChanged.InvokeAsync(OrigenLat);
+        await OrigenLngChanged.InvokeAsync(OrigenLng);
+        await OnCoordenadasChanged.InvokeAsync();
+
+        await EstablecerActivo("origen");
+        if (mapaIniciado)
+        {
+            await JS.InvokeVoidAsync("leafletInterop.moverMarcadorDual", mapaId, "origen", (double)OrigenLat, (double)OrigenLng, 17);
+        }
+    }
+
+    // ---------------- Destino ----------------
+
+    private async Task BuscarSugerenciasDestino()
+    {
+        ctsDestino?.Cancel();
+
+        if (string.IsNullOrWhiteSpace(textoDestino) || textoDestino.Trim().Length < 3)
+        {
+            prediccionesDestino.Clear();
+            mostrarSugerenciasDestino = false;
+            buscandoDestino = false;
+            return;
+        }
+
+        var cts = new CancellationTokenSource();
+        ctsDestino = cts;
+        buscandoDestino = true;
+
+        try
+        {
+            await Task.Delay(400, cts.Token);
+            var encontradas = await geocodingRepo.BuscarPredicciones(textoDestino.Trim());
+            if (cts.IsCancellationRequested) return;
+
+            prediccionesDestino = encontradas;
+            mostrarSugerenciasDestino = true;
+        }
+        catch (TaskCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("No se pudo buscar el destino: " + ex.Message);
+        }
+        finally
+        {
+            if (!cts.IsCancellationRequested)
+                buscandoDestino = false;
+        }
+    }
+
+    private async Task OnKeyDownDestino(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && prediccionesDestino.Count > 0)
+            await SeleccionarPrediccionDestino(prediccionesDestino[0]);
+    }
+
+    private async Task OcultarSugerenciasDestinoConDelay()
+    {
+        await Task.Delay(200);
+        mostrarSugerenciasDestino = false;
+    }
+
+    private async Task SeleccionarPrediccionDestino(PlacePredictionDTO p)
+    {
+        textoDestino = p.Description;
+        prediccionesDestino.Clear();
+        mostrarSugerenciasDestino = false;
+        buscandoDestino = true;
+
+        GeocodingResultDTO? resultado;
+        try
+        {
+            resultado = await geocodingRepo.ObtenerCoordenadasPorPlaceId(p.PlaceId);
+        }
+        catch (Exception ex)
+        {
+            buscandoDestino = false;
+            await displayMessage.DisplayErrorMessage("No se pudo ubicar el destino: " + ex.Message);
+            return;
+        }
+        buscandoDestino = false;
+
+        if (resultado == null)
+        {
+            await displayMessage.DisplayErrorMessage("No se encontraron coordenadas para esa dirección.");
+            return;
+        }
+
+        DestinoLat = resultado.Lat;
+        DestinoLng = resultado.Lon;
+        await DestinoLatChanged.InvokeAsync(DestinoLat);
+        await DestinoLngChanged.InvokeAsync(DestinoLng);
+        await OnCoordenadasChanged.InvokeAsync();
+
+        await EstablecerActivo("destino");
+        if (mapaIniciado)
+        {
+            await JS.InvokeVoidAsync("leafletInterop.moverMarcadorDual", mapaId, "destino", (double)DestinoLat, (double)DestinoLng, 17);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (mapaIniciado)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("leafletInterop.destruirDual", mapaId);
+            }
+            catch (JSDisconnectedException)
+            {
+                // La conexion de circuito ya se cerro (navegacion fuera de la pagina); nada que limpiar.
+            }
+        }
+        dotNetRef?.Dispose();
+    }
+}

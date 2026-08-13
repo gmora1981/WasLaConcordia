@@ -2,6 +2,7 @@
 @using LaConcordia.Interface
 @inject IGeocoding geocodingRepo
 @inject IJSRuntime JS
+@inject IDisplayMessage displayMessage
 @implements IAsyncDisposable
 
 <div class="mapa-selector">
@@ -167,6 +168,10 @@
         {
             // el usuario siguió escribiendo antes de que venciera el debounce; se ignora
         }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("No se pudo buscar la dirección: " + ex.Message);
+        }
         finally
         {
             if (!cts.IsCancellationRequested)
@@ -197,11 +202,24 @@
         mostrarSugerencias = false;
         buscando = true;
 
-        var resultado = await geocodingRepo.ObtenerCoordenadasPorPlaceId(p.PlaceId);
+        GeocodingResultDTO? resultado;
+        try
+        {
+            resultado = await geocodingRepo.ObtenerCoordenadasPorPlaceId(p.PlaceId);
+        }
+        catch (Exception ex)
+        {
+            buscando = false;
+            await displayMessage.DisplayErrorMessage("No se pudo ubicar esa dirección: " + ex.Message);
+            return;
+        }
         buscando = false;
 
         if (resultado == null)
+        {
+            await displayMessage.DisplayErrorMessage("No se encontraron coordenadas para esa dirección.");
             return;
+        }
 
         Lat = resultado.Lat;
         Lng = resultado.Lon;
