@@ -48,9 +48,9 @@
     private string textoBusqueda = string.Empty;
     private List<GeocodingResultDTO> resultados = new();
 
-    // Coordenada por defecto: La Concordia, Santo Domingo de los Tsáchilas, Ecuador.
-    private const decimal LatPorDefecto = -0.0167m;
-    private const decimal LngPorDefecto = -79.3667m;
+    // Coordenada por defecto: Guayaquil, Ecuador (ciudad donde opera la cooperativa).
+    private const decimal LatPorDefecto = -2.1709979m;
+    private const decimal LngPorDefecto = -79.9223592m;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
