@@ -13,19 +13,35 @@ namespace LaConcordia.Repository
             _httpClient = httpClient;
         }
 
-        public async Task<List<GeocodingResultDTO>> Buscar(string query)
+        public async Task<List<PlacePredictionDTO>> BuscarPredicciones(string query)
         {
             if (string.IsNullOrWhiteSpace(query))
-                return new List<GeocodingResultDTO>();
+                return new List<PlacePredictionDTO>();
 
             try
             {
-                var url = $"api/Geocoding/Buscar?query={Uri.EscapeDataString(query)}";
-                return await _httpClient.GetFromJsonAsync<List<GeocodingResultDTO>>(url) ?? new List<GeocodingResultDTO>();
+                var url = $"api/Geocoding/BuscarPredicciones?query={Uri.EscapeDataString(query)}";
+                return await _httpClient.GetFromJsonAsync<List<PlacePredictionDTO>>(url) ?? new List<PlacePredictionDTO>();
             }
             catch (HttpRequestException)
             {
-                return new List<GeocodingResultDTO>();
+                return new List<PlacePredictionDTO>();
+            }
+        }
+
+        public async Task<GeocodingResultDTO?> ObtenerCoordenadasPorPlaceId(string placeId)
+        {
+            if (string.IsNullOrWhiteSpace(placeId))
+                return null;
+
+            try
+            {
+                var url = $"api/Geocoding/ObtenerCoordenadasPorPlaceId?placeId={Uri.EscapeDataString(placeId)}";
+                return await _httpClient.GetFromJsonAsync<GeocodingResultDTO>(url);
+            }
+            catch (HttpRequestException)
+            {
+                return null;
             }
         }
 

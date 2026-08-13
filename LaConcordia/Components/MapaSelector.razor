@@ -9,20 +9,20 @@
         <input class="form-control" placeholder="Escribe una calle o dirección..."
                @bind="textoBusqueda" @bind:event="oninput" @bind:after="BuscarSugerencias"
                @onkeydown="OnKeyDown"
-               @onfocus="() => mostrarSugerencias = resultados.Count > 0"
+               @onfocus="() => mostrarSugerencias = predicciones.Count > 0"
                @onblur="OcultarSugerenciasConDelay" />
 
         @if (buscando)
         {
             <div class="mapa-buscando">Buscando…</div>
         }
-        else if (mostrarSugerencias && resultados.Count > 0)
+        else if (mostrarSugerencias && predicciones.Count > 0)
         {
             <ul class="mapa-autocomplete-dropdown">
-                @foreach (var r in resultados)
+                @foreach (var p in predicciones)
                 {
-                    <li @onclick="() => SeleccionarResultado(r)">
-                        <i class="fas fa-map-marker-alt"></i> @r.DisplayName
+                    <li @onclick="() => SeleccionarPrediccion(p)">
+                        <i class="fas fa-map-marker-alt"></i> @p.Description
                     </li>
                 }
             </ul>
@@ -104,7 +104,7 @@
     private bool mapaIniciado = false;
 
     private string textoBusqueda = string.Empty;
-    private List<GeocodingResultDTO> resultados = new();
+    private List<PlacePredictionDTO> predicciones = new();
     private bool mostrarSugerencias = false;
     private bool buscando = false;
     private CancellationTokenSource? busquedaCts;
@@ -144,7 +144,7 @@
 
         if (string.IsNullOrWhiteSpace(textoBusqueda) || textoBusqueda.Trim().Length < 3)
         {
-            resultados.Clear();
+            predicciones.Clear();
             mostrarSugerencias = false;
             buscando = false;
             return;
@@ -157,10 +157,10 @@
         try
         {
             await Task.Delay(400, cts.Token); // debounce: espera a que el usuario deje de escribir
-            var encontrados = await geocodingRepo.Buscar(textoBusqueda.Trim());
+            var encontradas = await geocodingRepo.BuscarPredicciones(textoBusqueda.Trim());
             if (cts.IsCancellationRequested) return;
 
-            resultados = encontrados;
+            predicciones = encontradas;
             mostrarSugerencias = true;
         }
         catch (TaskCanceledException)
@@ -176,9 +176,9 @@
 
     private async Task OnKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter" && resultados.Count > 0)
+        if (e.Key == "Enter" && predicciones.Count > 0)
         {
-            await SeleccionarResultado(resultados[0]);
+            await SeleccionarPrediccion(predicciones[0]);
         }
     }
 
@@ -190,13 +190,21 @@
         mostrarSugerencias = false;
     }
 
-    private async Task SeleccionarResultado(GeocodingResultDTO r)
+    private async Task SeleccionarPrediccion(PlacePredictionDTO p)
     {
-        Lat = r.Lat;
-        Lng = r.Lon;
-        resultados.Clear();
+        textoBusqueda = p.Description;
+        predicciones.Clear();
         mostrarSugerencias = false;
-        textoBusqueda = r.DisplayName;
+        buscando = true;
+
+        var resultado = await geocodingRepo.ObtenerCoordenadasPorPlaceId(p.PlaceId);
+        buscando = false;
+
+        if (resultado == null)
+            return;
+
+        Lat = resultado.Lat;
+        Lng = resultado.Lon;
 
         await LatChanged.InvokeAsync(Lat);
         await LngChanged.InvokeAsync(Lng);
