@@ -202,6 +202,9 @@
         {
             dotNetRef = DotNetObjectReference.Create(this);
 
+            var sinOrigen = OrigenLat == 0 && OrigenLng == 0;
+            var sinDestino = DestinoLat == 0 && DestinoLng == 0;
+
             var oLat = OrigenLat != 0 ? OrigenLat : LatPorDefecto;
             var oLng = OrigenLng != 0 ? OrigenLng : LngPorDefecto;
             var dLat = DestinoLat != 0 ? DestinoLat : oLat;
@@ -212,14 +215,48 @@
             mapaIniciado = true;
             mostrarDestinoPrevio = MostrarDestino;
             activo = MostrarDestino ? "destino" : "origen";
+
+            // El fallback de arriba solo centraba el mapa visualmente; si no se sincroniza
+            // tambien Origen/DestinoLat/Lng (y se notifica al padre), guardar sin tocar el
+            // mapa grababa 0,0 (el "Null Island" frente a Africa) en vez de la posicion
+            // realmente mostrada.
+            var huboCambios = false;
+            if (sinOrigen)
+            {
+                OrigenLat = oLat;
+                OrigenLng = oLng;
+                await OrigenLatChanged.InvokeAsync(OrigenLat);
+                await OrigenLngChanged.InvokeAsync(OrigenLng);
+                huboCambios = true;
+            }
+            if (MostrarDestino && sinDestino)
+            {
+                DestinoLat = dLat;
+                DestinoLng = dLng;
+                await DestinoLatChanged.InvokeAsync(DestinoLat);
+                await DestinoLngChanged.InvokeAsync(DestinoLng);
+                huboCambios = true;
+            }
+            if (huboCambios)
+                await OnCoordenadasChanged.InvokeAsync();
         }
         else if (mapaIniciado && MostrarDestino != mostrarDestinoPrevio)
         {
+            var sinDestino = DestinoLat == 0 && DestinoLng == 0;
             var dLat = DestinoLat != 0 ? DestinoLat : OrigenLat;
             var dLng = DestinoLng != 0 ? DestinoLng : OrigenLng;
             await JS.InvokeVoidAsync("leafletInterop.mostrarOcultarDestinoDual", mapaId, MostrarDestino, (double)dLat, (double)dLng, dotNetRef);
             mostrarDestinoPrevio = MostrarDestino;
             activo = MostrarDestino ? "destino" : "origen";
+
+            if (MostrarDestino && sinDestino)
+            {
+                DestinoLat = dLat;
+                DestinoLng = dLng;
+                await DestinoLatChanged.InvokeAsync(DestinoLat);
+                await DestinoLngChanged.InvokeAsync(DestinoLng);
+                await OnCoordenadasChanged.InvokeAsync();
+            }
         }
     }
 

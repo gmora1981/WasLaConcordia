@@ -119,12 +119,25 @@
         if (firstRender)
         {
             dotNetRef = DotNetObjectReference.Create(this);
+            var sinCoordenadas = Lat == 0 && Lng == 0;
             var latInicial = Lat != 0 ? Lat : LatPorDefecto;
             var lngInicial = Lng != 0 ? Lng : LngPorDefecto;
             var zoomInicial = (Lat != 0 && Lng != 0) ? 16 : 13;
 
             await JS.InvokeVoidAsync("leafletInterop.iniciar", mapaId, dotNetRef, latInicial, lngInicial, zoomInicial);
             mapaIniciado = true;
+
+            // El fallback de arriba solo centraba el mapa visualmente; si no se sincroniza
+            // tambien Lat/Lng (y se notifica al padre), guardar sin tocar el mapa grababa
+            // 0,0 (el "Null Island" frente a Africa) en vez de la posicion realmente mostrada.
+            if (sinCoordenadas)
+            {
+                Lat = latInicial;
+                Lng = lngInicial;
+                await LatChanged.InvokeAsync(Lat);
+                await LngChanged.InvokeAsync(Lng);
+                await OnCoordenadasChanged.InvokeAsync();
+            }
         }
     }
 
