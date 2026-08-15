@@ -35,6 +35,10 @@
                     }
                 </select>
             </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Hasta</label>
+                <input type="date" class="form-control" @bind="fechaHasta" @bind:after="Buscar" />
+            </div>
             <button class="btn-modern btn-secondary-modern" @onclick="ExportarPdf" disabled="@(string.IsNullOrEmpty(rucSeleccionado))">
                 <i class="fas fa-file-pdf"></i> Exportar PDF
             </button>
@@ -94,6 +98,7 @@
     private List<EmpresaDTO> empresasFiltradas => todasLasEmpresas.Where(e => e.Estado == estadoFiltro).ToList();
 
     private string rucSeleccionado = string.Empty;
+    private DateTime? fechaHasta;
     private List<OrdenPagoResumenDTO> lista = new();
 
     protected override async Task OnInitializedAsync()
@@ -117,7 +122,7 @@
 
         try
         {
-            lista = await ordenPagoRepo.GetOrdenPagoPorEmpresa(rucSeleccionado);
+            lista = await ordenPagoRepo.GetOrdenPagoPorEmpresa(rucSeleccionado, fechaHasta);
         }
         catch (Exception ex)
         {
@@ -129,11 +134,13 @@
     {
         if (string.IsNullOrEmpty(rucSeleccionado)) return;
 
-        var razonSocial = empresasFiltradas.FirstOrDefault(e => e.Ruc == rucSeleccionado)?.Razonsocial ?? rucSeleccionado;
+        var razonSocial = empresasFiltradas.FirstOrDefault(e => e.Ruc == rucSeleccionado)?.Razonsocial
+            ?? todasLasEmpresas.FirstOrDefault(e => e.Ruc == rucSeleccionado)?.Razonsocial
+            ?? rucSeleccionado;
 
         try
         {
-            var pdfBytes = await ordenPagoRepo.ExportarFacturacionPdf(rucSeleccionado, razonSocial, null);
+            var pdfBytes = await ordenPagoRepo.ExportarFacturacionPdf(rucSeleccionado, razonSocial, fechaHasta);
 
             if (pdfBytes == null || pdfBytes.Length == 0)
             {
