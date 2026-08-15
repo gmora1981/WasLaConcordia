@@ -9,9 +9,11 @@ namespace LaConcordia.Interface
         Task<decimal> GetSaldoCajaActual();
         Task<OrdenPagoResultadoDTO> GenerarOrdenPago(GenerarOrdenPagoRequestDTO request);
 
-        Task<List<OrdenPagoResumenDTO>> GetOrdenPagoPorEmpresa(string ruc);
+        Task<List<OrdenPagoResumenDTO>> GetOrdenPagoPorEmpresa(string ruc, DateTime? hasta = null);
 
         // "Modificar Datos": corrige Precio/Recorrido/Empleado sin generar voucher.
         Task ActualizarDatosPedido(ActualizarDatosPedidoRequestDTO request);
+
+        Task<byte[]> ExportarFacturacionPdf(string ruc, string razonSocial, DateTime? hasta);
     }
 }

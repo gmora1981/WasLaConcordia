@@ -44,9 +44,13 @@ namespace LaConcordia.Repository
             return await response.Content.ReadFromJsonAsync<OrdenPagoResultadoDTO>() ?? new OrdenPagoResultadoDTO();
         }
 
-        public async Task<List<OrdenPagoResumenDTO>> GetOrdenPagoPorEmpresa(string ruc)
+        public async Task<List<OrdenPagoResumenDTO>> GetOrdenPagoPorEmpresa(string ruc, DateTime? hasta = null)
         {
-            return await _httpClient.GetFromJsonAsync<List<OrdenPagoResumenDTO>>($"api/OrdenPago/GetOrdenPagoPorEmpresa/{ruc}") ?? new List<OrdenPagoResumenDTO>();
+            var url = $"api/OrdenPago/GetOrdenPagoPorEmpresa/{ruc}";
+            if (hasta.HasValue)
+                url += $"?hasta={hasta.Value:yyyy-MM-dd}";
+
+            return await _httpClient.GetFromJsonAsync<List<OrdenPagoResumenDTO>>(url) ?? new List<OrdenPagoResumenDTO>();
         }
 
         public async Task ActualizarDatosPedido(ActualizarDatosPedidoRequestDTO request)
@@ -57,6 +61,22 @@ namespace LaConcordia.Repository
                 var errorContent = await response.Content.ReadAsStringAsync();
                 throw new Exception(errorContent);
             }
+        }
+
+        public async Task<byte[]> ExportarFacturacionPdf(string ruc, string razonSocial, DateTime? hasta)
+        {
+            var url = $"api/OrdenPago/ExportarFacturacionPdf?ruc={Uri.EscapeDataString(ruc)}&razonSocial={Uri.EscapeDataString(razonSocial)}";
+            if (hasta.HasValue)
+                url += $"&hasta={hasta.Value:yyyy-MM-dd}";
+
+            var response = await _httpClient.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new Exception(errorContent);
+            }
+
+            return await response.Content.ReadAsByteArrayAsync();
         }
     }
 }

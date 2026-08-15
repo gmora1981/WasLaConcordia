@@ -4,6 +4,7 @@
 @inject IOrdenPago ordenPagoRepo
 @inject IEmpresa empresaRepo
 @inject IDisplayMessage displayMessage
+@inject IJSRuntime JS
 
 <link href="css/AdminCommon.css" rel="stylesheet" />
 
@@ -16,15 +17,24 @@
         </div>
         <p class="text-muted">Listado de vouchers generados por empresa.</p>
 
-        <div class="form-group" style="max-width: 350px;">
-            <label class="form-label">Empresa</label>
-            <select class="form-control" @bind="rucSeleccionado" @bind:after="Buscar">
-                <option value="">-- Seleccione --</option>
-                @foreach (var e in empresas)
-                {
-                    <option value="@e.Ruc">@e.Razonsocial</option>
-                }
-            </select>
+        <div class="d-flex gap-2 mb-2" style="flex-wrap: wrap; align-items: end;">
+            <div class="form-group" style="max-width: 350px; margin-bottom: 0;">
+                <label class="form-label">Empresa</label>
+                <select class="form-control" @bind="rucSeleccionado" @bind:after="Buscar">
+                    <option value="">-- Seleccione --</option>
+                    @foreach (var e in empresas)
+                    {
+                        <option value="@e.Ruc">@e.Razonsocial</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Hasta</label>
+                <input type="date" class="form-control" @bind="fechaHasta" @bind:after="Buscar" />
+            </div>
+            <button class="btn-modern btn-secondary-modern" @onclick="ExportarPdf" disabled="@(string.IsNullOrEmpty(rucSeleccionado))">
+                <i class="fas fa-file-pdf"></i> Exportar PDF
+            </button>
         </div>
 
         <table class="admin-table">
@@ -78,6 +88,7 @@
 @code {
     private List<EmpresaDTO> empresas = new();
     private string rucSeleccionado = string.Empty;
+    private DateTime? fechaHasta;
     private List<OrdenPagoResumenDTO> lista = new();
 
     protected override async Task OnInitializedAsync()
@@ -95,11 +106,40 @@
 
         try
         {
-            lista = await ordenPagoRepo.GetOrdenPagoPorEmpresa(rucSeleccionado);
+            lista = await ordenPagoRepo.GetOrdenPagoPorEmpresa(rucSeleccionado, fechaHasta);
         }
         catch (Exception ex)
         {
             await displayMessage.DisplayErrorMessage("Error al cargar la facturación: " + ex.Message);
+        }
+    }
+
+    private async Task ExportarPdf()
+    {
+        if (string.IsNullOrEmpty(rucSeleccionado)) return;
+
+        var razonSocial = empresas.FirstOrDefault(e => e.Ruc == rucSeleccionado)?.Razonsocial ?? rucSeleccionado;
+
+        try
+        {
+            var pdfBytes = await ordenPagoRepo.ExportarFacturacionPdf(rucSeleccionado, razonSocial, fechaHasta);
+
+            if (pdfBytes == null || pdfBytes.Length == 0)
+            {
+                await displayMessage.DisplayErrorMessage("El PDF generado está vacío.");
+                return;
+            }
+
+            await JS.InvokeVoidAsync("downloadFileFromByteArray", new
+            {
+                byteArray = pdfBytes,
+                fileName = $"Facturacion_{razonSocial}.pdf",
+                contentType = "application/pdf"
+            });
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al exportar la facturación: " + ex.Message);
         }
     }
 }
