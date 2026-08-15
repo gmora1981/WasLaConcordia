@@ -406,7 +406,7 @@
     protected override async Task OnInitializedAsync()
     {
         pedidoSeleccionado.Fecharegistro = DateTime.Now;
-        empresas = await empresaRepo.GetEmpresaInfoAll();
+        empresas = (await empresaRepo.GetEmpresaInfoAll()).Where(e => e.Estado == "a").ToList();
         await CargarPedidosAsync();
     }
 

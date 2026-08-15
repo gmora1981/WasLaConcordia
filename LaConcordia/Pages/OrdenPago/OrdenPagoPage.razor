@@ -308,7 +308,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        empresas = await empresaRepo.GetEmpresaInfoAll();
+        empresas = (await empresaRepo.GetEmpresaInfoAll()).Where(e => e.Estado == "a").ToList();
         await Buscar();
     }
 
