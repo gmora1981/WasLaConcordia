@@ -18,19 +18,22 @@
         <p class="text-muted">Listado de vouchers generados por empresa.</p>
 
         <div class="d-flex gap-2 mb-2" style="flex-wrap: wrap; align-items: end;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Estado</label>
+                <select class="form-control" style="width: 160px;" @bind="estadoFiltro" @bind:after="OnEstadoFiltroChanged">
+                    <option value="a">Activo</option>
+                    <option value="i">Inactivo</option>
+                </select>
+            </div>
             <div class="form-group" style="max-width: 350px; margin-bottom: 0;">
                 <label class="form-label">Empresa</label>
                 <select class="form-control" @bind="rucSeleccionado" @bind:after="Buscar">
                     <option value="">-- Seleccione --</option>
-                    @foreach (var e in empresas)
+                    @foreach (var e in empresasFiltradas)
                     {
                         <option value="@e.Ruc">@e.Razonsocial</option>
                     }
                 </select>
-            </div>
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">Hasta</label>
-                <input type="date" class="form-control" @bind="fechaHasta" @bind:after="Buscar" />
             </div>
             <button class="btn-modern btn-secondary-modern" @onclick="ExportarPdf" disabled="@(string.IsNullOrEmpty(rucSeleccionado))">
                 <i class="fas fa-file-pdf"></i> Exportar PDF
@@ -86,14 +89,22 @@
 </div>
 
 @code {
-    private List<EmpresaDTO> empresas = new();
+    private List<EmpresaDTO> todasLasEmpresas = new();
+    private string estadoFiltro = "a";
+    private List<EmpresaDTO> empresasFiltradas => todasLasEmpresas.Where(e => e.Estado == estadoFiltro).ToList();
+
     private string rucSeleccionado = string.Empty;
-    private DateTime? fechaHasta;
     private List<OrdenPagoResumenDTO> lista = new();
 
     protected override async Task OnInitializedAsync()
     {
-        empresas = (await empresaRepo.GetEmpresaInfoAll()).Where(e => e.Estado == "a").ToList();
+        todasLasEmpresas = await empresaRepo.GetEmpresaInfoAll();
+    }
+
+    private void OnEstadoFiltroChanged()
+    {
+        rucSeleccionado = string.Empty;
+        lista = new();
     }
 
     private async Task Buscar()
@@ -106,7 +117,7 @@
 
         try
         {
-            lista = await ordenPagoRepo.GetOrdenPagoPorEmpresa(rucSeleccionado, fechaHasta);
+            lista = await ordenPagoRepo.GetOrdenPagoPorEmpresa(rucSeleccionado);
         }
         catch (Exception ex)
         {
@@ -118,11 +129,11 @@
     {
         if (string.IsNullOrEmpty(rucSeleccionado)) return;
 
-        var razonSocial = empresas.FirstOrDefault(e => e.Ruc == rucSeleccionado)?.Razonsocial ?? rucSeleccionado;
+        var razonSocial = empresasFiltradas.FirstOrDefault(e => e.Ruc == rucSeleccionado)?.Razonsocial ?? rucSeleccionado;
 
         try
         {
-            var pdfBytes = await ordenPagoRepo.ExportarFacturacionPdf(rucSeleccionado, razonSocial, fechaHasta);
+            var pdfBytes = await ordenPagoRepo.ExportarFacturacionPdf(rucSeleccionado, razonSocial, null);
 
             if (pdfBytes == null || pdfBytes.Length == 0)
             {
