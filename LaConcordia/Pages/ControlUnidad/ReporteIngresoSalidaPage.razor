@@ -26,6 +26,16 @@
                     }
                 </select>
             </div>
+            <div class="form-group" style="width: 160px; margin-bottom: 0;">
+                <label class="form-label">Unidad</label>
+                <select class="form-control" @bind="unidadSeleccionada" @bind:after="Buscar">
+                    <option value="">-- Todas --</option>
+                    @foreach (var u in unidades)
+                    {
+                        <option value="@u">@u</option>
+                    }
+                </select>
+            </div>
             <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label">Desde</label>
                 <input type="date" class="form-control" @bind="fechaDesde" @bind:after="Buscar" />
@@ -49,6 +59,7 @@
                         <th>Turno</th>
                         <th>Estado</th>
                         <th>Unidad</th>
+                        <th>Operadora</th>
                         <th>Conductor</th>
                     </tr>
                 </thead>
@@ -71,6 +82,7 @@
                                     }
                                 </td>
                                 <td>@m.Unidad</td>
+                                <td>@m.Monitora</td>
                                 <td>@m.Conductor</td>
                             </tr>
                         }
@@ -78,9 +90,9 @@
                     else
                     {
                         <tr>
-                            <td colspan="5" class="empty-state">
+                            <td colspan="6" class="empty-state">
                                 <i class="fas fa-exchange-alt"></i>
-                                <p>No hay movimientos registrados para el rango y la operadora seleccionados.</p>
+                                <p>No hay movimientos registrados para el rango, la operadora y la unidad seleccionados.</p>
                             </td>
                         </tr>
                     }
@@ -93,6 +105,8 @@
 @code {
     private List<string> monitoras = new();
     private string monitoraSeleccionada = string.Empty;
+    private List<string> unidades = new();
+    private string unidadSeleccionada = string.Empty;
     private DateTime fechaDesde = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
     private DateTime fechaHasta = DateTime.Today;
     private List<ControlUnidadMovimientoDTO> lista = new();
@@ -102,10 +116,11 @@
         try
         {
             monitoras = await controlUnidadRepo.GetMonitorasDisponibles();
+            unidades = await controlUnidadRepo.GetUnidadesConMovimientos();
         }
         catch (Exception ex)
         {
-            await displayMessage.DisplayErrorMessage("Error al cargar las operadoras: " + ex.Message);
+            await displayMessage.DisplayErrorMessage("Error al cargar los filtros: " + ex.Message);
         }
 
         await Buscar();
@@ -121,7 +136,7 @@
 
         try
         {
-            lista = await controlUnidadRepo.GetMovimientosPorRango(fechaDesde, fechaHasta, monitoraSeleccionada);
+            lista = await controlUnidadRepo.GetMovimientosPorRango(fechaDesde, fechaHasta, monitoraSeleccionada, unidadSeleccionada);
         }
         catch (Exception ex)
         {
@@ -133,7 +148,7 @@
     {
         try
         {
-            var pdfBytes = await controlUnidadRepo.ExportarReporteIngresoSalidaPdf(fechaDesde, fechaHasta, monitoraSeleccionada);
+            var pdfBytes = await controlUnidadRepo.ExportarReporteIngresoSalidaPdf(fechaDesde, fechaHasta, monitoraSeleccionada, unidadSeleccionada);
 
             if (pdfBytes == null || pdfBytes.Length == 0)
             {

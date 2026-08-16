@@ -8,9 +8,10 @@ namespace LaConcordia.Interface
         Task MoverUnidad(MoverUnidadRequestDTO request);
         Task<byte[]> ExportarPdf(string? turno);
 
-        // "Reporte de Ingreso y Salida" por operadora y rango de fechas.
+        // "Reporte de Ingreso y Salida" por operadora y/o unidad, y rango de fechas.
         Task<List<string>> GetMonitorasDisponibles();
-        Task<List<ControlUnidadMovimientoDTO>> GetMovimientosPorRango(DateTime desde, DateTime hasta, string? monitora);
-        Task<byte[]> ExportarReporteIngresoSalidaPdf(DateTime desde, DateTime hasta, string? monitora);
+        Task<List<string>> GetUnidadesConMovimientos();
+        Task<List<ControlUnidadMovimientoDTO>> GetMovimientosPorRango(DateTime desde, DateTime hasta, string? monitora, string? unidad);
+        Task<byte[]> ExportarReporteIngresoSalidaPdf(DateTime desde, DateTime hasta, string? monitora, string? unidad);
     }
 }
