@@ -24,5 +24,7 @@ namespace LaConcordia.Interface
         Task<List<PedidoDTO>> GetPedidosConDestinoPendiente();
 
         Task GuardarDireccion(GuardarDireccionRequestDTO request);
+
+        Task<List<PedidosPorUsuarioDTO>> GetCantidadPedidosPorUsuario(DateTime desde, DateTime hasta);
     }
 }

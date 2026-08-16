@@ -98,5 +98,11 @@ namespace LaConcordia.Repository
                 throw new Exception($"Error al guardar la dirección: {errorContent}");
             }
         }
+
+        public async Task<List<PedidosPorUsuarioDTO>> GetCantidadPedidosPorUsuario(DateTime desde, DateTime hasta)
+        {
+            var url = $"api/Pedido/GetCantidadPedidosPorUsuario?desde={desde:yyyy-MM-dd}&hasta={hasta:yyyy-MM-dd}";
+            return await _httpClient.GetFromJsonAsync<List<PedidosPorUsuarioDTO>>(url) ?? new List<PedidosPorUsuarioDTO>();
+        }
     }
 }

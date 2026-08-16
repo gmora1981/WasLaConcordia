@@ -49,4 +49,10 @@ namespace LaConcordia.DTO
         public decimal Precio { get; set; }
         public decimal Km { get; set; }
     }
+
+    public class PedidosPorUsuarioDTO
+    {
+        public string Usuario { get; set; } = null!;
+        public int Cantidad { get; set; }
+    }
 }
