@@ -40,24 +40,26 @@
         }
         else
         {
-            <div style="display: flex; align-items: flex-end; height: 320px; position: relative; padding-left: 55px; margin-top: 10px;">
+            <div style="height: @(ChartAltoPx)px; position: relative; padding-left: 55px; margin-top: 10px;">
                 @for (int i = 0; i <= 4; i++)
                 {
                     var valor = MaxEje * i / 4;
-                    var bottomPct = i * 25;
-                    <div style="position: absolute; left: 0; right: 0; bottom: @(bottomPct)%; border-top: 1px dashed #e5e7eb;">
+                    var bottomPx = ChartAltoPx * i / 4;
+                    <div style="position: absolute; left: 0; right: 0; bottom: @(bottomPx)px; border-top: 1px dashed #e5e7eb;">
                         <span style="position: absolute; left: -50px; top: -8px; font-size: 0.7rem; color: #6c757d; width: 42px; text-align: right;">@valor</span>
                     </div>
                 }
                 <div style="position: absolute; left: 55px; right: 0; bottom: 0; top: 0; border-left: 2px solid #333; border-bottom: 2px solid #333;"></div>
 
-                <div style="display: flex; align-items: flex-end; gap: 2rem; height: 100%; width: 100%; padding-left: 20px; position: relative;">
+                <div style="display: flex; gap: 2rem; height: @(ChartAltoPx)px; width: 100%; padding-left: 20px; position: relative; box-sizing: border-box;">
                     @for (int i = 0; i < datos.Count; i++)
                     {
-                        var alturaPct = MaxEje == 0 ? 0 : (datos[i].Cantidad * 100.0 / MaxEje);
-                        <div style="display: flex; flex-direction: column; align-items: center; flex: 1; height: 100%; justify-content: flex-end;">
-                            <span style="font-size: 0.75rem; font-weight: 600; margin-bottom: 3px;">@datos[i].Cantidad</span>
-                            <div style="width: 60%; height: @(alturaPct)%; background: @ColorUsuario(i); border-radius: 3px 3px 0 0;"></div>
+                        var alturaPx = MaxEje == 0 ? 0 : (int)Math.Round(datos[i].Cantidad * (double)ChartAltoPx / MaxEje);
+                        <div style="display: flex; flex-direction: column; align-items: center; flex: 1; position: relative; height: @(ChartAltoPx)px;">
+                            <div style="position: absolute; bottom: @(alturaPx)px; width: 100%; text-align: center;">
+                                <span style="font-size: 0.75rem; font-weight: 600;">@datos[i].Cantidad</span>
+                            </div>
+                            <div style="position: absolute; bottom: 0; width: 60%; height: @(alturaPx)px; background: @ColorUsuario(i); border-radius: 3px 3px 0 0;"></div>
                         </div>
                     }
                 </div>
@@ -94,6 +96,10 @@
     {
         "#2f5496", "#f59e0b", "#16a34a", "#7c3aed", "#dc2626", "#0891b2", "#db2777", "#65a30d"
     };
+
+    // Alto del area del grafico en pixeles (no en %, para evitar problemas de resolucion de
+    // porcentajes anidados en flexbox entre navegadores).
+    private const int ChartAltoPx = 300;
 
     private int MaxEje => datos.Count == 0
         ? 100
