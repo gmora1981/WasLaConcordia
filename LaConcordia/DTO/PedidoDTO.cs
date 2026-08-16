@@ -55,4 +55,13 @@ namespace LaConcordia.DTO
         public string Usuario { get; set; } = null!;
         public int Cantidad { get; set; }
     }
+
+    public class PedidoOperadoraDTO
+    {
+        public DateTime Fecharegistro { get; set; }
+        public string? CalleOrigen { get; set; }
+        public string? CalleDestino { get; set; }
+        public string? Unidad { get; set; }
+        public decimal? Precio { get; set; }
+    }
 }
