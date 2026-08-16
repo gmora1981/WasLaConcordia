@@ -39,11 +39,11 @@
                             
                             <div class="recipient-tabs">
                                 <button class="recipient-tab @(recipientType == "users" ? "active" : "")" 
-                                        @onclick="@(() => SetRecipientType("users"))">
+                                        @onclick="@(() => _ = SetRecipientType("users"))">
                                     <i class="fas fa-users"></i> Usuarios
                                 </button>
                                 <button class="recipient-tab @(recipientType == "roles" ? "active" : "")" 
-                                        @onclick="@(() => SetRecipientType("roles"))">
+                                        @onclick="@(() => _ = SetRecipientType("roles"))">
                                     <i class="fas fa-user-tag"></i> Roles
                                 </button>
                             </div>
@@ -59,7 +59,7 @@
                                         </div>
                                         <div class="selection-info">
                                             <span>@selectedUsers.Count usuarios seleccionados</span>
-                                            <button class="btn-link" @onclick="ToggleAllUsers">
+                                            <button class="btn-link" @onclick="() => _ = ToggleAllUsers()">
                                                 @(selectedUsers.Count == filteredUsers.Count ? "Deseleccionar todos" : "Seleccionar todos")
                                             </button>
                                         </div>
@@ -69,9 +69,9 @@
                                         @foreach (var user in GetFilteredUsers())
                                         {
                                             <label class="recipient-item @(selectedUsers.Contains(user.UserId) ? "selected" : "")">
-                                                <input type="checkbox" 
+                                                <input type="checkbox"
                                                        checked="@selectedUsers.Contains(user.UserId)"
-                                                       @onchange="@(() => ToggleUserSelection(user.UserId))" />
+                                                       @onchange="@(() => _ = ToggleUserSelection(user.UserId))" />
                                                 <div class="recipient-info">
                                                     <div class="user-avatar-small">
                                                         @user.FirstName.Substring(0, 1).ToUpper()
@@ -89,7 +89,7 @@
                                 {
                                     <div class="selection-info">
                                         <span>@selectedRoles.Count roles seleccionados</span>
-                                        <button class="btn-link" @onclick="ToggleAllRoles">
+                                        <button class="btn-link" @onclick="() => _ = ToggleAllRoles()">
                                             @(selectedRoles.Count == roles.Count ? "Deseleccionar todos" : "Seleccionar todos")
                                         </button>
                                     </div>
@@ -98,9 +98,9 @@
                                         @foreach (var role in roles)
                                         {
                                             <label class="recipient-item @(selectedRoles.Contains(role.RoleId) ? "selected" : "")">
-                                                <input type="checkbox" 
+                                                <input type="checkbox"
                                                        checked="@selectedRoles.Contains(role.RoleId)"
-                                                       @onchange="@(() => ToggleRoleSelection(role.RoleId))" />
+                                                       @onchange="@(() => _ = ToggleRoleSelection(role.RoleId))" />
                                                 <div class="recipient-info">
                                                     <div class="role-icon">
                                                         <i class="fas @(role.RoleName == "Admin" ? "fa-crown" : "fa-user")"></i>
@@ -411,9 +411,10 @@
         }
     }
 
-    private void SetRecipientType(string type)
+    private async Task SetRecipientType(string type)
     {
         recipientType = type;
+        await SincronizarModulosActuales();
         StateHasChanged();
     }
 
@@ -430,22 +431,65 @@
         ).ToList();
     }
 
-    private void ToggleUserSelection(string userId)
+    private async Task ToggleUserSelection(string userId)
     {
         if (selectedUsers.Contains(userId))
             selectedUsers.Remove(userId);
         else
             selectedUsers.Add(userId);
+
+        await SincronizarModulosActuales();
         StateHasChanged();
     }
 
-    private void ToggleRoleSelection(string roleId)
+    private async Task ToggleRoleSelection(string roleId)
     {
         if (selectedRoles.Contains(roleId))
             selectedRoles.Remove(roleId);
         else
             selectedRoles.Add(roleId);
+
+        await SincronizarModulosActuales();
         StateHasChanged();
+    }
+
+    // Si hay exactamente un destinatario seleccionado, marca en el paso 3 los modulos a los
+    // que ya tiene acceso, para que el modal refleje el estado actual en vez de partir
+    // siempre en blanco. Con varios destinatarios seleccionados (pueden tener permisos
+    // distintos entre si) se deja en blanco, igual que antes.
+    private async Task SincronizarModulosActuales()
+    {
+        selectedModules.Clear();
+
+        try
+        {
+            if (recipientType == "users" && selectedUsers.Count == 1)
+            {
+                var permisos = await permissionService.GetUserPermissionsAsync(selectedUsers.First());
+                MarcarModulosConAcceso(permisos.Permissions);
+            }
+            else if (recipientType == "roles" && selectedRoles.Count == 1)
+            {
+                var permisos = await permissionService.GetRolePermissionsAsync(selectedRoles.First());
+                MarcarModulosConAcceso(permisos.Permissions);
+            }
+        }
+        catch
+        {
+            // Si falla la consulta de permisos actuales, se parte en blanco (comportamiento anterior).
+        }
+    }
+
+    private void MarcarModulosConAcceso(List<NavigationPermissionDto> permisos)
+    {
+        foreach (var p in permisos)
+        {
+            if (p.CanView || p.CanCreate || p.CanEdit || p.CanDelete)
+                selectedModules.Add(p.NavigationItemId);
+
+            if (p.Children != null && p.Children.Count > 0)
+                MarcarModulosConAcceso(p.Children);
+        }
     }
 
     private void ToggleModuleSelection(int moduleId)
@@ -457,7 +501,7 @@
         StateHasChanged();
     }
 
-    private void ToggleAllUsers()
+    private async Task ToggleAllUsers()
     {
         var filtered = GetFilteredUsers();
         if (selectedUsers.Count == filtered.Count)
@@ -472,10 +516,12 @@
                 selectedUsers.Add(user.UserId);
             }
         }
+
+        await SincronizarModulosActuales();
         StateHasChanged();
     }
 
-    private void ToggleAllRoles()
+    private async Task ToggleAllRoles()
     {
         if (selectedRoles.Count == roles.Count)
         {
@@ -489,6 +535,8 @@
                 selectedRoles.Add(role.RoleId);
             }
         }
+
+        await SincronizarModulosActuales();
         StateHasChanged();
     }
 
