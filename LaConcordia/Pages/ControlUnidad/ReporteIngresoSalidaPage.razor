@@ -1,0 +1,156 @@
+@page "/reporte-ingreso-salida"
+@using LaConcordia.DTO
+@using LaConcordia.Interface
+@inject IControlUnidad controlUnidadRepo
+@inject IDisplayMessage displayMessage
+@inject IJSRuntime JS
+
+<link href="css/AdminCommon.css" rel="stylesheet" />
+
+<div class="page-container">
+    <div class="content-card">
+        <div class="header-section">
+            <h1 class="page-title">
+                <i class="fas fa-exchange-alt"></i> Reporte de Ingreso y Salida
+            </h1>
+        </div>
+
+        <div class="d-flex gap-2 mb-3" style="flex-wrap: wrap; align-items: end;">
+            <div class="form-group" style="width: 220px; margin-bottom: 0;">
+                <label class="form-label">Operadora</label>
+                <select class="form-control" @bind="monitoraSeleccionada" @bind:after="Buscar">
+                    <option value="">-- Todas --</option>
+                    @foreach (var m in monitoras)
+                    {
+                        <option value="@m">@m</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Desde</label>
+                <input type="date" class="form-control" @bind="fechaDesde" @bind:after="Buscar" />
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Hasta</label>
+                <input type="date" class="form-control" @bind="fechaHasta" @bind:after="Buscar" />
+            </div>
+            <button class="btn-modern btn-secondary-modern" @onclick="ExportarPdf">
+                <i class="fas fa-file-pdf"></i> Exportar PDF
+            </button>
+        </div>
+
+        <p class="text-muted mb-2">Total: @lista.Count</p>
+
+        <div style="overflow-x: auto;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Fecha y Hora</th>
+                        <th>Turno</th>
+                        <th>Estado</th>
+                        <th>Unidad</th>
+                        <th>Conductor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (lista.Count > 0)
+                    {
+                        @foreach (var m in lista)
+                        {
+                            <tr>
+                                <td>@m.Fecharegistro.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@m.Turno</td>
+                                <td>
+                                    @if (m.Estado == "INGRESO")
+                                    {
+                                        <span class="badge-modern badge-success">@m.Estado</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge-modern badge-danger">@m.Estado</span>
+                                    }
+                                </td>
+                                <td>@m.Unidad</td>
+                                <td>@m.Conductor</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="empty-state">
+                                <i class="fas fa-exchange-alt"></i>
+                                <p>No hay movimientos registrados para el rango y la operadora seleccionados.</p>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<string> monitoras = new();
+    private string monitoraSeleccionada = string.Empty;
+    private DateTime fechaDesde = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private DateTime fechaHasta = DateTime.Today;
+    private List<ControlUnidadMovimientoDTO> lista = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            monitoras = await controlUnidadRepo.GetMonitorasDisponibles();
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al cargar las operadoras: " + ex.Message);
+        }
+
+        await Buscar();
+    }
+
+    private async Task Buscar()
+    {
+        if (fechaDesde > fechaHasta)
+        {
+            await displayMessage.DisplayErrorMessage("La fecha 'Desde' no puede ser posterior a 'Hasta'.");
+            return;
+        }
+
+        try
+        {
+            lista = await controlUnidadRepo.GetMovimientosPorRango(fechaDesde, fechaHasta, monitoraSeleccionada);
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al cargar el reporte: " + ex.Message);
+        }
+    }
+
+    private async Task ExportarPdf()
+    {
+        try
+        {
+            var pdfBytes = await controlUnidadRepo.ExportarReporteIngresoSalidaPdf(fechaDesde, fechaHasta, monitoraSeleccionada);
+
+            if (pdfBytes == null || pdfBytes.Length == 0)
+            {
+                await displayMessage.DisplayErrorMessage("El PDF generado está vacío.");
+                return;
+            }
+
+            await JS.InvokeVoidAsync("downloadFileFromByteArray", new
+            {
+                byteArray = pdfBytes,
+                fileName = "ReporteIngresoYSalida.pdf",
+                contentType = "application/pdf"
+            });
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al exportar el reporte: " + ex.Message);
+        }
+    }
+}

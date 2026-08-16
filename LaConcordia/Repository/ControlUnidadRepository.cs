@@ -45,5 +45,35 @@ namespace LaConcordia.Repository
 
             return await response.Content.ReadAsByteArrayAsync();
         }
+
+        public async Task<List<string>> GetMonitorasDisponibles()
+        {
+            return await _httpClient.GetFromJsonAsync<List<string>>("api/ControlUnidad/GetMonitorasDisponibles") ?? new List<string>();
+        }
+
+        public async Task<List<ControlUnidadMovimientoDTO>> GetMovimientosPorRango(DateTime desde, DateTime hasta, string? monitora)
+        {
+            var url = $"api/ControlUnidad/GetMovimientosPorRango?desde={desde:yyyy-MM-dd}&hasta={hasta:yyyy-MM-dd}";
+            if (!string.IsNullOrEmpty(monitora))
+                url += $"&monitora={Uri.EscapeDataString(monitora)}";
+
+            return await _httpClient.GetFromJsonAsync<List<ControlUnidadMovimientoDTO>>(url) ?? new List<ControlUnidadMovimientoDTO>();
+        }
+
+        public async Task<byte[]> ExportarReporteIngresoSalidaPdf(DateTime desde, DateTime hasta, string? monitora)
+        {
+            var url = $"api/ControlUnidad/ExportarReporteIngresoSalidaPdf?desde={desde:yyyy-MM-dd}&hasta={hasta:yyyy-MM-dd}";
+            if (!string.IsNullOrEmpty(monitora))
+                url += $"&monitora={Uri.EscapeDataString(monitora)}";
+
+            var response = await _httpClient.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Error al exportar el reporte: {errorContent}");
+            }
+
+            return await response.Content.ReadAsByteArrayAsync();
+        }
     }
 }
