@@ -28,7 +28,8 @@ namespace LaConcordia.Interface
         Task<List<PedidosPorUsuarioDTO>> GetCantidadPedidosPorUsuario(DateTime desde, DateTime hasta);
 
         Task<List<string>> GetUsuariosDisponibles();
-        Task<List<PedidoOperadoraDTO>> GetPedidosPorOperadora(string? usuario, DateTime desde, DateTime hasta);
-        Task<byte[]> ExportarReporteSolicitudCarreraPdf(string? usuario, DateTime desde, DateTime hasta);
+        Task<List<string>> GetUnidadesConPedidos();
+        Task<List<PedidoOperadoraDTO>> GetPedidosPorOperadora(string? usuario, DateTime desde, DateTime hasta, string? unidad = null);
+        Task<byte[]> ExportarReporteSolicitudCarreraPdf(string? usuario, DateTime desde, DateTime hasta, string? unidad = null);
     }
 }

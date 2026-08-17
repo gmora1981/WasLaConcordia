@@ -61,6 +61,7 @@ namespace LaConcordia.DTO
         public DateTime Fecharegistro { get; set; }
         public string? CalleOrigen { get; set; }
         public string? CalleDestino { get; set; }
+        public string? Usuario { get; set; }
         public string? Unidad { get; set; }
         public decimal? Precio { get; set; }
     }

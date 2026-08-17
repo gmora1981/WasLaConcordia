@@ -27,6 +27,17 @@
                     }
                 </datalist>
             </div>
+            <div class="form-group" style="width: 200px; margin-bottom: 0;">
+                <label class="form-label">Unidad</label>
+                <input class="form-control" list="unidadesList" placeholder="-- Todas --"
+                       value="@unidadSeleccionada" @oninput="OnUnidadInput" />
+                <datalist id="unidadesList">
+                    @foreach (var u in unidades)
+                    {
+                        <option value="@u">@u</option>
+                    }
+                </datalist>
+            </div>
             <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label">Desde</label>
                 <input type="date" class="form-control" @bind="fechaDesde" @bind:after="Buscar" />
@@ -50,6 +61,7 @@
                         <th>Calle de Origen</th>
                         <th>Calle Destino</th>
                         <th>Unidad</th>
+                        <th>Operadora</th>
                         <th>Precio</th>
                     </tr>
                 </thead>
@@ -63,6 +75,7 @@
                                 <td>@p.CalleOrigen</td>
                                 <td>@p.CalleDestino</td>
                                 <td>@p.Unidad</td>
+                                <td>@p.Usuario</td>
                                 <td>@p.Precio?.ToString("0.00")</td>
                             </tr>
                         }
@@ -70,9 +83,9 @@
                     else
                     {
                         <tr>
-                            <td colspan="5" class="empty-state">
+                            <td colspan="6" class="empty-state">
                                 <i class="fas fa-route"></i>
-                                <p>No hay pedidos registrados para el rango y la operadora seleccionados.</p>
+                                <p>No hay pedidos registrados para el rango, la operadora y la unidad seleccionados.</p>
                             </td>
                         </tr>
                     }
@@ -85,6 +98,8 @@
 @code {
     private List<string> usuarios = new();
     private string usuarioSeleccionado = string.Empty;
+    private List<string> unidades = new();
+    private string unidadSeleccionada = string.Empty;
     private DateTime fechaDesde = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
     private DateTime fechaHasta = DateTime.Today;
     private List<PedidoOperadoraDTO> lista = new();
@@ -94,10 +109,11 @@
         try
         {
             usuarios = await pedidoRepo.GetUsuariosDisponibles();
+            unidades = await pedidoRepo.GetUnidadesConPedidos();
         }
         catch (Exception ex)
         {
-            await displayMessage.DisplayErrorMessage("Error al cargar las operadoras: " + ex.Message);
+            await displayMessage.DisplayErrorMessage("Error al cargar los filtros: " + ex.Message);
         }
 
         await Buscar();
@@ -107,6 +123,15 @@
     {
         usuarioSeleccionado = e.Value?.ToString() ?? "";
         if (usuarioSeleccionado == "" || usuarios.Contains(usuarioSeleccionado))
+        {
+            await Buscar();
+        }
+    }
+
+    private async Task OnUnidadInput(ChangeEventArgs e)
+    {
+        unidadSeleccionada = e.Value?.ToString() ?? "";
+        if (unidadSeleccionada == "" || unidades.Contains(unidadSeleccionada))
         {
             await Buscar();
         }
@@ -122,7 +147,7 @@
 
         try
         {
-            lista = await pedidoRepo.GetPedidosPorOperadora(usuarioSeleccionado, fechaDesde, fechaHasta);
+            lista = await pedidoRepo.GetPedidosPorOperadora(usuarioSeleccionado, fechaDesde, fechaHasta, unidadSeleccionada);
         }
         catch (Exception ex)
         {
@@ -134,7 +159,7 @@
     {
         try
         {
-            var pdfBytes = await pedidoRepo.ExportarReporteSolicitudCarreraPdf(usuarioSeleccionado, fechaDesde, fechaHasta);
+            var pdfBytes = await pedidoRepo.ExportarReporteSolicitudCarreraPdf(usuarioSeleccionado, fechaDesde, fechaHasta, unidadSeleccionada);
 
             if (pdfBytes == null || pdfBytes.Length == 0)
             {

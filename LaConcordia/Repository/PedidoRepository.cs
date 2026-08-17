@@ -110,20 +110,29 @@ namespace LaConcordia.Repository
             return await _httpClient.GetFromJsonAsync<List<string>>("api/Pedido/GetUsuariosDisponibles") ?? new List<string>();
         }
 
-        public async Task<List<PedidoOperadoraDTO>> GetPedidosPorOperadora(string? usuario, DateTime desde, DateTime hasta)
+        public async Task<List<string>> GetUnidadesConPedidos()
+        {
+            return await _httpClient.GetFromJsonAsync<List<string>>("api/Pedido/GetUnidadesConPedidos") ?? new List<string>();
+        }
+
+        public async Task<List<PedidoOperadoraDTO>> GetPedidosPorOperadora(string? usuario, DateTime desde, DateTime hasta, string? unidad = null)
         {
             var url = $"api/Pedido/GetPedidosPorOperadora?desde={desde:yyyy-MM-dd}&hasta={hasta:yyyy-MM-dd}";
             if (!string.IsNullOrEmpty(usuario))
                 url += $"&usuario={Uri.EscapeDataString(usuario)}";
+            if (!string.IsNullOrEmpty(unidad))
+                url += $"&unidad={Uri.EscapeDataString(unidad)}";
 
             return await _httpClient.GetFromJsonAsync<List<PedidoOperadoraDTO>>(url) ?? new List<PedidoOperadoraDTO>();
         }
 
-        public async Task<byte[]> ExportarReporteSolicitudCarreraPdf(string? usuario, DateTime desde, DateTime hasta)
+        public async Task<byte[]> ExportarReporteSolicitudCarreraPdf(string? usuario, DateTime desde, DateTime hasta, string? unidad = null)
         {
             var url = $"api/Pedido/ExportarReporteSolicitudCarreraPdf?desde={desde:yyyy-MM-dd}&hasta={hasta:yyyy-MM-dd}";
             if (!string.IsNullOrEmpty(usuario))
                 url += $"&usuario={Uri.EscapeDataString(usuario)}";
+            if (!string.IsNullOrEmpty(unidad))
+                url += $"&unidad={Uri.EscapeDataString(unidad)}";
 
             var response = await _httpClient.GetAsync(url);
             if (!response.IsSuccessStatusCode)
