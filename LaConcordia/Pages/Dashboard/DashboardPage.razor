@@ -83,6 +83,57 @@
                 }
             </div>
         }
+
+        <hr class="my-4" />
+
+        <h5 class="text-center mb-4">Top 10 de las Unidades con Más Carreras</h5>
+
+        @if (cargando)
+        {
+            <div class="text-center text-muted py-5">Cargando…</div>
+        }
+        else if (datosUnidad.Count == 0)
+        {
+            <div class="empty-state">
+                <i class="fas fa-chart-bar"></i>
+                <p>No hay pedidos registrados en el rango seleccionado.</p>
+            </div>
+        }
+        else
+        {
+            <div style="height: @(ChartAltoPx)px; position: relative; padding-left: 55px; margin-top: 10px;">
+                @for (int i = 0; i <= 4; i++)
+                {
+                    var valor = MaxEjeUnidad * i / 4;
+                    var bottomPx = ChartAltoPx * i / 4;
+                    <div style="position: absolute; left: 0; right: 0; bottom: @(bottomPx)px; border-top: 1px dashed #e5e7eb;">
+                        <span style="position: absolute; left: -50px; top: -8px; font-size: 0.7rem; color: #6c757d; width: 42px; text-align: right;">@valor</span>
+                    </div>
+                }
+                <div style="position: absolute; left: 55px; right: 0; bottom: 0; top: 0; border-left: 2px solid #333; border-bottom: 2px solid #333;"></div>
+
+                <div style="display: flex; gap: 2rem; height: @(ChartAltoPx)px; width: 100%; padding-left: 20px; position: relative; box-sizing: border-box;">
+                    @for (int i = 0; i < datosUnidad.Count; i++)
+                    {
+                        var alturaPx = MaxEjeUnidad == 0 ? 0 : (int)Math.Round(datosUnidad[i].Cantidad * (double)ChartAltoPx / MaxEjeUnidad);
+                        <div style="display: flex; flex-direction: column; align-items: center; flex: 1; position: relative; height: @(ChartAltoPx)px;">
+                            <div style="position: absolute; bottom: @(alturaPx)px; width: 100%; text-align: center;">
+                                <span style="font-size: 0.75rem; font-weight: 600;">@datosUnidad[i].Cantidad</span>
+                            </div>
+                            <div style="position: absolute; bottom: 0; width: 60%; height: @(alturaPx)px; background: @ColorUsuario(i); border-radius: 3px 3px 0 0;"></div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 2rem; padding-left: 75px; margin-top: 6px;">
+                @for (int i = 0; i < datosUnidad.Count; i++)
+                {
+                    <div style="flex: 1; text-align: center; font-size: 0.8rem; font-weight: 600;">@datosUnidad[i].Unidad</div>
+                }
+            </div>
+            <p class="text-center text-muted mt-1" style="font-size: 0.8rem;">UNIDAD</p>
+        }
     </div>
 </div>
 
@@ -90,6 +141,7 @@
     private DateTime desde = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
     private DateTime hasta = DateTime.Today;
     private List<PedidosPorUsuarioDTO> datos = new();
+    private List<PedidosPorUnidadDTO> datosUnidad = new();
     private bool cargando = false;
 
     private static readonly string[] Paleta =
@@ -104,6 +156,10 @@
     private int MaxEje => datos.Count == 0
         ? 100
         : (int)(Math.Ceiling((datos.Max(x => x.Cantidad) + 1) / 100.0) * 100);
+
+    private int MaxEjeUnidad => datosUnidad.Count == 0
+        ? 100
+        : (int)(Math.Ceiling((datosUnidad.Max(x => x.Cantidad) + 1) / 100.0) * 100);
 
     protected override async Task OnInitializedAsync()
     {
@@ -122,6 +178,7 @@
         try
         {
             datos = await pedidoRepo.GetCantidadPedidosPorUsuario(desde, hasta);
+            datosUnidad = await pedidoRepo.GetTopUnidadesConMasCarreras(desde, hasta);
         }
         catch (Exception ex)
         {

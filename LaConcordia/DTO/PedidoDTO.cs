@@ -56,6 +56,12 @@ namespace LaConcordia.DTO
         public int Cantidad { get; set; }
     }
 
+    public class PedidosPorUnidadDTO
+    {
+        public string Unidad { get; set; } = null!;
+        public int Cantidad { get; set; }
+    }
+
     public class PedidoOperadoraDTO
     {
         public DateTime Fecharegistro { get; set; }

@@ -105,6 +105,12 @@ namespace LaConcordia.Repository
             return await _httpClient.GetFromJsonAsync<List<PedidosPorUsuarioDTO>>(url) ?? new List<PedidosPorUsuarioDTO>();
         }
 
+        public async Task<List<PedidosPorUnidadDTO>> GetTopUnidadesConMasCarreras(DateTime desde, DateTime hasta)
+        {
+            var url = $"api/Pedido/GetTopUnidadesConMasCarreras?desde={desde:yyyy-MM-dd}&hasta={hasta:yyyy-MM-dd}";
+            return await _httpClient.GetFromJsonAsync<List<PedidosPorUnidadDTO>>(url) ?? new List<PedidosPorUnidadDTO>();
+        }
+
         public async Task<List<string>> GetUsuariosDisponibles()
         {
             return await _httpClient.GetFromJsonAsync<List<string>>("api/Pedido/GetUsuariosDisponibles") ?? new List<string>();
