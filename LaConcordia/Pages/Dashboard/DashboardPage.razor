@@ -2,6 +2,9 @@
 @using LaConcordia.DTO
 @using LaConcordia.Interface
 @inject IPedido pedidoRepo
+@inject IOrdenPago ordenPagoRepo
+@inject IPagos pagosRepo
+@inject IBalance balanceRepo
 @inject IDisplayMessage displayMessage
 
 <link href="css/AdminCommon.css" rel="stylesheet" />
@@ -134,6 +137,71 @@
             </div>
             <p class="text-center text-muted mt-1" style="font-size: 0.8rem;">UNIDAD</p>
         }
+
+        <hr class="my-4" />
+
+        <h5 class="text-center mb-1">Vouchers Emitidos</h5>
+        @if (cargando)
+        {
+            <div class="text-center text-muted py-5">Cargando…</div>
+        }
+        else
+        {
+            <p class="text-center text-muted mb-2" style="font-size: 0.85rem;">
+                Total: @resumenVoucher.Total | Monto Total: @resumenVoucher.MontoTotal.ToString("0.00")
+            </p>
+            <MiniBarChart Etiquetas="@(new List<string> { "Total", "Procesados", "Pendientes" })"
+                          Valores="@(new List<double> { resumenVoucher.Total, resumenVoucher.Procesados, resumenVoucher.Pendientes })"
+                          SubEtiquetas="@(new List<string> {
+                                            $"$ {resumenVoucher.MontoTotal:0.00}",
+                                            $"$ {resumenVoucher.MontoProcesado:0.00}",
+                                            $"$ {resumenVoucher.MontoPendiente:0.00}" })"
+                          Colores="@(new List<string> { "#2f5496", "#16a34a", "#dc2626" })" />
+        }
+
+        <hr class="my-4" />
+
+        <h5 class="text-center mb-1">Cobros de Monitoria</h5>
+        @if (cargando)
+        {
+            <div class="text-center text-muted py-5">Cargando…</div>
+        }
+        else
+        {
+            <p class="text-center text-muted mb-2" style="font-size: 0.85rem;">
+                Cuotas Generadas: @resumenMonitoria.CuotasGeneradas | Monto Cobrado en el Rango: @resumenMonitoria.MontoCobrado.ToString("0.00")
+            </p>
+            <MiniBarChart Etiquetas="@(new List<string> { "Generadas", "Pagadas", "Pendientes" })"
+                          Valores="@(new List<double> { resumenMonitoria.CuotasGeneradas, resumenMonitoria.CuotasPagadas, resumenMonitoria.CuotasPendientes })"
+                          SubEtiquetas="@(new List<string> {
+                                            $"$ {resumenMonitoria.MontoGenerado:0.00}",
+                                            $"$ {resumenMonitoria.MontoCobrado:0.00}",
+                                            $"$ {resumenMonitoria.MontoPendiente:0.00}" })"
+                          Colores="@(new List<string> { "#2f5496", "#16a34a", "#dc2626" })" />
+        }
+
+        <hr class="my-4" />
+
+        <h5 class="text-center mb-1">Balance (Ingresos por Forma de Pago)</h5>
+        @if (cargando)
+        {
+            <div class="text-center text-muted py-5">Cargando…</div>
+        }
+        else if (balance == null || balance.Items.Count == 0)
+        {
+            <div class="empty-state">
+                <i class="fas fa-chart-pie"></i>
+                <p>No hay pagos registrados en el rango seleccionado.</p>
+            </div>
+        }
+        else
+        {
+            <p class="text-center text-muted mb-2" style="font-size: 0.85rem;">Total: @balance.Total.ToString("0.00")</p>
+            <MiniBarChart Etiquetas="@(balance.Items.Select(x => x.FormaDePago).ToList())"
+                          Valores="@(balance.Items.Select(x => (double)x.Valor).ToList())"
+                          SubEtiquetas="@(balance.Items.Select(x => $"{x.Registros} pagos").ToList())"
+                          EsMoneda="true" />
+        }
     </div>
 </div>
 
@@ -142,6 +210,9 @@
     private DateTime hasta = DateTime.Today;
     private List<PedidosPorUsuarioDTO> datos = new();
     private List<PedidosPorUnidadDTO> datosUnidad = new();
+    private ResumenVoucherDTO resumenVoucher = new();
+    private ResumenMonitoriaDTO resumenMonitoria = new();
+    private BalanceResultadoDTO? balance;
     private bool cargando = false;
 
     private static readonly string[] Paleta =
@@ -179,6 +250,9 @@
         {
             datos = await pedidoRepo.GetCantidadPedidosPorUsuario(desde, hasta);
             datosUnidad = await pedidoRepo.GetTopUnidadesConMasCarreras(desde, hasta);
+            resumenVoucher = await ordenPagoRepo.GetResumenVouchers(desde, hasta);
+            resumenMonitoria = await pagosRepo.GetResumenMonitoria(desde, hasta);
+            balance = await balanceRepo.GetBalance(desde, hasta);
         }
         catch (Exception ex)
         {

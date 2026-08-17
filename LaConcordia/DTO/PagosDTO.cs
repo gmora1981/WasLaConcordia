@@ -65,6 +65,16 @@ namespace LaConcordia.DTO
         public string? Detalle { get; set; }
     }
 
+    public class ResumenMonitoriaDTO
+    {
+        public int CuotasGeneradas { get; set; }
+        public int CuotasPagadas { get; set; }
+        public int CuotasPendientes { get; set; }
+        public decimal MontoGenerado { get; set; }
+        public decimal MontoCobrado { get; set; }
+        public decimal MontoPendiente { get; set; }
+    }
+
     public class DetallePagoMonitoriaDTO
     {
         public string Periodo { get; set; } = null!;

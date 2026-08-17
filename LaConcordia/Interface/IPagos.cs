@@ -11,5 +11,7 @@ namespace LaConcordia.Interface
 
         Task<List<DetallePagoMonitoriaDTO>> GetDetallePagosPorUnidad(string unidad, DateTime desde, DateTime hasta);
         Task<byte[]> ExportarReporteDetallePagosPdf(string unidad, DateTime desde, DateTime hasta);
+
+        Task<ResumenMonitoriaDTO> GetResumenMonitoria(DateTime desde, DateTime hasta);
     }
 }

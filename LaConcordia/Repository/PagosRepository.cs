@@ -70,5 +70,11 @@ namespace LaConcordia.Repository
 
             return await response.Content.ReadAsByteArrayAsync();
         }
+
+        public async Task<ResumenMonitoriaDTO> GetResumenMonitoria(DateTime desde, DateTime hasta)
+        {
+            var url = $"api/Pagos/GetResumenMonitoria?desde={desde:yyyy-MM-dd}&hasta={hasta:yyyy-MM-dd}";
+            return await _httpClient.GetFromJsonAsync<ResumenMonitoriaDTO>(url) ?? new ResumenMonitoriaDTO();
+        }
     }
 }

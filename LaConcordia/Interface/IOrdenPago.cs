@@ -18,5 +18,7 @@ namespace LaConcordia.Interface
 
         Task<List<ReporteVoucherPagarDTO>> GetVouchersPendientesPorUnidad(string? unidad, DateTime desde, DateTime hasta);
         Task<byte[]> ExportarReporteVoucherPagarPdf(string? unidad, DateTime desde, DateTime hasta);
+
+        Task<ResumenVoucherDTO> GetResumenVouchers(DateTime desde, DateTime hasta);
     }
 }

@@ -79,6 +79,16 @@ namespace LaConcordia.DTO
         public decimal? Precio { get; set; }
     }
 
+    public class ResumenVoucherDTO
+    {
+        public int Total { get; set; }
+        public int Procesados { get; set; }
+        public int Pendientes { get; set; }
+        public decimal MontoTotal { get; set; }
+        public decimal MontoProcesado { get; set; }
+        public decimal MontoPendiente { get; set; }
+    }
+
     public class OrdenPagoResumenDTO
     {
         public string Numvoucher { get; set; } = null!;

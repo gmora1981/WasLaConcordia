@@ -1,0 +1,71 @@
+@* Grafico de barras simple y generico (alturas en pixeles, no en %, para evitar problemas de
+   resolucion de porcentajes anidados en flexbox entre navegadores). Usado por las secciones del
+   Dashboard que no necesitan el detalle de MaxEje/colores propios de los graficos originales. *@
+
+<div style="height: @(AltoPx)px; position: relative; padding-left: 55px; margin-top: 10px;">
+    @for (int i = 0; i <= 4; i++)
+    {
+        var valor = MaxEje * i / 4;
+        var bottomPx = AltoPx * i / 4;
+        <div style="position: absolute; left: 0; right: 0; bottom: @(bottomPx)px; border-top: 1px dashed #e5e7eb;">
+            <span style="position: absolute; left: -50px; top: -8px; font-size: 0.7rem; color: #6c757d; width: 42px; text-align: right;">@FormatearNumero(valor)</span>
+        </div>
+    }
+    <div style="position: absolute; left: 55px; right: 0; bottom: 0; top: 0; border-left: 2px solid #333; border-bottom: 2px solid #333;"></div>
+
+    <div style="display: flex; gap: 2rem; height: @(AltoPx)px; width: 100%; padding-left: 20px; position: relative; box-sizing: border-box;">
+        @for (int i = 0; i < Valores.Count; i++)
+        {
+            var alturaPx = MaxEje == 0 ? 0 : (int)Math.Round(Valores[i] * (double)AltoPx / MaxEje);
+            <div style="display: flex; flex-direction: column; align-items: center; flex: 1; position: relative; height: @(AltoPx)px;">
+                <div style="position: absolute; bottom: @(alturaPx)px; width: 100%; text-align: center;">
+                    <span style="font-size: 0.75rem; font-weight: 600;">@FormatearNumero(Valores[i])</span>
+                </div>
+                <div style="position: absolute; bottom: 0; width: 60%; height: @(alturaPx)px; background: @Color(i); border-radius: 3px 3px 0 0;"></div>
+            </div>
+        }
+    </div>
+</div>
+
+<div style="display: flex; gap: 2rem; padding-left: 75px; margin-top: 6px;">
+    @for (int i = 0; i < Etiquetas.Count; i++)
+    {
+        <div style="flex: 1; text-align: center;">
+            <div style="font-size: 0.8rem; font-weight: 600;">@Etiquetas[i]</div>
+            @if (SubEtiquetas != null && i < SubEtiquetas.Count)
+            {
+                <div style="font-size: 0.7rem; color: #6c757d;">@SubEtiquetas[i]</div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public List<string> Etiquetas { get; set; } = new();
+    [Parameter] public List<double> Valores { get; set; } = new();
+    [Parameter] public List<string>? SubEtiquetas { get; set; }
+    [Parameter] public List<string>? Colores { get; set; }
+    [Parameter] public int AltoPx { get; set; } = 240;
+    [Parameter] public bool EsMoneda { get; set; } = false;
+
+    private static readonly string[] Paleta =
+    {
+        "#2f5496", "#16a34a", "#dc2626", "#f59e0b", "#7c3aed", "#0891b2", "#db2777", "#65a30d"
+    };
+
+    private double MaxEje => Valores.Count == 0 || Valores.Max() <= 0
+        ? 100
+        : RedondearArriba(Valores.Max());
+
+    private static double RedondearArriba(double max)
+    {
+        var magnitud = Math.Pow(10, Math.Floor(Math.Log10(max)));
+        return Math.Ceiling((max + magnitud * 0.1) / magnitud) * magnitud;
+    }
+
+    private string Color(int index) => Colores != null && index < Colores.Count
+        ? Colores[index]
+        : Paleta[index % Paleta.Length];
+
+    private string FormatearNumero(double valor) => EsMoneda ? valor.ToString("N2") : Math.Round(valor).ToString("N0");
+}
