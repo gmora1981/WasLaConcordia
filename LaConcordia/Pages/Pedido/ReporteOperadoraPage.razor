@@ -18,13 +18,14 @@
         <div class="d-flex gap-2 mb-3" style="flex-wrap: wrap; align-items: end;">
             <div class="form-group" style="width: 220px; margin-bottom: 0;">
                 <label class="form-label">Operadora</label>
-                <select class="form-control" @bind="usuarioSeleccionado" @bind:after="Buscar">
-                    <option value="">-- Todas --</option>
+                <input class="form-control" list="usuariosList" placeholder="-- Todas --"
+                       value="@usuarioSeleccionado" @oninput="OnUsuarioInput" />
+                <datalist id="usuariosList">
                     @foreach (var u in usuarios)
                     {
                         <option value="@u">@u</option>
                     }
-                </select>
+                </datalist>
             </div>
             <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label">Desde</label>
@@ -100,6 +101,15 @@
         }
 
         await Buscar();
+    }
+
+    private async Task OnUsuarioInput(ChangeEventArgs e)
+    {
+        usuarioSeleccionado = e.Value?.ToString() ?? "";
+        if (usuarioSeleccionado == "" || usuarios.Contains(usuarioSeleccionado))
+        {
+            await Buscar();
+        }
     }
 
     private async Task Buscar()
