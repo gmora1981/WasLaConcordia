@@ -64,4 +64,14 @@ namespace LaConcordia.DTO
         public string? NumComprobante { get; set; }
         public string? Detalle { get; set; }
     }
+
+    public class DetallePagoMonitoriaDTO
+    {
+        public string Periodo { get; set; } = null!;
+        public string Semana { get; set; } = null!;
+        public DateTime Fechapago { get; set; }
+        public decimal? Valorpagado { get; set; }
+        public string? Formadepago { get; set; }
+        public string? Detalle { get; set; }
+    }
 }

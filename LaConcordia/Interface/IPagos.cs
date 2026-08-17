@@ -8,5 +8,8 @@ namespace LaConcordia.Interface
         Task<bool> ExisteComprobante(string banco, string numComprobante);
         Task PagarCuota(PagoCuotaRequestDTO request);
         Task PagarUbm(PagoUbmRequestDTO request);
+
+        Task<List<DetallePagoMonitoriaDTO>> GetDetallePagosPorUnidad(string unidad, DateTime desde, DateTime hasta);
+        Task<byte[]> ExportarReporteDetallePagosPdf(string unidad, DateTime desde, DateTime hasta);
     }
 }
