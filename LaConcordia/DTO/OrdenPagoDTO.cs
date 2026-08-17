@@ -70,6 +70,15 @@ namespace LaConcordia.DTO
         public decimal SaldoFinal { get; set; }
     }
 
+    public class ReporteVoucherPagarDTO
+    {
+        public DateTime Fecharegistro { get; set; }
+        public string? CalleOrigen { get; set; }
+        public string? CalleDestino { get; set; }
+        public string? Empresa { get; set; }
+        public decimal? Precio { get; set; }
+    }
+
     public class OrdenPagoResumenDTO
     {
         public string Numvoucher { get; set; } = null!;

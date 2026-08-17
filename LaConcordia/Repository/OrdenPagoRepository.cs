@@ -78,5 +78,30 @@ namespace LaConcordia.Repository
 
             return await response.Content.ReadAsByteArrayAsync();
         }
+
+        public async Task<List<ReporteVoucherPagarDTO>> GetVouchersPendientesPorUnidad(string? unidad, DateTime desde, DateTime hasta)
+        {
+            var url = $"api/OrdenPago/GetVouchersPendientesPorUnidad?desde={desde:yyyy-MM-dd}&hasta={hasta:yyyy-MM-dd}";
+            if (!string.IsNullOrEmpty(unidad))
+                url += $"&unidad={Uri.EscapeDataString(unidad)}";
+
+            return await _httpClient.GetFromJsonAsync<List<ReporteVoucherPagarDTO>>(url) ?? new List<ReporteVoucherPagarDTO>();
+        }
+
+        public async Task<byte[]> ExportarReporteVoucherPagarPdf(string? unidad, DateTime desde, DateTime hasta)
+        {
+            var url = $"api/OrdenPago/ExportarReporteVoucherPagarPdf?desde={desde:yyyy-MM-dd}&hasta={hasta:yyyy-MM-dd}";
+            if (!string.IsNullOrEmpty(unidad))
+                url += $"&unidad={Uri.EscapeDataString(unidad)}";
+
+            var response = await _httpClient.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Error al exportar el reporte: {errorContent}");
+            }
+
+            return await response.Content.ReadAsByteArrayAsync();
+        }
     }
 }

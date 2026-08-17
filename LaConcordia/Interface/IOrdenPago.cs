@@ -15,5 +15,8 @@ namespace LaConcordia.Interface
         Task ActualizarDatosPedido(ActualizarDatosPedidoRequestDTO request);
 
         Task<byte[]> ExportarFacturacionPdf(string ruc, string razonSocial, DateTime? hasta);
+
+        Task<List<ReporteVoucherPagarDTO>> GetVouchersPendientesPorUnidad(string? unidad, DateTime desde, DateTime hasta);
+        Task<byte[]> ExportarReporteVoucherPagarPdf(string? unidad, DateTime desde, DateTime hasta);
     }
 }

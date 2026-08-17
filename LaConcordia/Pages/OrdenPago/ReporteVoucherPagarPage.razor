@@ -1,0 +1,158 @@
+@page "/reporte-voucher-pagar"
+@using LaConcordia.DTO
+@using LaConcordia.Interface
+@inject IOrdenPago ordenPagoRepo
+@inject IPedido pedidoRepo
+@inject IDisplayMessage displayMessage
+@inject IJSRuntime JS
+
+<link href="css/AdminCommon.css" rel="stylesheet" />
+
+<div class="page-container">
+    <div class="content-card">
+        <div class="header-section">
+            <h1 class="page-title">
+                <i class="fas fa-file-invoice-dollar"></i> Reporte de Voucher por Pagar
+            </h1>
+        </div>
+
+        <div class="d-flex gap-2 mb-3" style="flex-wrap: wrap; align-items: end;">
+            <div class="form-group" style="width: 200px; margin-bottom: 0;">
+                <label class="form-label">Unidad</label>
+                <input class="form-control" list="unidadesList" placeholder="-- Todas --"
+                       value="@unidadSeleccionada" @oninput="OnUnidadInput" />
+                <datalist id="unidadesList">
+                    @foreach (var u in unidades)
+                    {
+                        <option value="@u">@u</option>
+                    }
+                </datalist>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Desde</label>
+                <input type="date" class="form-control" @bind="fechaDesde" @bind:after="Buscar" />
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label">Hasta</label>
+                <input type="date" class="form-control" @bind="fechaHasta" @bind:after="Buscar" />
+            </div>
+            <button class="btn-modern btn-secondary-modern" @onclick="ExportarPdf">
+                <i class="fas fa-file-pdf"></i> Exportar PDF
+            </button>
+        </div>
+
+        <p class="text-muted mb-2">Total: @lista.Count | Total Precio: @lista.Sum(x => x.Precio ?? 0).ToString("0.00")</p>
+
+        <div style="overflow-x: auto;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Fecha y Hora</th>
+                        <th>Calle de Origen</th>
+                        <th>Calle Destino</th>
+                        <th>Empresa</th>
+                        <th>Precio</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (lista.Count > 0)
+                    {
+                        @foreach (var p in lista)
+                        {
+                            <tr>
+                                <td>@p.Fecharegistro.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                                <td>@p.CalleOrigen</td>
+                                <td>@p.CalleDestino</td>
+                                <td>@p.Empresa</td>
+                                <td>@p.Precio?.ToString("0.00")</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="empty-state">
+                                <i class="fas fa-file-invoice-dollar"></i>
+                                <p>No hay vouchers pendientes de pago para el rango y la unidad seleccionados.</p>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<string> unidades = new();
+    private string unidadSeleccionada = string.Empty;
+    private DateTime fechaDesde = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private DateTime fechaHasta = DateTime.Today;
+    private List<ReporteVoucherPagarDTO> lista = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            unidades = await pedidoRepo.GetUnidadesConPedidos();
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al cargar los filtros: " + ex.Message);
+        }
+
+        await Buscar();
+    }
+
+    private async Task OnUnidadInput(ChangeEventArgs e)
+    {
+        unidadSeleccionada = e.Value?.ToString() ?? "";
+        if (unidadSeleccionada == "" || unidades.Contains(unidadSeleccionada))
+        {
+            await Buscar();
+        }
+    }
+
+    private async Task Buscar()
+    {
+        if (fechaDesde > fechaHasta)
+        {
+            await displayMessage.DisplayErrorMessage("La fecha 'Desde' no puede ser posterior a 'Hasta'.");
+            return;
+        }
+
+        try
+        {
+            lista = await ordenPagoRepo.GetVouchersPendientesPorUnidad(unidadSeleccionada, fechaDesde, fechaHasta);
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al cargar el reporte: " + ex.Message);
+        }
+    }
+
+    private async Task ExportarPdf()
+    {
+        try
+        {
+            var pdfBytes = await ordenPagoRepo.ExportarReporteVoucherPagarPdf(unidadSeleccionada, fechaDesde, fechaHasta);
+
+            if (pdfBytes == null || pdfBytes.Length == 0)
+            {
+                await displayMessage.DisplayErrorMessage("El PDF generado está vacío.");
+                return;
+            }
+
+            await JS.InvokeVoidAsync("downloadFileFromByteArray", new
+            {
+                byteArray = pdfBytes,
+                fileName = "ReporteVoucherPorPagar.pdf",
+                contentType = "application/pdf"
+            });
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al exportar el reporte: " + ex.Message);
+        }
+    }
+}
