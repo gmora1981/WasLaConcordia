@@ -11,196 +11,179 @@
 
 <div class="page-container">
     <div class="content-card">
-        <div class="header-section">
-            <h1 class="page-title">
-                <i class="fas fa-chart-bar"></i> Dashboard
-            </h1>
-        </div>
 
-        <div class="d-flex gap-2 mb-3" style="flex-wrap: wrap; align-items: end;">
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">Desde</label>
-                <input type="date" class="form-control" @bind="desde" @bind:after="Cargar" />
+        <div class="dash-header">
+            <div>
+                <h1 class="dash-title">Dashboard Overview</h1>
+                <p class="dash-subtitle">Métricas operativas y resumen financiero.</p>
             </div>
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">Hasta</label>
-                <input type="date" class="form-control" @bind="hasta" @bind:after="Cargar" />
+            <div class="dash-date-pill">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Desde:</span>
+                <input type="date" @bind="desde" @bind:after="Cargar" />
+                <span>-</span>
+                <span>Hasta:</span>
+                <input type="date" @bind="hasta" @bind:after="Cargar" />
             </div>
         </div>
-
-        <h5 class="text-center mb-4">Total de Ingresos de Carreras Asignadas</h5>
 
         @if (cargando)
         {
             <div class="text-center text-muted py-5">Cargando…</div>
         }
-        else if (datos.Count == 0)
-        {
-            <div class="empty-state">
-                <i class="fas fa-chart-bar"></i>
-                <p>No hay pedidos registrados en el rango seleccionado.</p>
-            </div>
-        }
         else
         {
-            <div style="height: @(ChartAltoPx)px; position: relative; padding-left: 55px; margin-top: 10px;">
-                @for (int i = 0; i <= 4; i++)
-                {
-                    var valor = MaxEje * i / 4;
-                    var bottomPx = ChartAltoPx * i / 4;
-                    <div style="position: absolute; left: 0; right: 0; bottom: @(bottomPx)px; border-top: 1px dashed #e5e7eb;">
-                        <span style="position: absolute; left: -50px; top: -8px; font-size: 0.7rem; color: #6c757d; width: 42px; text-align: right;">@valor</span>
-                    </div>
-                }
-                <div style="position: absolute; left: 55px; right: 0; bottom: 0; top: 0; border-left: 2px solid #333; border-bottom: 2px solid #333;"></div>
-
-                <div style="display: flex; gap: 2rem; height: @(ChartAltoPx)px; width: 100%; padding-left: 20px; position: relative; box-sizing: border-box;">
-                    @for (int i = 0; i < datos.Count; i++)
-                    {
-                        var alturaPx = MaxEje == 0 ? 0 : (int)Math.Round(datos[i].Cantidad * (double)ChartAltoPx / MaxEje);
-                        <div style="display: flex; flex-direction: column; align-items: center; flex: 1; position: relative; height: @(ChartAltoPx)px;">
-                            <div style="position: absolute; bottom: @(alturaPx)px; width: 100%; text-align: center;">
-                                <span style="font-size: 0.75rem; font-weight: 600;">@datos[i].Cantidad</span>
-                            </div>
-                            <div style="position: absolute; bottom: 0; width: 60%; height: @(alturaPx)px; background: @ColorUsuario(i); border-radius: 3px 3px 0 0;"></div>
+            <div class="dash-kpi-row">
+                <div class="dash-kpi-card">
+                    <div class="dash-kpi-icon bg-blue"><i class="fas fa-route"></i></div>
+                    <div>
+                        <div class="dash-kpi-label">Total Carreras</div>
+                        <div class="dash-kpi-value">
+                            @totalCarreras.ToString("N0")
+                            @if (variacionCarreras.HasValue)
+                            {
+                                <span class="dash-kpi-badge @(variacionCarreras.Value >= 0 ? "up" : "down")">
+                                    <i class="fas fa-arrow-@(variacionCarreras.Value >= 0 ? "up" : "down")"></i>
+                                    @Math.Abs(variacionCarreras.Value).ToString("0")%
+                                </span>
+                            }
                         </div>
+                    </div>
+                </div>
+                <div class="dash-kpi-card">
+                    <div class="dash-kpi-icon bg-red"><i class="fas fa-exclamation-circle"></i></div>
+                    <div>
+                        <div class="dash-kpi-label">Vouchers Pendientes</div>
+                        <div class="dash-kpi-value text-red">$@resumenVoucher.MontoPendiente.ToString("N0")</div>
+                    </div>
+                </div>
+                <div class="dash-kpi-card">
+                    <div class="dash-kpi-icon bg-blue"><i class="fas fa-wallet"></i></div>
+                    <div>
+                        <div class="dash-kpi-label">Balance Total</div>
+                        <div class="dash-kpi-value">$@((balance?.Total ?? 0).ToString("N0"))</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dash-grid-main">
+                <div class="dash-card">
+                    <h3>Total de Ingresos de Carreras Asignadas</h3>
+                    @if (datos.Count == 0)
+                    {
+                        <div class="empty-state">
+                            <i class="fas fa-chart-bar"></i>
+                            <p>No hay pedidos registrados en el rango seleccionado.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <BarraPixeles Etiquetas="@(datos.Select(x => x.Usuario).ToList())"
+                                      Valores="@(datos.Select(x => (double)x.Cantidad).ToList())" />
+                    }
+                </div>
+
+                <div class="dash-card">
+                    <h3>Vouchers Emitidos</h3>
+                    <div class="dash-list-row">
+                        <span class="dash-dot bg-blue"></span>
+                        <div class="dash-list-info">
+                            <div class="dash-list-label">Total</div>
+                            <div class="dash-list-sub">@resumenVoucher.Total uds</div>
+                        </div>
+                        <div class="dash-list-value">$@resumenVoucher.MontoTotal.ToString("N0")</div>
+                    </div>
+                    <div class="dash-list-row">
+                        <span class="dash-dot bg-green"></span>
+                        <div class="dash-list-info">
+                            <div class="dash-list-label">Procesados</div>
+                            <div class="dash-list-sub">@resumenVoucher.Procesados uds</div>
+                        </div>
+                        <div class="dash-list-value text-green">$@resumenVoucher.MontoProcesado.ToString("N0")</div>
+                    </div>
+                    <div class="dash-list-row">
+                        <span class="dash-dot bg-red"></span>
+                        <div class="dash-list-info">
+                            <div class="dash-list-label">Pendientes</div>
+                            <div class="dash-list-sub">@resumenVoucher.Pendientes uds</div>
+                        </div>
+                        <div class="dash-list-value text-red">$@resumenVoucher.MontoPendiente.ToString("N0")</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dash-grid-secondary">
+                <div class="dash-card">
+                    <h3>Cobros de Monitoria</h3>
+                    <div class="dash-list-row">
+                        <span class="dash-dot bg-blue"></span>
+                        <div class="dash-list-info">
+                            <div class="dash-list-label">Generadas</div>
+                            <div class="dash-list-sub">@resumenMonitoria.CuotasGeneradas uds</div>
+                        </div>
+                        <div class="dash-list-value">$@resumenMonitoria.MontoGenerado.ToString("N0")</div>
+                    </div>
+                    <div class="dash-list-row">
+                        <span class="dash-dot bg-green"></span>
+                        <div class="dash-list-info">
+                            <div class="dash-list-label">Pagadas</div>
+                            <div class="dash-list-sub">@resumenMonitoria.CuotasPagadas uds</div>
+                        </div>
+                        <div class="dash-list-value text-green">$@resumenMonitoria.MontoCobrado.ToString("N0")</div>
+                    </div>
+                    <div class="dash-list-row">
+                        <span class="dash-dot bg-red"></span>
+                        <div class="dash-list-info">
+                            <div class="dash-list-label">Pendientes</div>
+                            <div class="dash-list-sub">@resumenMonitoria.CuotasPendientes uds</div>
+                        </div>
+                        <div class="dash-list-value text-red">$@resumenMonitoria.MontoPendiente.ToString("N0")</div>
+                    </div>
+                </div>
+
+                <div class="dash-card">
+                    <h3>Balance por Pago</h3>
+                    @if (balance == null || balance.Items.Count == 0)
+                    {
+                        <div class="empty-state">
+                            <i class="fas fa-chart-pie"></i>
+                            <p>No hay pagos registrados en el rango seleccionado.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var item in balance.Items.OrderByDescending(x => x.Valor))
+                        {
+                            var porcentaje = balance.Total == 0 ? 0 : (double)(item.Valor / balance.Total * 100);
+                            <div class="dash-progress-row">
+                                <div class="dash-progress-top">
+                                    <span class="label">@item.FormaDePago (@porcentaje.ToString("0")%)</span>
+                                    <span class="value">$@item.Valor.ToString("N0")</span>
+                                </div>
+                                <div class="dash-progress-track">
+                                    <div class="dash-progress-fill" style="width: @(porcentaje.ToString("0.0"))%;"></div>
+                                </div>
+                            </div>
+                        }
                     }
                 </div>
             </div>
 
-            <div style="display: flex; gap: 2rem; padding-left: 75px; margin-top: 6px;">
-                @for (int i = 0; i < datos.Count; i++)
+            <div class="dash-card">
+                <h3>Top 10 de las Unidades con Más Carreras</h3>
+                @if (datosUnidad.Count == 0)
                 {
-                    <div style="flex: 1; text-align: center; font-size: 0.8rem; font-weight: 600;">@datos[i].Usuario</div>
-                }
-            </div>
-            <p class="text-center text-muted mt-1" style="font-size: 0.8rem;">USUARIO</p>
-
-            <div class="d-flex gap-3 mt-3 justify-content-center flex-wrap">
-                @for (int i = 0; i < datos.Count; i++)
-                {
-                    <div class="d-flex align-items-center gap-1">
-                        <span style="width: 14px; height: 14px; background: @ColorUsuario(i); display: inline-block; border-radius: 2px;"></span>
-                        <span style="font-size: 0.8rem;">@datos[i].Usuario</span>
+                    <div class="empty-state">
+                        <i class="fas fa-chart-bar"></i>
+                        <p>No hay pedidos registrados en el rango seleccionado.</p>
                     </div>
                 }
-            </div>
-        }
-
-        <hr class="my-4" />
-
-        <h5 class="text-center mb-4">Top 10 de las Unidades con Más Carreras</h5>
-
-        @if (cargando)
-        {
-            <div class="text-center text-muted py-5">Cargando…</div>
-        }
-        else if (datosUnidad.Count == 0)
-        {
-            <div class="empty-state">
-                <i class="fas fa-chart-bar"></i>
-                <p>No hay pedidos registrados en el rango seleccionado.</p>
-            </div>
-        }
-        else
-        {
-            <div style="height: @(ChartAltoPx)px; position: relative; padding-left: 55px; margin-top: 10px;">
-                @for (int i = 0; i <= 4; i++)
+                else
                 {
-                    var valor = MaxEjeUnidad * i / 4;
-                    var bottomPx = ChartAltoPx * i / 4;
-                    <div style="position: absolute; left: 0; right: 0; bottom: @(bottomPx)px; border-top: 1px dashed #e5e7eb;">
-                        <span style="position: absolute; left: -50px; top: -8px; font-size: 0.7rem; color: #6c757d; width: 42px; text-align: right;">@valor</span>
-                    </div>
-                }
-                <div style="position: absolute; left: 55px; right: 0; bottom: 0; top: 0; border-left: 2px solid #333; border-bottom: 2px solid #333;"></div>
-
-                <div style="display: flex; gap: 2rem; height: @(ChartAltoPx)px; width: 100%; padding-left: 20px; position: relative; box-sizing: border-box;">
-                    @for (int i = 0; i < datosUnidad.Count; i++)
-                    {
-                        var alturaPx = MaxEjeUnidad == 0 ? 0 : (int)Math.Round(datosUnidad[i].Cantidad * (double)ChartAltoPx / MaxEjeUnidad);
-                        <div style="display: flex; flex-direction: column; align-items: center; flex: 1; position: relative; height: @(ChartAltoPx)px;">
-                            <div style="position: absolute; bottom: @(alturaPx)px; width: 100%; text-align: center;">
-                                <span style="font-size: 0.75rem; font-weight: 600;">@datosUnidad[i].Cantidad</span>
-                            </div>
-                            <div style="position: absolute; bottom: 0; width: 60%; height: @(alturaPx)px; background: @ColorUsuario(i); border-radius: 3px 3px 0 0;"></div>
-                        </div>
-                    }
-                </div>
-            </div>
-
-            <div style="display: flex; gap: 2rem; padding-left: 75px; margin-top: 6px;">
-                @for (int i = 0; i < datosUnidad.Count; i++)
-                {
-                    <div style="flex: 1; text-align: center; font-size: 0.8rem; font-weight: 600;">@datosUnidad[i].Unidad</div>
+                    <BarraPixeles Etiquetas="@(datosUnidad.Select(x => x.Unidad).ToList())"
+                                  Valores="@(datosUnidad.Select(x => (double)x.Cantidad).ToList())" />
                 }
             </div>
-            <p class="text-center text-muted mt-1" style="font-size: 0.8rem;">UNIDAD</p>
-        }
-
-        <hr class="my-4" />
-
-        <h5 class="text-center mb-1">Vouchers Emitidos</h5>
-        @if (cargando)
-        {
-            <div class="text-center text-muted py-5">Cargando…</div>
-        }
-        else
-        {
-            <p class="text-center text-muted mb-2" style="font-size: 0.85rem;">
-                Total: @resumenVoucher.Total | Monto Total: @resumenVoucher.MontoTotal.ToString("0.00")
-            </p>
-            <MiniBarChart Etiquetas="@(new List<string> { "Total", "Procesados", "Pendientes" })"
-                          Valores="@(new List<double> { resumenVoucher.Total, resumenVoucher.Procesados, resumenVoucher.Pendientes })"
-                          SubEtiquetas="@(new List<string> {
-                                            $"$ {resumenVoucher.MontoTotal:0.00}",
-                                            $"$ {resumenVoucher.MontoProcesado:0.00}",
-                                            $"$ {resumenVoucher.MontoPendiente:0.00}" })"
-                          Colores="@(new List<string> { "#2f5496", "#16a34a", "#dc2626" })" />
-        }
-
-        <hr class="my-4" />
-
-        <h5 class="text-center mb-1">Cobros de Monitoria</h5>
-        @if (cargando)
-        {
-            <div class="text-center text-muted py-5">Cargando…</div>
-        }
-        else
-        {
-            <p class="text-center text-muted mb-2" style="font-size: 0.85rem;">
-                Cuotas Generadas: @resumenMonitoria.CuotasGeneradas | Monto Cobrado en el Rango: @resumenMonitoria.MontoCobrado.ToString("0.00")
-            </p>
-            <MiniBarChart Etiquetas="@(new List<string> { "Generadas", "Pagadas", "Pendientes" })"
-                          Valores="@(new List<double> { resumenMonitoria.CuotasGeneradas, resumenMonitoria.CuotasPagadas, resumenMonitoria.CuotasPendientes })"
-                          SubEtiquetas="@(new List<string> {
-                                            $"$ {resumenMonitoria.MontoGenerado:0.00}",
-                                            $"$ {resumenMonitoria.MontoCobrado:0.00}",
-                                            $"$ {resumenMonitoria.MontoPendiente:0.00}" })"
-                          Colores="@(new List<string> { "#2f5496", "#16a34a", "#dc2626" })" />
-        }
-
-        <hr class="my-4" />
-
-        <h5 class="text-center mb-1">Balance (Ingresos por Forma de Pago)</h5>
-        @if (cargando)
-        {
-            <div class="text-center text-muted py-5">Cargando…</div>
-        }
-        else if (balance == null || balance.Items.Count == 0)
-        {
-            <div class="empty-state">
-                <i class="fas fa-chart-pie"></i>
-                <p>No hay pagos registrados en el rango seleccionado.</p>
-            </div>
-        }
-        else
-        {
-            <p class="text-center text-muted mb-2" style="font-size: 0.85rem;">Total: @balance.Total.ToString("0.00")</p>
-            <MiniBarChart Etiquetas="@(balance.Items.Select(x => x.FormaDePago).ToList())"
-                          Valores="@(balance.Items.Select(x => (double)x.Valor).ToList())"
-                          SubEtiquetas="@(balance.Items.Select(x => $"{x.Registros} pagos").ToList())"
-                          EsMoneda="true" />
         }
     </div>
 </div>
@@ -213,24 +196,9 @@
     private ResumenVoucherDTO resumenVoucher = new();
     private ResumenMonitoriaDTO resumenMonitoria = new();
     private BalanceResultadoDTO? balance;
+    private int totalCarreras;
+    private double? variacionCarreras;
     private bool cargando = false;
-
-    private static readonly string[] Paleta =
-    {
-        "#2f5496", "#f59e0b", "#16a34a", "#7c3aed", "#dc2626", "#0891b2", "#db2777", "#65a30d"
-    };
-
-    // Alto del area del grafico en pixeles (no en %, para evitar problemas de resolucion de
-    // porcentajes anidados en flexbox entre navegadores).
-    private const int ChartAltoPx = 300;
-
-    private int MaxEje => datos.Count == 0
-        ? 100
-        : (int)(Math.Ceiling((datos.Max(x => x.Cantidad) + 1) / 100.0) * 100);
-
-    private int MaxEjeUnidad => datosUnidad.Count == 0
-        ? 100
-        : (int)(Math.Ceiling((datosUnidad.Max(x => x.Cantidad) + 1) / 100.0) * 100);
 
     protected override async Task OnInitializedAsync()
     {
@@ -253,6 +221,16 @@
             resumenVoucher = await ordenPagoRepo.GetResumenVouchers(desde, hasta);
             resumenMonitoria = await pagosRepo.GetResumenMonitoria(desde, hasta);
             balance = await balanceRepo.GetBalance(desde, hasta);
+
+            totalCarreras = datos.Sum(x => x.Cantidad);
+
+            // Variacion vs. el periodo anterior de la misma duracion (mismo endpoint, rango desplazado).
+            var dias = (hasta.Date - desde.Date).Days + 1;
+            var hastaAnterior = desde.Date.AddDays(-1);
+            var desdeAnterior = hastaAnterior.AddDays(-(dias - 1));
+            var datosAnteriores = await pedidoRepo.GetCantidadPedidosPorUsuario(desdeAnterior, hastaAnterior);
+            var totalAnterior = datosAnteriores.Sum(x => x.Cantidad);
+            variacionCarreras = totalAnterior == 0 ? null : (double)(totalCarreras - totalAnterior) / totalAnterior * 100;
         }
         catch (Exception ex)
         {
@@ -263,6 +241,4 @@
             cargando = false;
         }
     }
-
-    private string ColorUsuario(int index) => Paleta[index % Paleta.Length];
 }

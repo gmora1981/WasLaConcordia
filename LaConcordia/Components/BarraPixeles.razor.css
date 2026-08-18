@@ -1,0 +1,81 @@
+.dash-chart-area {
+    position: relative;
+    padding-left: 45px;
+    margin-top: 10px;
+}
+
+.dash-chart-gridline {
+    position: absolute;
+    left: 0;
+    right: 0;
+    border-top: 1px dashed #eef0f5;
+}
+
+.dash-chart-gridline span {
+    position: absolute;
+    left: -42px;
+    top: -8px;
+    font-size: 0.68rem;
+    color: #b0b7c3;
+    width: 36px;
+    text-align: right;
+}
+
+.dash-chart-axis {
+    position: absolute;
+    left: 45px;
+    right: 0;
+    bottom: 0;
+    top: 0;
+    border-left: 2px solid #eef0f5;
+    border-bottom: 2px solid #eef0f5;
+}
+
+.dash-chart-bars {
+    display: flex;
+    gap: 1.25rem;
+    width: 100%;
+    padding-left: 15px;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.dash-chart-bar-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    position: relative;
+}
+
+.dash-chart-bar-value {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #6b7280;
+}
+
+.dash-chart-bar {
+    position: absolute;
+    bottom: 0;
+    width: 55%;
+    border-radius: 6px 6px 0 0;
+    background: #1e3a63;
+}
+
+.dash-chart-labels {
+    display: flex;
+    gap: 1.25rem;
+    padding-left: 60px;
+    margin-top: 8px;
+}
+
+.dash-chart-labels div {
+    flex: 1;
+    text-align: center;
+    font-size: 0.75rem;
+    color: #6b7280;
+    font-weight: 600;
+}

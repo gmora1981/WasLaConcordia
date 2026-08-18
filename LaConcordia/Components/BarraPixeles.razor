@@ -1,0 +1,50 @@
+@* Grafico de barras verticales de un solo color, alturas calculadas en pixeles (no en %, para
+   evitar problemas de resolucion de porcentajes anidados en flexbox entre navegadores). *@
+
+<div class="dash-chart-area" style="height: @(AltoPx)px;">
+    @for (int i = 0; i <= 4; i++)
+    {
+        var valor = MaxEje * i / 4;
+        var bottomPx = AltoPx * i / 4;
+        <div class="dash-chart-gridline" style="bottom: @(bottomPx)px;">
+            <span>@FormatearNumero(valor)</span>
+        </div>
+    }
+    <div class="dash-chart-axis"></div>
+
+    <div class="dash-chart-bars" style="height: @(AltoPx)px;">
+        @for (int i = 0; i < Valores.Count; i++)
+        {
+            var alturaPx = MaxEje == 0 ? 0 : (int)Math.Round(Valores[i] * (double)AltoPx / MaxEje);
+            <div class="dash-chart-bar-col" style="height: @(AltoPx)px;">
+                <div class="dash-chart-bar-value" style="bottom: @(alturaPx)px;">@FormatearNumero(Valores[i])</div>
+                <div class="dash-chart-bar" style="height: @(alturaPx)px;"></div>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="dash-chart-labels">
+    @foreach (var etiqueta in Etiquetas)
+    {
+        <div>@etiqueta</div>
+    }
+</div>
+
+@code {
+    [Parameter] public List<string> Etiquetas { get; set; } = new();
+    [Parameter] public List<double> Valores { get; set; } = new();
+    [Parameter] public int AltoPx { get; set; } = 260;
+
+    private double MaxEje => Valores.Count == 0 || Valores.Max() <= 0
+        ? 100
+        : RedondearArriba(Valores.Max());
+
+    private static double RedondearArriba(double max)
+    {
+        var magnitud = Math.Pow(10, Math.Floor(Math.Log10(max)));
+        return Math.Ceiling((max + magnitud * 0.1) / magnitud) * magnitud;
+    }
+
+    private static string FormatearNumero(double valor) => Math.Round(valor).ToString("N0");
+}
