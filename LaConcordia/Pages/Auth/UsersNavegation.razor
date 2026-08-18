@@ -160,6 +160,16 @@
                     </div>
 
                     <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-id-card" style="margin-right: 0.5rem;"></i>Cédula (solo para rol Taxista)
+                            </label>
+                            <InputText class="form-control" @bind-Value="userInfo.Cedula" placeholder="Cédula del socio/conductor" />
+                            <small class="text-muted">Vincula la cuenta a su Ficha Personal para la app del conductor.</small>
+                        </div>
+                    </div>
+
+                    <div class="row">
                         @if (!isEditMode)
                         {
                             <div class="col-md-6 mb-3">
@@ -493,6 +503,7 @@
             Email = user.Email,
             FirstName = user.FirstName,
             LastName = user.LastName,
+            Cedula = user.Cedula,
             Password = "",
             ConfirmPassword = ""
         };

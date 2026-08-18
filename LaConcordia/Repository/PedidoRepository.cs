@@ -149,5 +149,83 @@ namespace LaConcordia.Repository
 
             return await response.Content.ReadAsByteArrayAsync();
         }
+
+        // ===== App del conductor (Taxista) =====
+
+        public async Task<InfoConductorDTO?> GetMiInfoConductor()
+        {
+            var response = await _httpClient.GetAsync("api/Pedido/GetMiInfoConductor");
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new Exception(errorContent);
+            }
+            return await response.Content.ReadFromJsonAsync<InfoConductorDTO>();
+        }
+
+        public async Task<List<PedidoDTO>> GetCarrerasAsignadas(string? estado = null)
+        {
+            var url = "api/Pedido/GetCarrerasAsignadas";
+            if (!string.IsNullOrEmpty(estado))
+                url += $"?estado={Uri.EscapeDataString(estado)}";
+
+            var response = await _httpClient.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new Exception(errorContent);
+            }
+            return await response.Content.ReadFromJsonAsync<List<PedidoDTO>>() ?? new List<PedidoDTO>();
+        }
+
+        public async Task TomarCarrera(TomarCarreraRequestDTO request)
+        {
+            var response = await _httpClient.PostAsJsonAsync("api/Pedido/TomarCarrera", request);
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new Exception(errorContent);
+            }
+        }
+
+        public async Task FinalizarCarrera(FinalizarCarreraRequestDTO request)
+        {
+            var response = await _httpClient.PostAsJsonAsync("api/Pedido/FinalizarCarrera", request);
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new Exception(errorContent);
+            }
+        }
+
+        public async Task<GananciasConductorDTO> GetGananciasConductor(DateTime desde, DateTime hasta)
+        {
+            var url = $"api/Pedido/GetGananciasConductor?desde={desde:yyyy-MM-dd}&hasta={hasta:yyyy-MM-dd}";
+            return await _httpClient.GetFromJsonAsync<GananciasConductorDTO>(url) ?? new GananciasConductorDTO();
+        }
+
+        private static string ConstruirQueryIdentificador(PedidoIdentificadorDTO id)
+        {
+            return $"Celular={Uri.EscapeDataString(id.Celular)}" +
+                   $"&Origenlat={id.Origenlat}&Origenlog={id.Origenlog}" +
+                   $"&Destinolat={id.Destinolat}&Destinolog={id.Destinolog}" +
+                   $"&FechaRegistroPedido={id.FechaRegistroPedido:yyyy-MM-ddTHH:mm:ss}";
+        }
+
+        public async Task<CalificarCarreraRequestDTO?> GetCalificacionCarrera(PedidoIdentificadorDTO id)
+        {
+            var url = $"api/Pedido/GetCalificacionCarrera?{ConstruirQueryIdentificador(id)}";
+            return await _httpClient.GetFromJsonAsync<CalificarCarreraRequestDTO?>(url);
+        }
+
+        public async Task CalificarCarrera(CalificarCarreraRequestDTO request)
+        {
+            var response = await _httpClient.PostAsJsonAsync("api/Pedido/CalificarCarrera", request);
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                throw new Exception(errorContent);
+            }
+        }
     }
 }

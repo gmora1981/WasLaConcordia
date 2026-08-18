@@ -129,6 +129,36 @@
                         <i class="fas fa-times"></i> Cancelar
                     </button>
                 </div>
+
+                @if (mostrarCalificacion)
+                {
+                    <hr class="my-3" />
+                    <h6><i class="fas fa-star"></i> Calificación del viaje</h6>
+                    <div class="row mb-2">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="form-label">Calificación (1-5)</label>
+                                <select class="form-control" @bind="calificacionEditada">
+                                    <option value="0">-- Sin calificar --</option>
+                                    <option value="1">1</option>
+                                    <option value="2">2</option>
+                                    <option value="3">3</option>
+                                    <option value="4">4</option>
+                                    <option value="5">5</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-9">
+                            <div class="form-group">
+                                <label class="form-label">Comentario</label>
+                                <input class="form-control" @bind="comentarioEditado" placeholder="Observación del viaje (opcional)" />
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn-modern btn-secondary-modern" @onclick="GuardarCalificacion">
+                        <i class="fas fa-star"></i> Guardar Calificación
+                    </button>
+                }
             </div>
         }
     </div>
@@ -143,6 +173,11 @@
     private decimal precioEditado, kmEditado;
     private string estadoEditado = string.Empty;
     private decimal destinoLat, destinoLng;
+
+    // Calificacion del viaje (solo tiene sentido si el conductor ya tomo la carrera desde la app).
+    private bool mostrarCalificacion;
+    private int calificacionEditada;
+    private string comentarioEditado = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -179,7 +214,7 @@
     private bool EsSeleccionado(PedidoDTO p) =>
         seleccionado != null && p.Celular == seleccionado.Celular && p.Fecharegistro == seleccionado.Fecharegistro;
 
-    private void Seleccionar(PedidoDTO p)
+    private async Task Seleccionar(PedidoDTO p)
     {
         seleccionado = p;
         precioEditado = p.Precio ?? 0;
@@ -187,6 +222,66 @@
         estadoEditado = p.Estado ?? string.Empty;
         destinoLat = p.Destinolat;
         destinoLng = p.Destinolog;
+
+        mostrarCalificacion = p.Estado == "PROCESO" || p.Estado == "FINALIZADO";
+        calificacionEditada = 0;
+        comentarioEditado = string.Empty;
+
+        if (mostrarCalificacion)
+        {
+            try
+            {
+                var actual = await pedidoRepo.GetCalificacionCarrera(new PedidoIdentificadorDTO
+                {
+                    Celular = p.Celular,
+                    Origenlat = p.Origenlat,
+                    Origenlog = p.Origenlog,
+                    Destinolat = p.Destinolat,
+                    Destinolog = p.Destinolog,
+                    FechaRegistroPedido = p.Fecharegistro
+                });
+
+                if (actual != null)
+                {
+                    calificacionEditada = actual.Calificacion;
+                    comentarioEditado = actual.Comentario ?? string.Empty;
+                }
+            }
+            catch
+            {
+                // Sin calificacion previa o sin seguimiento (no tomada por la app aun): se deja en blanco.
+            }
+        }
+    }
+
+    private async Task GuardarCalificacion()
+    {
+        if (seleccionado == null || calificacionEditada < 1)
+        {
+            await displayMessage.DisplayErrorMessage("Seleccione una calificación entre 1 y 5.");
+            return;
+        }
+
+        try
+        {
+            await pedidoRepo.CalificarCarrera(new CalificarCarreraRequestDTO
+            {
+                Celular = seleccionado.Celular,
+                Origenlat = seleccionado.Origenlat,
+                Origenlog = seleccionado.Origenlog,
+                Destinolat = seleccionado.Destinolat,
+                Destinolog = seleccionado.Destinolog,
+                FechaRegistroPedido = seleccionado.Fecharegistro,
+                Calificacion = calificacionEditada,
+                Comentario = comentarioEditado
+            });
+
+            await displayMessage.DisplaySuccessMessage("Calificación guardada correctamente.");
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al guardar la calificación: " + ex.Message);
+        }
     }
 
     private async Task Guardar()

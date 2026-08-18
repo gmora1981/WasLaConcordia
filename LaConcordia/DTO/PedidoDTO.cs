@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace LaConcordia.DTO
 {
@@ -70,5 +71,57 @@ namespace LaConcordia.DTO
         public string? Usuario { get; set; }
         public string? Unidad { get; set; }
         public decimal? Precio { get; set; }
+    }
+
+    // App del conductor (Taxista)
+    public class InfoConductorDTO
+    {
+        public string Cedula { get; set; } = null!;
+        public string? NombreCompleto { get; set; }
+        public string? Unidad { get; set; }
+    }
+
+    public class PedidoIdentificadorDTO
+    {
+        public string Celular { get; set; } = null!;
+        public decimal Origenlat { get; set; }
+        public decimal Origenlog { get; set; }
+        public decimal Destinolat { get; set; }
+        public decimal Destinolog { get; set; }
+        public DateTime FechaRegistroPedido { get; set; }
+    }
+
+    public class TomarCarreraRequestDTO : PedidoIdentificadorDTO
+    {
+        public decimal LatInicio { get; set; }
+        public decimal LogInicio { get; set; }
+    }
+
+    public class FinalizarCarreraRequestDTO : PedidoIdentificadorDTO
+    {
+        public decimal LatFin { get; set; }
+        public decimal LogFin { get; set; }
+        public decimal DistanciaKm { get; set; }
+        public decimal PrecioFinal { get; set; }
+    }
+
+    public class CarreraHistorialDTO
+    {
+        public DateTime Fecha { get; set; }
+        public decimal? Precio { get; set; }
+        public decimal? DistanciaKm { get; set; }
+    }
+
+    public class GananciasConductorDTO
+    {
+        public int CantidadCarreras { get; set; }
+        public decimal TotalGanado { get; set; }
+        public List<CarreraHistorialDTO> Historial { get; set; } = new();
+    }
+
+    public class CalificarCarreraRequestDTO : PedidoIdentificadorDTO
+    {
+        public int Calificacion { get; set; }
+        public string? Comentario { get; set; }
     }
 }

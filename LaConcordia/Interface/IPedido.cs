@@ -32,5 +32,14 @@ namespace LaConcordia.Interface
         Task<List<string>> GetUnidadesConPedidos();
         Task<List<PedidoOperadoraDTO>> GetPedidosPorOperadora(string? usuario, DateTime desde, DateTime hasta, string? unidad = null);
         Task<byte[]> ExportarReporteSolicitudCarreraPdf(string? usuario, DateTime desde, DateTime hasta, string? unidad = null);
+
+        // ===== App del conductor (Taxista) =====
+        Task<InfoConductorDTO?> GetMiInfoConductor();
+        Task<List<PedidoDTO>> GetCarrerasAsignadas(string? estado = null);
+        Task TomarCarrera(TomarCarreraRequestDTO request);
+        Task FinalizarCarrera(FinalizarCarreraRequestDTO request);
+        Task<GananciasConductorDTO> GetGananciasConductor(DateTime desde, DateTime hasta);
+        Task<CalificarCarreraRequestDTO?> GetCalificacionCarrera(PedidoIdentificadorDTO id);
+        Task CalificarCarrera(CalificarCarreraRequestDTO request);
     }
 }
