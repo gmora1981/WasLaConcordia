@@ -20,5 +20,9 @@ namespace LaConcordia.Interface
         Task<byte[]> ExportarReporteVoucherPagarPdf(string? unidad, DateTime desde, DateTime hasta);
 
         Task<ResumenVoucherDTO> GetResumenVouchers(DateTime desde, DateTime hasta);
+
+        // Portal de Empresas.
+        Task<string?> GetMiRuc();
+        Task<ResumenVoucherDTO> GetResumenVouchersEmpresa(DateTime desde, DateTime hasta);
     }
 }

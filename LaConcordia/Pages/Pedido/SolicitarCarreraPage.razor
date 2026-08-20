@@ -1,0 +1,169 @@
+@page "/solicitar-carrera"
+@attribute [Authorize(Roles = "Empresa")]
+@using LaConcordia.DTO
+@using LaConcordia.Interface
+@using Microsoft.AspNetCore.Authorization
+@inject ISolicitudCarrera solicitudRepo
+@inject IDisplayMessage displayMessage
+
+<link href="css/AdminCommon.css" rel="stylesheet" />
+
+<div class="page-container">
+    <div class="content-card">
+        <div class="header-section">
+            <h1 class="page-title">
+                <i class="fas fa-taxi"></i> Solicitar Carrera
+            </h1>
+        </div>
+        <p class="text-muted">Pide una carrera para uno de tus empleados. El despachador la revisa y asigna una unidad.</p>
+
+        <div class="content-card" style="margin: 0 0 1.5rem 0; box-shadow: none; border: 1px solid #e5e7eb;">
+            <h5>Nueva Solicitud</h5>
+
+            <div class="row">
+                <div class="col-md-4 mb-2">
+                    <div class="form-group">
+                        <label class="form-label">Celular del Pasajero</label>
+                        <input class="form-control" @bind="nueva.Celular" placeholder="09XXXXXXXX" />
+                    </div>
+                </div>
+                <div class="col-md-4 mb-2">
+                    <div class="form-group">
+                        <label class="form-label">Empleado</label>
+                        <input class="form-control" @bind="nueva.Empleado" placeholder="Nombre del empleado" />
+                    </div>
+                </div>
+                <div class="col-md-4 mb-2 d-flex align-items-end">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="chkDestinoSolicitud" @bind="tieneDestino" />
+                        <label class="form-check-label" for="chkDestinoSolicitud">Tiene destino definido</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-8 mb-2">
+                    <div class="form-group">
+                        <label class="form-label">Observación</label>
+                        <input class="form-control" @bind="nueva.Observacion" placeholder="Referencia, indicaciones adicionales..." />
+                    </div>
+                </div>
+            </div>
+
+            <label class="form-label">Origen@(tieneDestino ? " / Destino" : "")</label>
+            <MapaSelectorDual OrigenLat="@origenLat" OrigenLatChanged="@((decimal v) => origenLat = v)"
+                              OrigenLng="@origenLng" OrigenLngChanged="@((decimal v) => origenLng = v)"
+                              DestinoLat="@destinoLat" DestinoLatChanged="@((decimal v) => destinoLat = v)"
+                              DestinoLng="@destinoLng" DestinoLngChanged="@((decimal v) => destinoLng = v)"
+                              MostrarDestino="@tieneDestino" Height="320px" />
+
+            <div class="action-buttons mt-3">
+                <button class="btn-modern btn-primary-modern" @onclick="Enviar" disabled="@(!PuedeEnviar || enviando)">
+                    <i class="fas fa-paper-plane"></i> @(enviando ? "Enviando..." : "Enviar Solicitud")
+                </button>
+            </div>
+        </div>
+
+        <h5>Mis Solicitudes</h5>
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Celular</th>
+                    <th>Empleado</th>
+                    <th>Observación</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (misSolicitudes.Count > 0)
+                {
+                    @foreach (var s in misSolicitudes)
+                    {
+                        <tr>
+                            <td>@s.Fechasolicitud.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@s.Celular</td>
+                            <td>@s.Empleado</td>
+                            <td>@s.Observacion</td>
+                            <td>
+                                @if (s.Estado == "PENDIENTE")
+                                {
+                                    <span class="badge-modern badge-danger">Pendiente</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-modern badge-success">Convertida</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="5" class="empty-state">
+                            <i class="fas fa-taxi"></i>
+                            <p>Todavía no has hecho ninguna solicitud.</p>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    private CrearSolicitudCarreraRequestDTO nueva = new();
+    private List<SolicitudCarreraDTO> misSolicitudes = new();
+    private bool tieneDestino = false;
+    private decimal origenLat, origenLng, destinoLat, destinoLng;
+    private bool enviando = false;
+
+    private bool PuedeEnviar => !string.IsNullOrWhiteSpace(nueva.Celular) && origenLat != 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Cargar();
+    }
+
+    private async Task Cargar()
+    {
+        try
+        {
+            misSolicitudes = await solicitudRepo.GetMisSolicitudes();
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al cargar tus solicitudes: " + ex.Message);
+        }
+    }
+
+    private async Task Enviar()
+    {
+        enviando = true;
+        try
+        {
+            nueva.Origenlat = origenLat;
+            nueva.Origenlog = origenLng;
+            nueva.Destinolat = tieneDestino ? destinoLat : null;
+            nueva.Destinolog = tieneDestino ? destinoLng : null;
+
+            await solicitudRepo.CrearSolicitud(nueva);
+            await displayMessage.DisplaySuccessMessage("Solicitud enviada. El despachador la revisará en breve.");
+
+            nueva = new CrearSolicitudCarreraRequestDTO();
+            tieneDestino = false;
+            origenLat = 0; origenLng = 0; destinoLat = 0; destinoLng = 0;
+
+            await Cargar();
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al enviar la solicitud: " + ex.Message);
+        }
+        finally
+        {
+            enviando = false;
+        }
+    }
+}

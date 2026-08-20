@@ -60,6 +60,7 @@ builder.Services.AddScoped<IBalance, BalanceRepository>();
 builder.Services.AddScoped<IGeocoding, GeocodingRepository>();
 builder.Services.AddScoped<IControlUnidad, ControlUnidadRepository>();
 builder.Services.AddScoped<IOrdenPago, OrdenPagoRepository>();
+builder.Services.AddScoped<ISolicitudCarrera, SolicitudCarreraRepository>();
 
 configureservices(builder.Services);
 

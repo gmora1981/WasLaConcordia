@@ -8,6 +8,7 @@
 @inject IEmpresa empresaRepo
 @inject IFichapersonal fichaRepo
 @inject IGeocoding geocodingRepo
+@inject ISolicitudCarrera solicitudRepo
 @inject IJSRuntime JS
 @inject IDisplayMessage displayMessage
 
@@ -20,6 +21,42 @@
                 <i class="fas fa-taxi"></i> Gestión de Pedidos
             </h1>
         </div>
+
+        @if (solicitudesPendientes.Count > 0)
+        {
+            <div class="content-card" style="margin: 0 0 1.5rem 0; box-shadow: none; border: 1px solid #f59e0b; background: #fffbeb;">
+                <h5><i class="fas fa-bell"></i> Solicitudes de Empresas Pendientes (@solicitudesPendientes.Count)</h5>
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Empresa</th>
+                            <th>Celular</th>
+                            <th>Empleado</th>
+                            <th>Observación</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in solicitudesPendientes)
+                        {
+                            <tr>
+                                <td>@s.Fechasolicitud.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@s.RazonSocial</td>
+                                <td>@s.Celular</td>
+                                <td>@s.Empleado</td>
+                                <td>@s.Observacion</td>
+                                <td>
+                                    <button class="btn-modern btn-primary-modern" @onclick="() => UsarSolicitud(s)">
+                                        <i class="fas fa-arrow-right"></i> Usar
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
 
         <!-- Filtros de búsqueda -->
         <div class="content-card" style="margin: 0 0 1.5rem 0; box-shadow: none; border: 1px solid #e5e7eb;">
@@ -403,11 +440,55 @@
     private string enlaceMapa = string.Empty;
     private string celularConductorNotif = string.Empty;
 
+    // Solicitudes de carrera hechas por empresas desde su portal, pendientes de convertir en Pedido.
+    private List<SolicitudCarreraDTO> solicitudesPendientes = new();
+    private int? idsolicitudActual;
+
     protected override async Task OnInitializedAsync()
     {
         pedidoSeleccionado.Fecharegistro = DateTime.Now;
         empresas = (await empresaRepo.GetEmpresaInfoAll()).Where(e => e.Estado == "a").ToList();
         await CargarPedidosAsync();
+        await CargarSolicitudesPendientesAsync();
+    }
+
+    private async Task CargarSolicitudesPendientesAsync()
+    {
+        try
+        {
+            solicitudesPendientes = await solicitudRepo.GetSolicitudesPendientes();
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al cargar las solicitudes de empresas: " + ex.Message);
+        }
+    }
+
+    private void UsarSolicitud(SolicitudCarreraDTO s)
+    {
+        NuevoRegistro();
+
+        idsolicitudActual = s.Idsolicitud;
+        pedidoSeleccionado.Celular = s.Celular;
+        pedidoSeleccionado.Empleado = s.Empleado;
+        pedidoSeleccionado.Ruc = s.Ruc;
+        facturarAEmpresa = true;
+
+        origenLat = s.Origenlat;
+        origenLng = s.Origenlog;
+
+        if (s.Destinolat.HasValue && s.Destinolog.HasValue)
+        {
+            tieneDestino = true;
+            destinoLat = s.Destinolat.Value;
+            destinoLng = s.Destinolog.Value;
+        }
+        else
+        {
+            tieneDestino = false;
+        }
+
+        pasajeroActual = new PasajeroDTO { Celular = s.Celular };
     }
 
     private async Task CargarPedidosAsync()
@@ -480,6 +561,7 @@
         facturarAEmpresa = !string.IsNullOrEmpty(p.Ruc);
         conRelevo = !string.IsNullOrEmpty(p.Unidadsiguiente);
         esNuevo = false;
+        idsolicitudActual = null;
     }
 
     private void NuevoRegistro()
@@ -498,6 +580,7 @@
         tieneDestino = true;
         origenLat = 0; origenLng = 0; destinoLat = 0; destinoLng = 0;
         esNuevo = true;
+        idsolicitudActual = null;
     }
 
     private async Task BuscarPasajero()
@@ -673,6 +756,20 @@
                 // impedir que el pedido ya guardado se de por exitoso.
                 await GuardarPasajeroYDireccionesAsync();
 
+                // Si este Pedido vino de una solicitud de una empresa, se cierra la solicitud.
+                // No debe impedir que el pedido ya guardado se de por exitoso si esto falla.
+                if (idsolicitudActual.HasValue)
+                {
+                    try
+                    {
+                        await solicitudRepo.MarcarConvertida(idsolicitudActual.Value);
+                    }
+                    catch (Exception ex)
+                    {
+                        await displayMessage.DisplayErrorMessage("El pedido se guardó, pero no se pudo cerrar la solicitud: " + ex.Message);
+                    }
+                }
+
                 await MostrarNotificacion();
             }
             else
@@ -681,6 +778,7 @@
             }
 
             await CargarPedidosAsync();
+            await CargarSolicitudesPendientesAsync();
             NuevoRegistro();
         }
         catch (Exception ex)

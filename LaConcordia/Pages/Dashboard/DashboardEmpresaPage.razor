@@ -1,0 +1,123 @@
+@page "/dashboard-empresa"
+@attribute [Authorize(Roles = "Empresa")]
+@using LaConcordia.DTO
+@using LaConcordia.Interface
+@using Microsoft.AspNetCore.Authorization
+@inject IOrdenPago ordenPagoRepo
+@inject IDisplayMessage displayMessage
+
+<link href="css/AdminCommon.css" rel="stylesheet" />
+
+<div class="page-container">
+    <div class="content-card">
+
+        <div class="dash-header">
+            <div>
+                <h1 class="dash-title">Mi Dashboard</h1>
+                <p class="dash-subtitle">Resumen de vouchers de mi empresa.</p>
+            </div>
+            <div class="dash-date-pill">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Desde:</span>
+                <input type="date" @bind="desde" @bind:after="Cargar" />
+                <span>-</span>
+                <span>Hasta:</span>
+                <input type="date" @bind="hasta" @bind:after="Cargar" />
+            </div>
+        </div>
+
+        @if (cargando)
+        {
+            <div class="text-center text-muted py-5">Cargando…</div>
+        }
+        else
+        {
+            <div class="dash-kpi-row">
+                <div class="dash-kpi-card">
+                    <div class="dash-kpi-icon bg-blue"><i class="fas fa-file-invoice-dollar"></i></div>
+                    <div>
+                        <div class="dash-kpi-label">Total Vouchers</div>
+                        <div class="dash-kpi-value">@resumen.Total.ToString("N0")</div>
+                    </div>
+                </div>
+                <div class="dash-kpi-card">
+                    <div class="dash-kpi-icon bg-green"><i class="fas fa-check-circle"></i></div>
+                    <div>
+                        <div class="dash-kpi-label">Procesados</div>
+                        <div class="dash-kpi-value">$@resumen.MontoProcesado.ToString("N0")</div>
+                    </div>
+                </div>
+                <div class="dash-kpi-card">
+                    <div class="dash-kpi-icon bg-red"><i class="fas fa-exclamation-circle"></i></div>
+                    <div>
+                        <div class="dash-kpi-label">Pendientes</div>
+                        <div class="dash-kpi-value text-red">$@resumen.MontoPendiente.ToString("N0")</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dash-card">
+                <h3>Detalle por Estado</h3>
+                <div class="dash-list-row">
+                    <span class="dash-dot bg-blue"></span>
+                    <div class="dash-list-info">
+                        <div class="dash-list-label">Total</div>
+                        <div class="dash-list-sub">@resumen.Total uds</div>
+                    </div>
+                    <div class="dash-list-value">$@resumen.MontoTotal.ToString("N0")</div>
+                </div>
+                <div class="dash-list-row">
+                    <span class="dash-dot bg-green"></span>
+                    <div class="dash-list-info">
+                        <div class="dash-list-label">Procesados</div>
+                        <div class="dash-list-sub">@resumen.Procesados uds</div>
+                    </div>
+                    <div class="dash-list-value text-green">$@resumen.MontoProcesado.ToString("N0")</div>
+                </div>
+                <div class="dash-list-row">
+                    <span class="dash-dot bg-red"></span>
+                    <div class="dash-list-info">
+                        <div class="dash-list-label">Pendientes</div>
+                        <div class="dash-list-sub">@resumen.Pendientes uds</div>
+                    </div>
+                    <div class="dash-list-value text-red">$@resumen.MontoPendiente.ToString("N0")</div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private DateTime desde = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private DateTime hasta = DateTime.Today;
+    private ResumenVoucherDTO resumen = new();
+    private bool cargando = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Cargar();
+    }
+
+    private async Task Cargar()
+    {
+        if (desde > hasta)
+        {
+            await displayMessage.DisplayErrorMessage("La fecha 'Desde' no puede ser posterior a 'Hasta'.");
+            return;
+        }
+
+        cargando = true;
+        try
+        {
+            resumen = await ordenPagoRepo.GetResumenVouchersEmpresa(desde, hasta);
+        }
+        catch (Exception ex)
+        {
+            await displayMessage.DisplayErrorMessage("Error al cargar el dashboard: " + ex.Message);
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+}

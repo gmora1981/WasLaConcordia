@@ -109,5 +109,18 @@ namespace LaConcordia.Repository
             var url = $"api/OrdenPago/GetResumenVouchers?desde={desde:yyyy-MM-dd}&hasta={hasta:yyyy-MM-dd}";
             return await _httpClient.GetFromJsonAsync<ResumenVoucherDTO>(url) ?? new ResumenVoucherDTO();
         }
+
+        public async Task<string?> GetMiRuc()
+        {
+            var response = await _httpClient.GetAsync("api/OrdenPago/GetMiRuc");
+            if (!response.IsSuccessStatusCode) return null;
+            return await response.Content.ReadFromJsonAsync<string>();
+        }
+
+        public async Task<ResumenVoucherDTO> GetResumenVouchersEmpresa(DateTime desde, DateTime hasta)
+        {
+            var url = $"api/OrdenPago/GetResumenVouchersEmpresa?desde={desde:yyyy-MM-dd}&hasta={hasta:yyyy-MM-dd}";
+            return await _httpClient.GetFromJsonAsync<ResumenVoucherDTO>(url) ?? new ResumenVoucherDTO();
+        }
     }
 }

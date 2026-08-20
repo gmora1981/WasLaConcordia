@@ -20,6 +20,7 @@ namespace LaConcordia.Model
         public string LastName { get; set; } = string.Empty;
 
         public string? Cedula { get; set; }
+        public string? Ruc { get; set; }
 
         [DataType(DataType.Password)]
         public string Password { get; set; } = string.Empty;

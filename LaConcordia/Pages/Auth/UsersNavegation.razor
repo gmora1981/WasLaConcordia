@@ -167,6 +167,13 @@
                             <InputText class="form-control" @bind-Value="userInfo.Cedula" placeholder="Cédula del socio/conductor" />
                             <small class="text-muted">Vincula la cuenta a su Ficha Personal para la app del conductor.</small>
                         </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-building" style="margin-right: 0.5rem;"></i>Ruc (solo para rol Empresa)
+                            </label>
+                            <InputText class="form-control" @bind-Value="userInfo.Ruc" placeholder="Ruc de la empresa" />
+                            <small class="text-muted">Vincula la cuenta a su Empresa para el portal de facturación.</small>
+                        </div>
                     </div>
 
                     <div class="row">
@@ -504,6 +511,7 @@
             FirstName = user.FirstName,
             LastName = user.LastName,
             Cedula = user.Cedula,
+            Ruc = user.Ruc,
             Password = "",
             ConfirmPassword = ""
         };

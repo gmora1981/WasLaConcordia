@@ -1,8 +1,11 @@
 @page "/facturacion"
+@attribute [Authorize(Roles = "Admin,Empresa")]
 @using LaConcordia.DTO
 @using LaConcordia.Interface
+@using Microsoft.AspNetCore.Authorization
 @inject IOrdenPago ordenPagoRepo
 @inject IEmpresa empresaRepo
+@inject AuthenticationStateProvider authenticationStateProvider
 @inject IDisplayMessage displayMessage
 @inject IJSRuntime JS
 
@@ -18,23 +21,26 @@
         <p class="text-muted">Listado de vouchers generados por empresa.</p>
 
         <div class="d-flex gap-2 mb-2" style="flex-wrap: wrap; align-items: end;">
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label">Estado</label>
-                <select class="form-control" style="width: 160px;" @bind="estadoFiltro" @bind:after="OnEstadoFiltroChanged">
-                    <option value="a">Activo</option>
-                    <option value="i">Inactivo</option>
-                </select>
-            </div>
-            <div class="form-group" style="max-width: 350px; margin-bottom: 0;">
-                <label class="form-label">Empresa</label>
-                <select class="form-control" @bind="rucSeleccionado" @bind:after="Buscar">
-                    <option value="">-- Seleccione --</option>
-                    @foreach (var e in empresasFiltradas)
-                    {
-                        <option value="@e.Ruc">@e.Razonsocial</option>
-                    }
-                </select>
-            </div>
+            @if (!esEmpresa)
+            {
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Estado</label>
+                    <select class="form-control" style="width: 160px;" @bind="estadoFiltro" @bind:after="OnEstadoFiltroChanged">
+                        <option value="a">Activo</option>
+                        <option value="i">Inactivo</option>
+                    </select>
+                </div>
+                <div class="form-group" style="max-width: 350px; margin-bottom: 0;">
+                    <label class="form-label">Empresa</label>
+                    <select class="form-control" @bind="rucSeleccionado" @bind:after="Buscar">
+                        <option value="">-- Seleccione --</option>
+                        @foreach (var e in empresasFiltradas)
+                        {
+                            <option value="@e.Ruc">@e.Razonsocial</option>
+                        }
+                    </select>
+                </div>
+            }
             <div class="form-group" style="margin-bottom: 0;">
                 <label class="form-label">Hasta</label>
                 <input type="date" class="form-control" @bind="fechaHasta" @bind:after="Buscar" />
@@ -100,10 +106,27 @@
     private string rucSeleccionado = string.Empty;
     private DateTime? fechaHasta;
     private List<OrdenPagoResumenDTO> lista = new();
+    private bool esEmpresa = false;
 
     protected override async Task OnInitializedAsync()
     {
+        var authState = await authenticationStateProvider.GetAuthenticationStateAsync();
+        esEmpresa = authState.User.IsInRole("Empresa");
+
+        // Se carga siempre (tambien para Empresa): hace falta para resolver la Razon Social
+        // al exportar el PDF, aunque el combo de seleccion quede oculto para ese rol.
         todasLasEmpresas = await empresaRepo.GetEmpresaInfoAll();
+
+        if (esEmpresa)
+        {
+            // Una empresa solo ve su propia facturacion, siempre "Activo" (estadoFiltro ya
+            // arranca en "a"), sin poder elegir otra empresa ni ver inactivos.
+            rucSeleccionado = await ordenPagoRepo.GetMiRuc() ?? string.Empty;
+            if (!string.IsNullOrEmpty(rucSeleccionado))
+                await Buscar();
+            else
+                await displayMessage.DisplayErrorMessage("Esta cuenta no tiene una empresa vinculada.");
+        }
     }
 
     private void OnEstadoFiltroChanged()
